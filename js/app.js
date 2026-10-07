@@ -132,6 +132,7 @@ function authErrText(err) {
   if (c.includes('popup-closed') || c.includes('cancelled-popup')) return '';
   if (c.includes('unauthorized-domain')) return 'Tên miền này chưa được thêm vào Firebase Auth → Settings → Authorized domains.';
   if (c.includes('network')) return 'Không có kết nối mạng.';
+  if (c.includes('internal-error')) return 'Không mở được đăng nhập Google. Tắt trình chặn quảng cáo (AdBlock...) cho trang này rồi thử lại, hoặc đăng nhập bằng email + mật khẩu.';
   return (err && err.message) || 'Đăng nhập không thành công.';
 }
 

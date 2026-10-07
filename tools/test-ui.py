@@ -120,7 +120,7 @@ with sync_playwright() as p:
         m.click(f'.nav-btn[data-page="{t}"]'); m.wait_for_timeout(500)
     m.click('#tcAccIconBtn'); m.wait_for_timeout(500)
     m.screenshot(path=f'{shots}/care-mobile-account.png')
-    m.click('#tmAccDone'); m.wait_for_timeout(300)
+    m.click('#sheetBackdrop', position={'x': 200, 'y': 100}); m.wait_for_timeout(300)
     # mở lại trang: lần này phải lấy mảnh từ IndexedDB, chỉ đọc meta
     m.evaluate('window.__FAKE.reads = []')
     m.reload(); m.wait_for_selector('#tmAuth.hidden', state='attached', timeout=8000); m.wait_for_timeout(800)

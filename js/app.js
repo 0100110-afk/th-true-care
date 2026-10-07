@@ -374,10 +374,9 @@ function showAccountDialog(okMsg) {
       '<div class="tm-acc-actions"><button type="submit" class="btn" id="tmAccSave">Lưu mật khẩu</button>' +
       '<button type="button" class="btn secondary" id="tmAccCancel">Huỷ</button></div>' +
     '</form>' +
-    '<div class="tm-acc-actions tm-acc-bottom">' +
-      '<button type="button" class="btn secondary tm-acc-logout" id="tmAccLogout">Đăng xuất</button>' +
-      '<button type="button" class="btn secondary" id="tmAccDone">Đóng</button>' +
-    '</div>' +
+    // Máy tính: Đăng xuất nằm ở ô tài khoản cuối sidebar (giống Hệ thống quản lý), hộp chỉ có nút ✕.
+    // Điện thoại: không có chỗ nào khác để đăng xuất -> giữ một nút ở cuối hộp.
+    (MOBILE ? '<div class="tm-acc-bottom"><button type="button" class="btn secondary tm-acc-logout" id="tmAccLogout">Đăng xuất</button></div>' : '') +
   '</div>';
   shell.open();
   const msg = (t, ok) => { const m = document.getElementById('tmAccMsg'); if (!m) return; m.textContent = t; m.className = 'tm-acc-msg' + (ok ? ' ok' : ''); };
@@ -389,8 +388,8 @@ function showAccountDialog(okMsg) {
     showAccountDialog(okText);
   };
 
-  document.getElementById('tmAccDone').onclick = () => shell.close();
-  document.getElementById('tmAccLogout').onclick = doLogout;
+  const lo = document.getElementById('tmAccLogout');
+  if (lo) lo.onclick = doLogout;
   const linkBtn = document.getElementById('tmAccLinkG');
   if (linkBtn) linkBtn.onclick = async () => {
     linkBtn.disabled = true; msg('');

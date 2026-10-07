@@ -63,23 +63,23 @@
 
 /* Hộp Tài khoản — chữ, nút (.btn / .btn.secondary), ô nhập (.field-group) DÙNG LẠI class của app.
    Bản điện thoại nằm trong bottom sheet sẵn có; bản máy tính dùng khung .tc-modal dưới đây. */
-.tc-modal-overlay{position:fixed; inset:0; z-index:1000; background:rgba(11,35,60,.45);
+.tc-modal-overlay{position:fixed; inset:0; z-index:1000; background:rgba(11,25,20,.5); backdrop-filter:blur(2px);
   display:flex; align-items:center; justify-content:center; padding:20px;
   opacity:0; visibility:hidden; pointer-events:none; transition:opacity .18s ease, visibility .18s;}
 .tc-modal-overlay.show{opacity:1; visibility:visible; pointer-events:auto;}
-.tc-modal{width:100%; max-width:440px; max-height:90vh; overflow-y:auto; background:#fff; border-radius:var(--radius,14px);
+.tc-modal{width:100%; max-width:440px; max-height:90vh; overflow-y:auto; background:#fff; border-radius:16px;
   box-shadow:0 24px 60px -18px rgba(0,0,0,.45); color:var(--ink-900,#33424B);}
-.tc-modal-head{display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border,#E1E9F2);}
+.tc-modal-head{display:flex; align-items:center; justify-content:space-between; padding:20px 24px; border-bottom:1px solid var(--border,#E1E9F2);}
 .tc-modal-head h3{font-size:16px; font-weight:700; color:var(--brand-900,#0B4C8C);}
-.tc-modal-close{border:none; background:none; font-size:16px; color:var(--ink-500,#71828B); cursor:pointer; padding:4px 6px; border-radius:8px;}
-.tc-modal-close:hover{background:var(--gray-bg,#EEF3F8);}
-.tc-modal-body{padding:18px 20px 20px;}
+.tc-modal-close{border:none; background:none; font-size:20px; line-height:1; color:var(--ink-500,#71828B); cursor:pointer; padding:0;}
+.tc-modal-body{padding:22px 24px;}
 /* field-group chỉ có sẵn trong bản điện thoại -> định nghĩa cho khung máy tính */
 .tc-modal .field-group{margin-bottom:12px;}
 .tc-modal .field-group label{display:block; font-size:12px; font-weight:600; color:var(--brand-900,#0B4C8C); margin-bottom:6px;}
 .tc-modal .field-group input{width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid var(--border,#E1E9F2);
-  border-radius:var(--radius-sm,10px); font-size:14px; outline:none; background:#fff; color:var(--ink-900,#33424B);}
+  border-radius:8px; font-size:13.5px; outline:none; background:#fff; color:var(--ink-900,#33424B);}
 .tc-modal .field-group input:focus{outline:2px solid var(--brand-500,#2E9BE0); outline-offset:1px;}
+.tc-acc-sheet .field-group label{color:var(--brand-900,#0B4C8C); font-weight:600;}
 .tc-acc-sheet .field-group input{background:#fff;}
 
 .tm-acc{display:flex; flex-direction:column; gap:10px;}
@@ -95,6 +95,7 @@
 .tm-acc-msg.ok{color:var(--brand-700,#136FBF);}
 .tm-acc-actions{display:flex; flex-wrap:wrap; gap:8px;}
 .tm-acc-actions .btn{flex:1 1 140px; justify-content:center;}
-.tm-acc-bottom{margin-top:6px; padding-top:12px; border-top:1px solid var(--border,#E1E9F2);}
+.tm-acc-bottom{display:flex; margin-top:6px; padding-top:12px; border-top:1px solid var(--border,#E1E9F2);}
+.tm-acc-bottom .btn{flex:1;}
 .tm-acc .btn.tm-acc-logout{color:#C1443A;}
 .tm-acc [hidden]{display:none !important;}

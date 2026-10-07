@@ -1,0 +1,17 @@
+{
+  "name": "TH true care · Quản lý thiết bị",
+  "short_name": "TH true care",
+  "description": "Tra cứu thiết bị, bảo hành, chi phí sửa chữa và đơn giá — TH true care",
+  "lang": "vi",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0B4C8C",
+  "theme_color": "#0B4C8C",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

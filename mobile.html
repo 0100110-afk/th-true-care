@@ -1,0 +1,2366 @@
+<!DOCTYPE html>
+<html>
+<head>
+  
+  <meta charset="UTF-8">
+  <meta name="theme-color" content="#0B4C8C">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TH true care">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icons/favicon-96.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/auth.css">
+  <!-- Thứ tự quan trọng: shim + core phải có TRƯỚC script inline của giao diện bên dưới -->
+  <script src="js/gas-shim.js"></script>
+  <script src="js/core.js"></script>
+  <title>TH true care · Quản lý thiết bị</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+  <!-- Font riêng cho KHỐI LOGO. Tham số text= cắt bộ ký tự xuống đúng 10 chữ cái cần thiết
+       (T H t r u e M I L K) -> ~2-3 KB thay vì ~40 KB cho 2 font đầy đủ.
+       HỆ QUẢ: 2 font này CHỈ hiển thị được 10 ký tự đó, KHÔNG dùng lại được ở chỗ khác. -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Quicksand:wght@700&text=THtrueMILK&display=swap" rel="stylesheet">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+  <style>
+    :root {
+      /* ---- Nguồn chuẩn: bộ nhận diện TH true MILK (đồng bộ với bản desktop) ---- */
+      --brand-900:#0B4C8C;   /* chữ "TH" trong logo */
+      --brand-800:#0F5FA8;
+      --brand-700:#136FBF;
+      --brand-500:#2E9BE0;
+      --sky-400:#4FB3E8;     /* chữ "true" trong logo */
+      --sky-300:#7FC4EE;     /* chữ "MILK" trong logo */
+      --gold-500:#C9A961;    /* ngôi sao trong logo */
+
+      /* ---- Token hệ thống (giữ nguyên TÊN cũ, chỉ đổi giá trị) ---- */
+      --bg: #F3F8FC;
+      --surface: #FFFFFF;
+      --surface-alt: #EDF3F9;
+      --ink: #33424B;
+      --ink-muted: #71828B;
+      --ink-faint: #A3B1B8;
+      --border: #E1E9F2;
+
+      --primary: #0B4C8C;
+      --primary-dark: #073C71;
+      --primary-soft: #E3F1FC;
+      --accent: #2E9BE0;
+
+      --success: #2C7A55;
+      --success-soft: #E1F0E6;
+      --danger: #C1443A;
+      --danger-soft: #F7E1DE;
+      --warning: #D99A2B;
+      --warning-soft: #FBF0DC;
+
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+      --nav-h: 66px;
+      --top-h: 60px;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { margin: 0; height: 100%; }
+    body {
+      font-family: 'Be Vietnam Pro', -apple-system, sans-serif;
+      background: #DDE7F1;
+      color: var(--ink);
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, .num-display { font-family: 'Sora', 'Be Vietnam Pro', sans-serif; }
+
+    .icon { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .icon svg { width: 100%; height: 100%; }
+
+    /* ===================== APP SHELL ===================== */
+    .app-shell {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100vh;
+      background: var(--bg);
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+    @media (min-width: 560px) {
+      .app-shell { box-shadow: 0 0 0 1px #CFDCE9, 0 30px 60px rgba(18,58,110,0.18); min-height: 100vh; }
+      body { display: flex; }
+    }
+
+    /* ===================== TOP BAR ===================== */
+    .topbar {
+      position: sticky; top: 0; z-index: 40;
+      height: var(--top-h);
+      background: rgba(243,248,252,0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    /* gap 14px chứ không phải 10px: ngôi sao đặt ở right:-5px nên thò ra ngoài ô logo,
+       để 10px thì chỉ còn 5px hở và ngôi sao lấn sát chữ "true". */
+    .topbar-titles { display: flex; align-items: center; gap: 14px; min-width: 0; flex: 1 1 auto; }
+    .topbar-titles > div { min-width: 0; }
+
+    /* ---- Khối logo mobile: ĐẢO NGƯỢC so với bản desktop.
+         Topbar mobile nền SÁNG, nên ô mark phải là navy đặc / chữ TH trắng, còn wordmark
+         dùng sky đậm + navy. Bê nguyên khối trắng của desktop sang đây sẽ chìm. ---- */
+    .brand-mark-m {
+      width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+      background: linear-gradient(160deg, var(--brand-900) 0%, var(--brand-800) 100%);
+      display: flex; align-items: center; justify-content: center; position: relative;
+      box-shadow: 0 2px 6px rgba(18,58,110,.28);
+    }
+    .brand-mark-m .brand-th {
+      font-family: 'Playfair Display', 'Times New Roman', serif;
+      font-weight: 700; font-size: 15px; line-height: 1; color: #fff; letter-spacing: -.01em;
+    }
+    .brand-mark-m .brand-star {
+      position: absolute; right: -5px; top: 50%; transform: translateY(-80%);
+      width: 12px; height: 12px; filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.25));
+    }
+    .brand-wordmark-m {
+      font-family: 'Quicksand', 'Be Vietnam Pro', sans-serif;
+      font-weight: 700; font-size: 15px; line-height: 1.05; letter-spacing: -.005em;
+    }
+    /* Nền topbar mobile SÁNG nên hai chữ đậm hơn logo gốc một nấc để đọc được ở cỡ 15px,
+       nhưng vẫn giữ đúng quan hệ của logo: "MILK" nhạt hơn "true", cùng họ lam. */
+    .brand-wordmark-m .w-true { color: #2FA6DF; }
+    .brand-wordmark-m .w-milk { color: #6FC6EC; font-weight: 400; letter-spacing: .06em; }
+
+    /* 11px + giãn chữ .05em: chuỗi dài nhất "TRA CỨU DANH SÁCH" chiếm ~118px, máy hẹp nhất
+       (360px) còn ~190px -> không bị cắt. line-height 1.5 + đệm trên 1px vì chữ hoa tiếng Việt
+       chồng hai dấu (Ổ, Ế) vượt hộp dòng mặc định, gặp overflow:hidden là bị xén mất phần trên. */
+    .topbar-titles h1 {
+      margin: 2px 0 0; padding-top: 1px;
+      font-size: 11px; font-weight: 700; letter-spacing: .05em; line-height: 1.5;
+      text-transform: uppercase; color: var(--ink-muted);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .topbar-titles p { display: none; }
+
+    .topbar-actions { display: flex; gap: 8px; flex-shrink: 0; }
+    .icon-btn {
+      width: 38px; height: 38px; border-radius: 12px; border: 1px solid var(--border);
+      background: var(--surface); color: var(--ink); display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: transform 0.12s, background 0.15s;
+    }
+    .icon-btn .icon { width: 18px; height: 18px; }
+    .icon-btn:active { transform: scale(0.92); background: var(--surface-alt); }
+    .icon-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* ===================== CONTENT ===================== */
+    .app-content {
+      flex: 1;
+      padding: 16px 16px calc(var(--nav-h) + 28px) 16px;
+      overflow-x: hidden;
+    }
+    .page { display: none; animation: fadein 0.22s ease; }
+    .page.active { display: block; }
+    @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+    .section-label {
+      font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--ink-faint); margin: 22px 2px 10px;
+    }
+    .section-label:first-child { margin-top: 2px; }
+
+    /* ===================== BOTTOM NAV ===================== */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      max-width: 480px; margin: 0 auto;
+      height: var(--nav-h);
+      background: rgba(255,255,255,0.94);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid var(--border);
+      display: flex;
+      padding-bottom: env(safe-area-inset-bottom);
+      z-index: 50;
+    }
+    .nav-btn {
+      flex: 1; border: none; background: none; display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 3px; cursor: pointer; color: var(--ink-faint); padding: 6px 2px;
+      min-width: 0; font-family: inherit;
+    }
+    .nav-btn .nav-icon { width: 20px; height: 20px; transition: transform 0.15s; }
+    .nav-btn .nav-label { font-size: 9.5px; font-weight: 600; white-space: nowrap; }
+    .nav-btn.active { color: var(--primary); }
+    .nav-btn.active .nav-icon { transform: translateY(-1px); }
+    .nav-btn:active .nav-icon { transform: scale(0.88); }
+    .nav-btn:focus-visible { outline: 2px solid var(--brand-500); outline-offset: -2px; border-radius: 8px; }
+
+    /* ===================== LOADING / SKELETON / TOAST ===================== */
+    .loading-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(243,248,252,0.84);
+      backdrop-filter: blur(3px); z-index: 999; align-items: center; justify-content: center;
+      flex-direction: column; gap: 14px; max-width: 480px; margin: 0 auto;
+    }
+    .loading-overlay.show { display: flex; }
+    .spinner { width: 40px; height: 40px; border: 3.5px solid var(--border); border-top: 3.5px solid var(--brand-500); border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { font-size: 13.5px; color: var(--ink-muted); font-weight: 600; }
+
+    /* Skeleton — giữ đúng khung layout nên dữ liệu về không làm giật trang */
+    .skel { position: relative; overflow: hidden; background: #E4EDF6; border-radius: 10px; }
+    .skel::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.75), transparent);
+      transform: translateX(-100%); animation: shimmer 1.3s infinite;
+    }
+    @keyframes shimmer { to { transform: translateX(100%); } }
+    .skel-card { height: 96px; border-radius: var(--radius-md); margin-bottom: 10px; }
+    .skel-dg-card { height: 108px; border-radius: var(--radius-md); margin-bottom: 9px; }
+
+    .hero-card.is-loading > *,
+    .stat-grid.is-loading .stat-box > * { visibility: hidden; }
+    .hero-card.is-loading { background: #E4EDF6; box-shadow: none; }
+    .stat-grid.is-loading .stat-box { background: #E4EDF6; }
+    .hero-card.is-loading::before,
+    .stat-grid.is-loading .stat-box::before,
+    .chart-wrap.is-loading::before {
+      content: ''; position: absolute; inset: 0; z-index: 1;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.75), transparent);
+      transform: translateX(-100%); animation: shimmer 1.3s infinite;
+    }
+    .stat-grid.is-loading .stat-box { position: relative; overflow: hidden; }
+    .chart-wrap.is-loading { background: #E4EDF6; border-radius: 10px; overflow: hidden; }
+    .chart-wrap.is-loading canvas { visibility: hidden; }
+    @media (prefers-reduced-motion: reduce) {
+      .skel::after,
+      .hero-card.is-loading::before,
+      .stat-grid.is-loading .stat-box::before,
+      .chart-wrap.is-loading::before { animation: none; }
+    }
+
+    /* Toast thành công dùng màu xanh lá (--success) cho đúng quy ước của design system:
+       xanh lá = thành công, đỏ = lỗi. Đồng bộ với bản desktop (ở đó token tên là --ok,
+       khác tên nhưng cùng mã màu #2C7A55). */
+    .toast {
+      position: fixed; top: 14px; left: 50%; transform: translateX(-50%) translateY(-16px);
+      background: var(--success); color: #fff; padding: 12px 18px; border-radius: 14px;
+      box-shadow: 0 14px 30px rgba(44,122,85,0.32); font-size: 13.5px; font-weight: 600;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.25s; z-index: 1100;
+      display: flex; align-items: center; gap: 9px; max-width: 88%;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.error { background: var(--danger); }
+    .toast .toast-icon { width: 16px; height: 16px; flex-shrink: 0; }
+    /* Toast lỗi đổi CẢ icon, không chỉ nền đỏ. Hai icon dựng sẵn, đổi qua lại bằng class. */
+    .toast .toast-ico-err { display: none; }
+    .toast.error .toast-ico-ok { display: none; }
+    .toast.error .toast-ico-err { display: inline-flex; }
+
+    /* Badge cảnh báo cho ô NGÀY không hợp lệ trong dữ liệu gốc. Giá trị gốc vẫn hiển thị
+       nguyên văn để người dùng biết phải sửa gì trên Google Sheet. */
+    .date-warn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 15px; height: 15px; margin-left: 5px; border-radius: 50%;
+      background: var(--warning-soft); color: var(--warning);
+      font-size: 10.5px; font-weight: 800; line-height: 1;
+      vertical-align: middle; flex-shrink: 0;
+    }
+
+    /* ===================== CARDS / SHARED ===================== */
+    .card {
+      background: var(--surface); border-radius: var(--radius-lg); padding: 18px;
+      box-shadow: 0 1px 2px rgba(18,58,110,0.05), 0 8px 20px rgba(18,58,110,0.05);
+      margin-bottom: 14px; border: 1px solid var(--border);
+    }
+    .card h3 { margin: 0 0 12px; font-size: 15px; font-weight: 700; color: var(--brand-900); }
+
+    .search-row { display: flex; gap: 10px; align-items: stretch; }
+    .search-row input, textarea {
+      flex: 1; padding: 13px 15px; font-size: 16px; border: 1.5px solid var(--border);
+      border-radius: var(--radius-md); outline: none; font-family: inherit; background: var(--surface-alt);
+      color: var(--ink); transition: border-color 0.15s, background 0.15s;
+    }
+    .search-row input:focus, textarea:focus { border-color: var(--brand-700); background: #fff; }
+    .search-row input::placeholder, textarea::placeholder { color: var(--ink-faint); }
+    textarea#batchInput { min-height: 120px; resize: vertical; width: 100%; }
+
+    .btn {
+      padding: 13px 20px; font-size: 15px; font-weight: 700; color: #fff; background: var(--primary);
+      border: none; border-radius: var(--radius-md); cursor: pointer; transition: transform 0.1s, background 0.15s;
+      white-space: nowrap; font-family: inherit;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { background: #9BB4CE; cursor: not-allowed; }
+    .btn.secondary { background: var(--surface-alt); color: var(--brand-900); }
+    .btn.block { width: 100%; }
+    .btn.icon-only { width: 48px; padding: 0; display: flex; align-items: center; justify-content: center; flex: none; }
+    .btn.icon-only .icon { width: 19px; height: 19px; }
+
+    .message { text-align: center; padding: 13px; border-radius: var(--radius-md); margin: 14px 0; font-size: 13.5px; display: none; font-weight: 600; }
+    .message.error { background: var(--danger-soft); color: var(--danger); display: block; }
+
+    .empty-state { text-align: center; padding: 36px 16px; color: var(--ink-muted); }
+    .empty-state .icon { width: 40px; height: 40px; color: var(--ink-faint); margin-bottom: 10px; }
+    .empty-state p { margin: 0; font-size: 13.5px; }
+
+    .status-pill { display: inline-flex; align-items: center; padding: 4px 11px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+    /* Ghi chú thanh lý là một CÂU mô tả, không phải nhãn trạng thái -> phải xuống dòng
+       được. Dùng chung .status-pill (có white-space:nowrap) sẽ bị cắt cụt ở mép phải. */
+    .note-pill {
+      display: block; padding: 6px 11px; border-radius: 12px; font-size: 11px; font-weight: 600;
+      background: var(--surface-alt); color: var(--ink-muted);
+      white-space: normal; word-break: break-word; line-height: 1.45; text-align: left;
+    }
+    .status-pill.warranty { background: var(--success-soft); color: var(--success); }
+    .status-pill.expired { background: var(--danger-soft); color: var(--danger); }
+    .status-pill.unknown { background: var(--surface-alt); color: var(--ink-muted); }
+
+    .muted-text { color: var(--ink-muted); font-size: 13.5px; }
+
+    /* segmented control */
+    .segmented {
+      display: flex; gap: 4px; background: var(--surface-alt); padding: 4px; border-radius: 12px;
+      overflow-x: auto;
+    }
+    .segmented::-webkit-scrollbar { display: none; }
+    .seg-item {
+      flex: 1; text-align: center; padding: 8px 10px; border-radius: 9px; font-size: 12px; font-weight: 700;
+      color: var(--ink-muted); cursor: pointer; white-space: nowrap; transition: background 0.15s, color 0.15s;
+    }
+    .seg-item.active { background: var(--primary); color: #fff; box-shadow: 0 3px 10px rgba(11,76,140,0.28); }
+    /* Các thẻ bấm được dựng bằng <button> để dùng được bàn phím; mấy dòng dưới gỡ giao diện
+       mặc định của nút để trông y hệt như khi còn là <div>. */
+    .seg-item, .stat-box, .ncc-row, .record-card.clickable {
+      font-family: inherit; color: inherit; width: 100%;
+    }
+    .seg-item, .ncc-row, .record-card.clickable { border: none; background: transparent; }
+    .ncc-row, .record-card.clickable { text-align: left; }
+    .ncc-row { border-bottom: 1px solid var(--border); }
+    .record-card.clickable { border: 1px solid var(--border); background: var(--surface); display: block; }
+    .stat-box { display: block; }
+    .seg-item:focus-visible, .stat-box:focus-visible,
+    .ncc-row:focus-visible, .record-card.clickable:focus-visible {
+      outline: 2px solid var(--brand-500); outline-offset: 2px;
+    }
+
+    /* ===================== SHEET (bottom filter) ===================== */
+    .sheet-backdrop {
+      position: fixed; inset: 0; background: rgba(11,35,30,0.42); z-index: 200;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .sheet-backdrop.show { opacity: 1; pointer-events: auto; }
+    .sheet {
+      position: fixed; left: 0; right: 0; bottom: 0; max-width: 480px; margin: 0 auto;
+      background: var(--surface); border-radius: 22px 22px 0 0; z-index: 201;
+      padding: 10px 20px calc(24px + env(safe-area-inset-bottom));
+      transform: translateY(100%); transition: transform 0.28s cubic-bezier(.32,.72,0,1);
+      max-height: 82vh; overflow-y: auto;
+    }
+    .sheet.show { transform: translateY(0); }
+    .sheet-handle { width: 38px; height: 4px; background: var(--border); border-radius: 4px; margin: 4px auto 14px; }
+    .sheet-title { font-size: 16px; font-weight: 800; margin: 0 0 16px; color: var(--brand-900); }
+    .field-group { margin-bottom: 14px; }
+    .field-group label { display: block; font-size: 12px; font-weight: 700; color: var(--ink-muted); margin-bottom: 7px; }
+    .field-group input, .field-group select {
+      width: 100%; padding: 12px 14px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+      font-size: 16px; outline: none; font-family: inherit; background: var(--surface-alt); color: var(--ink);
+    }
+    .field-group input:focus, .field-group select:focus { border-color: var(--brand-700); background: #fff; }
+    .field-row { display: flex; gap: 10px; }
+    .field-row .field-group { flex: 1; }
+    .sheet-actions { display: flex; gap: 10px; margin-top: 6px; }
+    .sheet-actions .btn { flex: 1; }
+
+    /* ===================== HERO / STAT CARDS ===================== */
+    .hero-card {
+      background: linear-gradient(135deg, var(--brand-900) 0%, var(--accent) 135%);
+      border-radius: var(--radius-lg); padding: 22px 20px; color: #fff; margin-bottom: 14px;
+      box-shadow: 0 14px 30px rgba(18,58,110,0.28); position: relative; overflow: hidden;
+    }
+    .hero-card::after {
+      content: ''; position: absolute; width: 180px; height: 180px; border-radius: 50%;
+      background: rgba(255,255,255,0.08); top: -70px; right: -50px;
+    }
+    .hero-label { font-size: 12px; font-weight: 700; opacity: 0.85; text-transform: uppercase; letter-spacing: 0.5px; }
+    .hero-value {
+      font-family: 'Sora', sans-serif; font-size: 25px; font-weight: 800; margin: 6px 0 16px;
+      letter-spacing: -0.5px; position: relative;
+      font-variant-numeric: tabular-nums; overflow-wrap: break-word;
+    }
+    .hero-split { display: flex; gap: 10px; position: relative; }
+    .hero-chip { flex: 1; background: rgba(255,255,255,0.14); border-radius: 12px; padding: 10px 12px; }
+    .hero-chip .chip-label { font-size: 11px; opacity: 0.85; font-weight: 600; }
+    .hero-chip .chip-value { font-size: 15px; font-weight: 800; margin-top: 3px; font-variant-numeric: tabular-nums; overflow-wrap: break-word; }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+    .stat-box {
+      background: var(--surface); border-radius: var(--radius-md); padding: 14px 10px; text-align: center;
+      border: 1px solid var(--border);
+    }
+    /* MỘT cỡ chữ duy nhất cho mọi thẻ số, ở cả trang Tổng quan lẫn Tra cứu thiết bị */
+    .stat-box .stat-value {
+      font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 800; color: var(--brand-900);
+      font-variant-numeric: tabular-nums; overflow-wrap: break-word;
+    }
+    /* Nhãn LUÔN một dòng: máy hẹp thì chữ co theo bề ngang màn hình (clamp) chứ không gãy dòng. */
+    .stat-box .stat-label {
+      font-size: clamp(9.5px, 2.6vw, 11px); color: var(--ink-muted); margin-top: 3px;
+      font-weight: 600; line-height: 1.3; white-space: nowrap;
+    }
+    /* Trang Tra cứu thiết bị: số tiền tối đa 8 chữ số ("99.999.999 đ") phải nằm gọn một dòng
+       trong thẻ lưới 2 cột -> 17px là vừa, dư ~27px ở máy 360px. */
+    .stat-grid-sm .stat-value { font-size: 17px; white-space: nowrap; }
+    .stat-box.clickable { cursor: pointer; transition: transform 0.12s; }
+    .stat-box.clickable:active { transform: scale(0.95); background: var(--primary-soft); }
+
+    /* Tiêu đề biểu đồ là .section-label nằm NGOÀI thẻ, nên khoảng cách "chú giải - tiêu đề"
+       ăn theo padding-top của thẻ. Thu về 10px cho cân với khoảng dưới chú giải (8+10). */
+    .card.chart-card { padding-top: 10px; }
+    .chart-wrap { position: relative; height: 210px; width: 100%; overflow: hidden; }
+    /* Biểu đồ thanh ngang: chiều cao do fitHBarHeight_() tính theo số hạng mục.
+       Giá trị dưới đây chỉ là khung tạm lúc còn skeleton. */
+    .chart-wrap.hbar { height: 280px; }
+    .chart-wrap canvas { display: block; max-width: 100% !important; max-height: 100% !important; }
+
+    .ncc-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 13.5px; cursor: pointer; }
+    .ncc-row:last-child { border-bottom: none; }
+    .ncc-row .name { font-weight: 600; }
+    .ncc-row .amount { font-weight: 800; color: var(--brand-900); font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .ncc-row:active { background: var(--surface-alt); }
+
+    /* ===================== DEVICE RESULT (SEARCH) ===================== */
+    .device-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+    .device-head h2 { margin: 0; font-size: 20px; font-weight: 800; line-height: 1.3; color: var(--brand-900); }
+    .code-badge {
+      background: var(--primary-soft); color: var(--brand-900); padding: 5px 12px; border-radius: 20px;
+      font-size: 12px; font-weight: 800; white-space: nowrap;
+    }
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .info-item label { display: block; font-size: 11px; color: var(--ink-faint); margin-bottom: 4px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.3px; }
+    .info-item div.info-value { font-size: 13.5px; font-weight: 600; }
+    .info-item .value-normal { font-weight: 600; font-size: 13.5px; color: var(--ink); }
+
+    .gsbh-list { display: flex; flex-direction: column; gap: 10px; }
+    .gsbh-entry { display: grid; grid-template-columns: 1fr 1fr; column-gap: 14px; align-items: start; padding-bottom: 10px; border-bottom: 1px dashed var(--border); font-size: 13.5px; }
+    .gsbh-entry:last-child { border-bottom: none; padding-bottom: 0; }
+    .gsbh-entry .gsbh-name { font-weight: 600; display: block; }
+    .gsbh-entry .gsbh-npp { display: block; font-size: 13.5px; color: var(--ink-muted); font-weight: 400; margin-top: 2px; }
+    .gsbh-entry .gsbh-phone { color: var(--ink); font-weight: 600; font-size: 13.5px; white-space: nowrap; }
+    .pc-badge { display: inline-block; background: var(--primary-soft); color: var(--brand-900); padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; margin: 2px 4px 2px 0; }
+
+    /* repair history list */
+    .repair-group { border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 10px; overflow: hidden; }
+    .repair-group-head {
+      display: flex; justify-content: space-between; align-items: center; padding: 11px 13px;
+      background: var(--surface-alt);
+    }
+    .repair-group-head .rg-date { font-weight: 800; font-size: 13.5px; }
+    .repair-group-head .rg-ncc { font-size: 11px; color: var(--ink-muted); font-weight: 600; margin-top: 2px; }
+    .repair-item { display: flex; justify-content: space-between; gap: 10px; padding: 10px 13px; border-top: 1px solid var(--border); font-size: 13.5px; background: var(--surface); }
+    .repair-item .ri-content { flex: 1; }
+    .repair-item .ri-cost { font-weight: 800; white-space: nowrap; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+    /* ===================== BATCH & RAW / GENERIC RECORD CARD ===================== */
+    .record-card { border: 1px solid var(--border); border-radius: var(--radius-md); padding: 13px 14px; margin-bottom: 10px; background: var(--surface); }
+    .record-card .rc-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .record-card .rc-code { font-weight: 800; font-size: 13.5px; color: var(--brand-700); }
+    .record-card .rc-cost { font-weight: 800; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+    .record-card .rc-meta { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--ink-muted); }
+    .record-card .rc-meta b { color: var(--ink); font-weight: 700; }
+    .record-card .rc-note { margin-top: 8px; font-size: 12px; color: var(--ink-muted); }
+    .record-card .rc-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+    .record-card.clickable { cursor: pointer; }
+    .record-card.clickable:active { background: var(--surface-alt); }
+
+    .result-count { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .result-count h3 { margin: 0; font-size: 13.5px; color: var(--brand-900); }
+    .result-count .count-pill { background: var(--primary-soft); color: var(--brand-900); font-size: 12px; font-weight: 800; padding: 4px 11px; border-radius: 20px; }
+
+    .pagination-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; }
+    .pagination-bar .btn { padding: 10px 16px; font-size: 13.5px; }
+    .pagination-bar span { font-size: 12px; font-weight: 700; color: var(--ink-muted); white-space: nowrap; }
+
+    /* ===================== ĐƠN GIÁ CARDS ===================== */
+    .dg-group-header {
+      font-size: 12px; font-weight: 800; color: var(--brand-900); text-transform: uppercase; letter-spacing: 0.3px;
+      margin: 16px 2px 8px; display: flex; align-items: center; gap: 8px;
+    }
+    .dg-group-header::before { content: ''; width: 4px; height: 14px; background: var(--sky-400); border-radius: 3px; display: inline-block; flex-shrink: 0; }
+    .dg-subgroup-header {
+      font-size: 12px; font-weight: 700; color: var(--ink-muted); margin: 10px 2px 8px 10px;
+    }
+    .dg-card { border: 1px solid var(--border); border-radius: var(--radius-md); padding: 13px 14px; margin-bottom: 9px; background: var(--surface); }
+    .dg-card .dg-title { font-size: 13.5px; font-weight: 700; line-height: 1.35; margin-bottom: 4px; }
+    .dg-card .dg-sub { font-size: 12px; color: var(--ink-muted); margin-bottom: 9px; line-height: 1.5; }
+    .dg-card .dg-tags { display: flex; flex-wrap: wrap; gap: 7px; }
+    .dg-tag { font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: 8px; background: var(--surface-alt); color: var(--ink); white-space: nowrap; }
+    .dg-tag.dvt { background: var(--surface-alt); color: var(--ink-muted); }
+    .dg-tag.vattu { background: #F3ECFE; color: #7A2FA0; }
+    .dg-tag.nhancong { background: var(--warning-soft); color: var(--warning); }
+    .dg-tag.tongcong { background: var(--success-soft); color: var(--success); }
+    .dg-imc-badge { font-size: 11px; font-weight: 800; color: var(--brand-900); background: var(--primary-soft); padding: 3px 9px; border-radius: 7px; margin-right: 7px; }
+  </style>
+</head>
+<body>
+  <div id="tmAuth"></div>
+
+<div class="app-shell">
+
+  <!-- ===================== TOP BAR ===================== -->
+  <header class="topbar">
+    <div class="topbar-titles">
+      <div class="brand-mark-m">
+        <span class="brand-th">TH</span>
+        <svg class="brand-star" viewBox="0 0 24 24" fill="none">
+          <defs>
+            <linearGradient id="thStarGoldM" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stop-color="#F2E7C8"/>
+              <stop offset=".45" stop-color="#C9A961"/>
+              <stop offset="1" stop-color="#8E6F35"/>
+            </linearGradient>
+          </defs>
+          <path fill="url(#thStarGoldM)" d="M12 .5Q13.1 10.1 18.5 8.25Q14.2 12 18.5 15.75Q13.1 13.9 12 22Q10.9 13.9 5.5 15.75Q9.8 12 5.5 8.25Q10.9 10.1 12 .5Z"/>
+        </svg>
+      </div>
+      <div style="min-width:0;">
+        <div class="brand-wordmark-m"><span class="w-true">true</span><span class="w-milk">MILK</span></div>
+        <h1 id="topbarTitle">Tổng quan</h1>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn" id="topbarFilterBtn" type="button" style="display:none" onclick="openActiveFilterSheet()" aria-label="Bộ lọc">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg></span>
+      </button>
+      <button class="icon-btn" id="refreshDataBtn" type="button" onclick="refreshData()" title="Làm mới dữ liệu" aria-label="Làm mới dữ liệu">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===================== CONTENT ===================== -->
+  <main class="app-content">
+
+    <!-- ========== PAGE: DASHBOARD ========== -->
+    <section class="page active" id="page-dashboard">
+      <div class="segmented" id="regionTabs">
+        <button type="button" class="seg-item active" data-region="toanquoc" onclick="setRegion('toanquoc')">Toàn quốc</button>
+        <button type="button" class="seg-item" data-region="bac" onclick="setRegion('bac')">Miền Bắc</button>
+        <button type="button" class="seg-item" data-region="trung" onclick="setRegion('trung')">Miền Trung</button>
+        <button type="button" class="seg-item" data-region="nam" onclick="setRegion('nam')">Miền Nam</button>
+      </div>
+
+      <div class="hero-card" id="dashHeroCard" style="margin-top:14px;">
+        <div class="hero-label">Tổng chi phí</div>
+        <div class="hero-value" id="dTongChiPhi">0 đ</div>
+        <div class="hero-split">
+          <div class="hero-chip">
+            <div class="chip-label">CHI PHÍ SỬA CHỮA</div>
+            <div class="chip-value" id="dChiPhiSuaChua">0 đ</div>
+          </div>
+          <div class="hero-chip">
+            <div class="chip-label">CHI PHÍ DI CHUYỂN</div>
+            <div class="chip-value" id="dChiPhiDiChuyen">0 đ</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-grid" id="dashStatGrid">
+        <div class="stat-box">
+          <div class="stat-value" id="dTongThietBi">0</div>
+          <div class="stat-label">Tổng thiết bị</div>
+        </div>
+        <button type="button" class="stat-box clickable" onclick="goToRawDataFromDashboard()">
+          <div class="stat-value" id="dSoThietBiSuaChua">0</div>
+          <div class="stat-label">Thiết bị đã sửa</div>
+        </button>
+        <button type="button" class="stat-box clickable" onclick="goToRawDataFromDashboard()">
+          <div class="stat-value" id="dSoLuot">0</div>
+          <div class="stat-label">Lượt sửa chữa</div>
+        </button>
+      </div>
+
+      <div class="section-label">Theo khu vực</div>
+      <div class="card chart-card">
+        <div class="chart-wrap"><canvas id="regionChartCanvas"></canvas></div>
+      </div>
+
+      <div class="section-label">Xu hướng chi phí theo tháng</div>
+      <div class="card chart-card">
+        <div class="chart-wrap"><canvas id="trendChartCanvas"></canvas></div>
+      </div>
+
+      <div class="section-label">Số lượng thiết bị theo loại</div>
+      <div class="card chart-card">
+        <div class="chart-wrap hbar"><canvas id="deviceTypeChartCanvas"></canvas></div>
+      </div>
+
+      <div class="section-label">Số lượng thiết bị theo nhãn hiệu</div>
+      <div class="card chart-card">
+        <div class="chart-wrap hbar"><canvas id="deviceBrandChartCanvas"></canvas></div>
+      </div>
+
+      <div class="section-label">Chi phí theo nhà cung cấp</div>
+      <div class="card">
+        <div id="topNccList"><div class="empty-state"><p>Chưa có dữ liệu.</p></div></div>
+      </div>
+    </section>
+
+    <!-- ========== PAGE: TRA CỨU THIẾT BỊ ========== -->
+    <section class="page" id="page-search">
+      <div class="card">
+        <div class="search-row">
+          <input type="text" id="codeInput" placeholder="Nhập mã thiết bị..." autofocus>
+          <button class="btn icon-only" type="button" id="searchBtn" onclick="doSearch()" aria-label="Tra cứu">
+            <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="message" id="searchMessage"></div>
+
+      <div id="resultSection" style="display:none;">
+        <div class="card">
+          <div class="device-head">
+            <h2 id="tenCuaHang">-</h2>
+            <span class="code-badge" id="codeBadge">-</span>
+          </div>
+          <div class="info-grid">
+            <div class="info-item" style="grid-column:1/-1;">
+              <label>Địa chỉ</label>
+              <div class="info-value" id="diaChi">-</div>
+            </div>
+            <div class="info-item"><label>Số điện thoại</label><div class="info-value" id="soDienThoai">-</div></div>
+            <div class="info-item"><label>Ngày lắp đặt</label><div class="info-value" id="ngayLapDat">-</div></div>
+            <div class="info-item"><label>Loại tủ</label><div class="info-value" id="loaiTu">-</div></div>
+            <div class="info-item"><label>Nhãn hiệu</label><div class="info-value" id="nhanHieu">-</div></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Thông tin bổ sung</h3>
+          <div class="info-grid">
+            <div class="info-item">
+              <label>Bảo hành</label>
+              <div><span class="status-pill" id="tinhTrangBaoHanhThietBi">—</span></div>
+            </div>
+            <div class="info-item">
+              <label>Thanh lý</label>
+              <div class="value-normal" id="tinhTrangThanhLy">—</div>
+            </div>
+            <div class="info-item" style="grid-column: 1 / -1;">
+              <label>Thông tin GSBH</label>
+              <div id="thongTinGsbh"><span class="muted-text">—</span></div>
+            </div>
+            <div class="info-item" style="grid-column: 1 / -1;">
+              <label>P&amp;C phụ trách</label>
+              <div id="pcPhuTrach"><span class="muted-text">—</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-grid stat-grid-sm" style="grid-template-columns: repeat(2, 1fr);">
+          <div class="stat-box">
+            <div class="stat-value" id="tongChiPhi">0 đ</div>
+            <div class="stat-label">Tổng chi phí</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="soLanSua">0</div>
+            <div class="stat-label">Số lần sửa</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="chiPhiSuaChua" style="color:var(--success);">0 đ</div>
+            <div class="stat-label">Chi phí sửa chữa</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="chiPhiDiChuyen" style="color:var(--warning);">0 đ</div>
+            <div class="stat-label">Chi phí di chuyển</div>
+          </div>
+        </div>
+
+        <div class="section-label">Lịch sử sửa chữa</div>
+        <div id="historyList"></div>
+        <div class="empty-state" id="emptyNote" style="display:none;">
+          <p>Chưa có lịch sử sửa chữa nào.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== PAGE: TRA CỨU DANH SÁCH ========== -->
+    <section class="page" id="page-batch">
+      <div class="card">
+        <h3 style="margin-bottom:10px;">Dán danh sách mã thiết bị</h3>
+        <p class="muted-text" style="margin:0 0 10px;">Mỗi mã 1 dòng, hoặc cách nhau bởi dấu phẩy</p>
+        <textarea id="batchInput" placeholder="Ví dụ:&#10;328017964&#10;328020507&#10;348009171"></textarea>
+        <div style="margin-top:12px; display:flex; gap:10px;">
+          <button class="btn" type="button" id="batchBtn" onclick="doBatchSearch()" style="flex:1;">Tra cứu</button>
+          <button class="btn secondary" type="button" onclick="clearBatch()">Xóa</button>
+        </div>
+      </div>
+
+      <div class="message" id="batchMessage"></div>
+
+      <div id="batchResultCard" style="display:none;">
+        <div class="result-count">
+          <h3>Kết quả</h3>
+          <span class="count-pill" id="batchCount">0</span>
+        </div>
+        <div id="batchBody"></div>
+      </div>
+    </section>
+
+    <!-- ========== PAGE: DANH SÁCH THIẾT BỊ ========== -->
+    <section class="page" id="page-devicelist">
+      <div class="card">
+        <div class="search-row">
+          <input type="text" id="deviceSearchInput" placeholder="Tìm mã, tên khách hàng, SĐT...">
+          <button class="btn icon-only" type="button" onclick="applyDeviceFilters()" aria-label="Tìm kiếm">
+            <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="result-count">
+        <h3>Danh sách thiết bị</h3>
+        <span class="count-pill" id="deviceTotalCount">0</span>
+      </div>
+
+      <div id="deviceListBody"></div>
+      <div class="empty-state" id="deviceListEmptyNote" style="display:none;">
+        <p>Không có thiết bị phù hợp.</p>
+      </div>
+      <div class="pagination-bar" id="devicePaginationBottom"></div>
+    </section>
+
+    <!-- ========== PAGE: ĐƠN GIÁ ========== -->
+    <section class="page" id="page-dongia">
+      <div class="segmented" id="donGiaTabs">
+        <button type="button" class="seg-item active" data-cat="bt" onclick="setDonGiaCategory('bt')">Bảo trì</button>
+        <button type="button" class="seg-item" data-cat="xd" onclick="setDonGiaCategory('xd')">Xây dựng</button>
+        <button type="button" class="seg-item" data-cat="snk" onclick="setDonGiaCategory('snk')">Sanaky</button>
+      </div>
+
+      <div class="card" style="margin-top:14px;">
+        <div class="search-row">
+          <input type="text" id="donGiaSearch" placeholder="Tìm theo nội dung hoặc mã IMC..." oninput="filterDonGiaDebounced()">
+        </div>
+      </div>
+
+      <div id="donGiaBody"></div>
+      <div class="empty-state" id="donGiaEmptyNote" style="display:none;">
+        <p>Không tìm thấy đơn giá phù hợp.</p>
+      </div>
+    </section>
+
+    <!-- ========== PAGE: DỮ LIỆU CHI PHÍ ========== -->
+    <section class="page" id="page-rawdata">
+      <div class="result-count">
+        <h3>Danh sách chi phí</h3>
+        <span class="count-pill" id="rawTotalCount">0</span>
+      </div>
+
+      <div id="rawDataBody"></div>
+      <div class="empty-state" id="rawDataEmptyNote" style="display:none;">
+        <p>Không có dữ liệu phù hợp.</p>
+      </div>
+      <div class="pagination-bar" id="paginationBottom"></div>
+    </section>
+
+  </main>
+
+  <!-- ===================== BOTTOM NAV ===================== -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" type="button" data-page="dashboard" onclick="switchPage('dashboard')">
+      <span class="icon nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span>
+      <span class="nav-label">Tổng quan</span>
+    </button>
+    <button class="nav-btn" type="button" data-page="search" onclick="switchPage('search')">
+      <span class="icon nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
+      <span class="nav-label">Tra cứu</span>
+    </button>
+    <button class="nav-btn" type="button" data-page="batch" onclick="switchPage('batch')">
+      <span class="icon nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="18" rx="2"></rect><line x1="8" y1="11" x2="16" y2="11"></line><line x1="8" y1="15" x2="16" y2="15"></line><line x1="8" y1="19" x2="13" y2="19"></line></svg></span>
+      <span class="nav-label">Danh sách</span>
+    </button>
+    <button class="nav-btn" type="button" data-page="devicelist" onclick="switchPage('devicelist')">
+      <span class="icon nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg></span>
+      <span class="nav-label">Thiết bị</span>
+    </button>
+    <button class="nav-btn" type="button" data-page="dongia" onclick="switchPage('dongia')">
+      <span class="icon nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.24L4 3a1 1 0 0 0-1 1l.24 5.59a2 2 0 0 0 .59 1.41l9.58 9.58a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.82z"></path><line x1="7.5" y1="7.5" x2="7.51" y2="7.5"></line></svg></span>
+      <span class="nav-label">Đơn giá</span>
+    </button>
+    <button class="nav-btn" type="button" data-page="rawdata" onclick="switchPage('rawdata')">
+      <span class="icon nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg></span>
+      <span class="nav-label">Dữ liệu</span>
+    </button>
+  </nav>
+
+</div>
+
+<!-- ===================== FILTER SHEETS ===================== -->
+<div class="sheet-backdrop" id="sheetBackdrop" onclick="closeAllSheets()"></div>
+
+<div class="sheet" id="dashFilterSheet" role="dialog" aria-modal="true" aria-label="Bộ lọc báo cáo">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Bộ lọc báo cáo</div>
+  <div class="field-group">
+    <label>Nhà cung cấp</label>
+    <select id="filterNcc"><option value="">Tất cả</option></select>
+  </div>
+  <div class="field-row">
+    <div class="field-group"><label>Từ ngày</label><input type="date" id="filterTuNgay"></div>
+    <div class="field-group"><label>Đến ngày</label><input type="date" id="filterDenNgay"></div>
+  </div>
+  <div class="sheet-actions">
+    <button class="btn secondary" type="button" onclick="resetFilters()">Xóa lọc</button>
+    <button class="btn" type="button" onclick="applyFilters(); closeAllSheets();">Áp dụng</button>
+  </div>
+</div>
+
+<div class="sheet" id="rawFilterSheet" role="dialog" aria-modal="true" aria-label="Bộ lọc dữ liệu chi phí">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Bộ lọc dữ liệu chi phí</div>
+  <div class="field-group">
+    <label>Mã thiết bị</label>
+    <input type="text" id="rawCodeInput" placeholder="Nhập mã thiết bị...">
+  </div>
+  <div class="field-group">
+    <label>Khu vực</label>
+    <div class="segmented" id="rawRegionTabs">
+      <button type="button" class="seg-item active" data-region="toanquoc" onclick="setRawRegion('toanquoc')">Toàn quốc</button>
+      <button type="button" class="seg-item" data-region="bac" onclick="setRawRegion('bac')">Bắc</button>
+      <button type="button" class="seg-item" data-region="trung" onclick="setRawRegion('trung')">Trung</button>
+      <button type="button" class="seg-item" data-region="nam" onclick="setRawRegion('nam')">Nam</button>
+    </div>
+  </div>
+  <div class="field-group">
+    <label>Nhà cung cấp</label>
+    <select id="rawFilterNcc"><option value="">Tất cả</option></select>
+  </div>
+  <div class="field-row">
+    <div class="field-group"><label>Từ ngày</label><input type="date" id="rawFilterTuNgay"></div>
+    <div class="field-group"><label>Đến ngày</label><input type="date" id="rawFilterDenNgay"></div>
+  </div>
+  <div class="sheet-actions">
+    <button class="btn secondary" type="button" onclick="resetRawFilters()">Xóa lọc</button>
+    <button class="btn" type="button" onclick="applyRawFilters(); closeAllSheets();">Áp dụng</button>
+  </div>
+</div>
+
+<div class="sheet" id="deviceFilterSheet" role="dialog" aria-modal="true" aria-label="Bộ lọc danh sách thiết bị">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Bộ lọc danh sách thiết bị</div>
+  <div class="field-group">
+    <label>Khu vực</label>
+    <div class="segmented" id="deviceRegionTabs">
+      <button type="button" class="seg-item active" data-region="toanquoc" onclick="setDeviceRegion('toanquoc')">Toàn quốc</button>
+      <button type="button" class="seg-item" data-region="bac" onclick="setDeviceRegion('bac')">Bắc</button>
+      <button type="button" class="seg-item" data-region="trung" onclick="setDeviceRegion('trung')">Trung</button>
+      <button type="button" class="seg-item" data-region="nam" onclick="setDeviceRegion('nam')">Nam</button>
+    </div>
+  </div>
+  <div class="field-group">
+    <label>Nhà phân phối</label>
+    <select id="deviceFilterNpp"><option value="">Tất cả</option></select>
+  </div>
+  <div class="field-row">
+    <div class="field-group"><label>Loại thiết bị</label><select id="deviceFilterLoai"><option value="">Tất cả</option></select></div>
+    <div class="field-group"><label>Nhãn hiệu</label><select id="deviceFilterNhanHieu"><option value="">Tất cả</option></select></div>
+  </div>
+  <div class="field-group">
+    <label>Tình trạng bảo hành</label>
+    <select id="deviceFilterBaoHanh">
+      <option value="">Tất cả</option>
+      <option value="con">Còn bảo hành</option>
+      <option value="het">Hết bảo hành</option>
+    </select>
+  </div>
+  <div class="sheet-actions">
+    <button class="btn secondary" type="button" onclick="resetDeviceFilters()">Xóa lọc</button>
+    <button class="btn" type="button" onclick="applyDeviceFilters(); closeAllSheets();">Áp dụng</button>
+  </div>
+</div>
+
+<!-- ===================== LOADING OVERLAY ===================== -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Đang tải dữ liệu...</div>
+</div>
+
+<!-- ===================== TOAST ===================== -->
+<div class="toast" id="toastNotice" role="status" aria-live="polite">
+  <span class="icon toast-icon toast-ico-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+  <span class="icon toast-icon toast-ico-err"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="7.5" x2="12" y2="13"></line><line x1="12" y1="16.5" x2="12.01" y2="16.5"></line></svg></span>
+  <span id="toastText"></span>
+</div>
+
+<script>
+  /* ===================== HELPERS ===================== */
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function $all(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+
+  function formatCurrency(num) { return Number(num || 0).toLocaleString('vi-VN') + ' đ'; }
+
+  /**
+   * Số tiền RÚT GỌN cho thẻ tổng quan ("13.422.502.650 đ" -> "13,42 tỷ đ").
+   * Chuỗi đầy đủ vẫn giữ nguyên ở danh sách dữ liệu, và hiện ra khi chạm giữ vào thẻ.
+   */
+  function formatCurrencyShort(num) {
+    var n = Number(num || 0);
+    var abs = Math.abs(n);
+    if (abs >= 1e9) return (n / 1e9).toLocaleString('vi-VN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' tỷ đ';
+    if (abs >= 1e6) return (n / 1e6).toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' triệu đ';
+    return formatCurrency(n);
+  }
+
+  function setMoneyBox(id, value) {
+    var el = $('#' + id);
+    el.textContent = formatCurrencyShort(value);
+    var box = el.closest ? el.closest('.stat-box, .hero-card, .hero-chip') : null;
+    if (box) box.title = formatCurrency(value);
+  }
+  /** Định dạng số nguyên có dấu phân cách hàng nghìn kiểu Việt Nam (9964 -> 9.964). */
+  function formatInt(num) { return Number(num || 0).toLocaleString('vi-VN'); }
+
+  /* ===================== NAVIGATION ===================== */
+  var PAGE_META = {
+    dashboard:  { title: 'Tổng quan', filter: true, filterFn: 'openDashFilterSheet' },
+    search:     { title: 'Tra cứu thiết bị', filter: false },
+    batch:      { title: 'Tra cứu danh sách', filter: false },
+    devicelist: { title: 'Danh sách thiết bị', filter: true, filterFn: 'openDeviceFilterSheet' },
+    dongia:     { title: 'Đơn giá', filter: false },
+    rawdata:    { title: 'Dữ liệu chi phí', filter: true, filterFn: 'openRawFilterSheet' }
+  };
+
+  function switchPage(page) {
+    if (!PAGE_META[page]) return;   // trang lạ -> bỏ qua, tránh ném lỗi làm dừng cả hàm
+    $all('.page').forEach(function (p) { p.classList.remove('active'); });
+    $all('.nav-btn').forEach(function (n) { n.classList.remove('active'); });
+    $('#page-' + page).classList.add('active');
+    $('.nav-btn[data-page="' + page + '"]').classList.add('active');
+
+    var meta = PAGE_META[page];
+    $('#topbarTitle').textContent = meta.title;
+    var filterBtn = $('#topbarFilterBtn');
+    if (meta.filter) {
+      filterBtn.style.display = 'flex';
+      filterBtn.setAttribute('onclick', meta.filterFn + '()');
+    } else {
+      filterBtn.style.display = 'none';
+    }
+
+    if (page === 'dashboard' && !dashboardLoadedOnce) { dashboardLoadedOnce = true; initDashboard(); }
+    if (page === 'dongia' && !donGiaLoadedOnce) { donGiaLoadedOnce = true; loadDonGiaCategory(currentDonGiaCategory); }
+    if (page === 'rawdata' && !rawDataLoadedOnce) { rawDataLoadedOnce = true; initRawData(); }
+    if (page === 'devicelist' && !deviceListLoadedOnce) { deviceListLoadedOnce = true; initDeviceList(); }
+
+    window.scrollTo(0, 0);   // đang cuộn giữa danh sách mà đổi trang thì trang mới phải bắt đầu từ đầu
+  }
+
+  function openActiveFilterSheet() {
+    var activeNav = $('.nav-btn.active');
+    var page = activeNav ? activeNav.dataset.page : 'dashboard';
+    var meta = PAGE_META[page];
+    if (meta && meta.filterFn) window[meta.filterFn]();
+  }
+
+  function openSheet(id) {
+    $('#sheetBackdrop').classList.add('show');
+    $('#' + id).classList.add('show');
+  }
+  function closeAllSheets() {
+    $('#sheetBackdrop').classList.remove('show');
+    $all('.sheet').forEach(function (s) { s.classList.remove('show'); });
+  }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeAllSheets(); });
+
+  function openDashFilterSheet() { openSheet('dashFilterSheet'); }
+  function openRawFilterSheet() { openSheet('rawFilterSheet'); }
+  function openDeviceFilterSheet() { openSheet('deviceFilterSheet'); }
+
+  /* ===================== LOADING / SKELETON / TOAST ===================== */
+  function showLoading(text) {
+    $('#loadingText').textContent = text || 'Đang tải dữ liệu...';
+    $('#loadingOverlay').classList.add('show');
+  }
+  function hideLoading() { $('#loadingOverlay').classList.remove('show'); }
+
+  /** Thẻ chờ dạng skeleton — giữ đúng khung layout nên dữ liệu về không làm giật trang. */
+  function skelCards(n, cls) {
+    var out = '';
+    for (var i = 0; i < (n || 5); i++) out += '<div class="skel ' + (cls || 'skel-card') + '"></div>';
+    return out;
+  }
+  function skelNccRows(n) {
+    var out = '';
+    for (var i = 0; i < (n || 6); i++) {
+      out += '<div class="ncc-row" style="cursor:default;"><span class="skel" style="width:45%; height:14px;"></span><span class="skel" style="width:24%; height:14px;"></span></div>';
+    }
+    return out;
+  }
+  /** Bật/tắt skeleton cho khối Dashboard (hero + 3 thẻ + 4 biểu đồ + danh sách NCC). */
+  function setDashboardLoading(on) {
+    $('#dashHeroCard').classList.toggle('is-loading', !!on);
+    $('#dashStatGrid').classList.toggle('is-loading', !!on);
+    $all('#page-dashboard .chart-wrap').forEach(function (el) { el.classList.toggle('is-loading', !!on); });
+    if (on) $('#topNccList').innerHTML = skelNccRows(6);
+  }
+
+  var toastTimer = null;
+  function showToast(message, type) {
+    var el = $('#toastNotice');
+    $('#toastText').textContent = message;
+    el.className = 'toast show' + (type === 'error' ? ' error' : '');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove('show'); }, 3200);
+  }
+
+  function refreshData() {
+    // Khóa nút trong lúc chạy, nếu không chạm nhiều lần sẽ bắn nhiều refreshCache() song song.
+    var btn = $('#refreshDataBtn');
+    btn.disabled = true;
+    showLoading('Đang làm mới dữ liệu...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        hideLoading();
+        btn.disabled = false;
+
+        // Server có thể trả success=false (đọc Sheet lỗi) -> phải là toast đỏ, không phải xanh.
+        if (res && res.success === false) {
+          showToast(res.message || 'Không tải lại được dữ liệu.', 'error');
+          return;
+        }
+        showToast((res && res.message) || 'Đã làm mới dữ liệu.', 'success');
+
+        /* Hệ thống có 2 TẦNG CACHE: tầng server (CacheService) và tầng client (các cờ
+           ...LoadedOnce + donGiaDataCache ngay trong trình duyệt). Server đã nạp dữ liệu mới,
+           nhưng nếu không xoá tầng client thì các trang ĐÃ TỪNG MỞ sẽ không hỏi lại server nữa
+           và vẫn hiện số liệu cũ. Phải reset TẤT CẢ, không chỉ trang đang mở. */
+        dashboardLoadedOnce = false;
+        donGiaLoadedOnce = false;
+        rawDataLoadedOnce = false;
+        deviceListLoadedOnce = false;
+        donGiaDataCache = { bt: null, xd: null, snk: null };
+
+        // Trang ĐANG MỞ được tải lại ngay tại đây, nên đánh dấu lại cờ của riêng nó để lúc rời
+        // đi rồi quay lại không phải gọi server thêm một lần thừa.
+        var activeNav = $('.nav-btn.active');
+        var activePage = activeNav ? activeNav.dataset.page : 'dashboard';
+        if (activePage === 'dashboard') { dashboardLoadedOnce = true; loadDashboard(); }
+        if (activePage === 'dongia') { donGiaLoadedOnce = true; loadDonGiaCategory(currentDonGiaCategory); }
+        if (activePage === 'rawdata') { rawDataLoadedOnce = true; loadRawData(1); }
+        if (activePage === 'devicelist') {
+          deviceListLoadedOnce = true;
+          reloadDeviceFilterOptions(function () { loadDeviceList(1); });
+        }
+      })
+      .withFailureHandler(function (err) { hideLoading(); btn.disabled = false; showToast('Lỗi: ' + err.message, 'error'); })
+      .refreshCache();
+  }
+
+  /* ===================== TRA CỨU 1 MÃ ===================== */
+  var codeInput = $('#codeInput');
+  codeInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doSearch(); });
+  // Sau khi đã tra cứu xong, bấm lại vào ô tìm kiếm sẽ tự xóa mã cũ để nhập mã mới
+  codeInput.addEventListener('focus', function () {
+    if (codeInput.dataset.hasSearched === '1') {
+      codeInput.value = '';
+      codeInput.dataset.hasSearched = '0';
+    }
+  });
+
+  function statusClass(status) {
+    if (status === 'Còn bảo hành') return 'warranty';
+    if (status === 'Hết bảo hành') return 'expired';
+    return 'unknown';
+  }
+
+  function showSearchMessage(text) {
+    var el = $('#searchMessage');
+    el.textContent = text; el.className = 'message error';
+  }
+  function hideSearchMessage() {
+    var el = $('#searchMessage');
+    el.className = 'message'; el.textContent = '';
+  }
+
+  function doSearch() {
+    var code = codeInput.value.trim();
+    if (!code) { showSearchMessage('Vui lòng nhập mã thiết bị.'); return; }
+
+    $('#resultSection').style.display = 'none';
+    var btn = $('#searchBtn');
+    btn.disabled = true;
+    showLoading('Đang tra cứu ' + code + '...');
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        btn.disabled = false; hideLoading();
+        if (!res.success) { showSearchMessage(res.message); return; }
+        hideSearchMessage();
+        renderResult(res);
+        codeInput.dataset.hasSearched = '1';
+      })
+      .withFailureHandler(function (err) {
+        btn.disabled = false; hideLoading();
+        showSearchMessage('Lỗi hệ thống: ' + err.message);
+      })
+      .searchDevice(code);
+  }
+
+  function renderResult(res) {
+    var d = res.device;
+    $('#tenCuaHang').textContent = d.ten_cua_hang || '(Không có tên)';
+    $('#codeBadge').textContent = d.code_tu;
+    $('#diaChi').textContent = d.dia_chi || '—';
+    $('#soDienThoai').textContent = d.so_dien_thoai || '—';
+    setDateText($('#ngayLapDat'), d.ngay_lap_dat, d.ngay_lap_dat_loi);
+    $('#loaiTu').textContent = d.loai_tu || '—';
+    $('#nhanHieu').textContent = d.nhan_hieu || '—';
+
+    // Trang Tra cứu thiết bị: số tiền của MỘT thiết bị nên ngắn, viết đầy đủ để đối chiếu
+    // được với bảng lịch sử ngay bên dưới. Chỉ trang Tổng quan mới rút gọn (số hàng tỷ).
+    $('#tongChiPhi').textContent = formatCurrency(res.tong_chi_phi);
+    $('#chiPhiDiChuyen').textContent = formatCurrency(res.chi_phi_di_chuyen);
+    $('#chiPhiSuaChua').textContent = formatCurrency(res.chi_phi_sua_chua);
+    $('#soLanSua').textContent = formatInt(res.so_lan_sua);
+
+    var badge = $('#tinhTrangBaoHanhThietBi');
+    badge.textContent = res.tinh_trang_bao_hanh_thiet_bi;
+    badge.className = 'status-pill ' + statusClass(res.tinh_trang_bao_hanh_thiet_bi);
+
+    var tl = res.tinh_trang_thanh_ly;
+    var tlEl = $('#tinhTrangThanhLy');
+    tlEl.innerHTML = '';
+    if (tl) {
+      var l1 = document.createElement('div');
+      l1.textContent = tl.thanhLy || '—';
+      tlEl.appendChild(l1);
+      if (tl.dienGiai) {
+        var l2 = document.createElement('div');
+        l2.className = 'muted-text';
+        l2.style.marginTop = '3px';
+        l2.textContent = tl.dienGiai;
+        tlEl.appendChild(l2);
+      }
+    } else {
+      var none = document.createElement('span');
+      none.className = 'muted-text';
+      none.textContent = 'Chưa có thông tin';
+      tlEl.appendChild(none);
+    }
+
+    var gsbhEl = $('#thongTinGsbh');
+    gsbhEl.innerHTML = '';
+    if (!res.gsbh_list || res.gsbh_list.length === 0) {
+      var g0 = document.createElement('span');
+      g0.className = 'muted-text'; g0.textContent = 'Chưa có thông tin';
+      gsbhEl.appendChild(g0);
+    } else {
+      var gsbhList = document.createElement('div');
+      gsbhList.className = 'gsbh-list';
+      res.gsbh_list.forEach(function (g) {
+        var row = document.createElement('div');
+        row.className = 'gsbh-entry';
+
+        var nameWrap = document.createElement('div');
+        nameWrap.className = 'gsbh-name';
+        nameWrap.textContent = g.hoTen || '—';
+        if (g.tenNpp) {
+          var npp = document.createElement('span');
+          npp.className = 'gsbh-npp';
+          npp.textContent = '(' + g.tenNpp + ')';
+          nameWrap.appendChild(npp);
+        }
+
+        var phone = document.createElement('div');
+        phone.className = 'gsbh-phone';
+        phone.textContent = g.soDienThoai || '—';
+
+        row.appendChild(nameWrap);
+        row.appendChild(phone);
+        gsbhList.appendChild(row);
+      });
+      gsbhEl.appendChild(gsbhList);
+    }
+
+    var pcEl = $('#pcPhuTrach');
+    pcEl.innerHTML = '';
+    if (!res.pc_list || res.pc_list.length === 0) {
+      var p0 = document.createElement('span');
+      p0.className = 'muted-text'; p0.textContent = 'Chưa có thông tin';
+      pcEl.appendChild(p0);
+    } else {
+      res.pc_list.forEach(function (pc) {
+        var span = document.createElement('span');
+        span.className = 'pc-badge';
+        span.textContent = pc;
+        pcEl.appendChild(span);
+      });
+    }
+
+    var list = $('#historyList');
+    list.innerHTML = '';
+    if (!res.lich_su || res.lich_su.length === 0) {
+      $('#emptyNote').style.display = 'block';
+    } else {
+      $('#emptyNote').style.display = 'none';
+      res.lich_su.forEach(function (group) {
+        var items = group.items && group.items.length ? group.items : [{ noiDung: '', chiPhi: 0 }];
+        var wrap = document.createElement('div');
+        wrap.className = 'repair-group';
+
+        var head = document.createElement('div');
+        head.className = 'repair-group-head';
+        var headLeft = document.createElement('div');
+        var dateEl = document.createElement('div');
+        dateEl.className = 'rg-date';
+        setDateText(dateEl, group.ngaySuaChua, group.ngayLoi);
+        var nccEl = document.createElement('div');
+        nccEl.className = 'rg-ncc';
+        nccEl.textContent = group.ncc || 'Không rõ NCC';
+        headLeft.appendChild(dateEl);
+        headLeft.appendChild(nccEl);
+        var pill = document.createElement('span');
+        pill.className = 'status-pill ' + statusClass(group.tinhTrang);
+        pill.textContent = group.tinhTrang;
+        head.appendChild(headLeft);
+        head.appendChild(pill);
+        wrap.appendChild(head);
+
+        items.forEach(function (item) {
+          var row = document.createElement('div');
+          row.className = 'repair-item';
+          var content = document.createElement('div');
+          content.className = 'ri-content';
+          content.textContent = item.noiDung || '—';
+          var cost = document.createElement('div');
+          cost.className = 'ri-cost';
+          cost.textContent = formatCurrency(item.chiPhi);
+          row.appendChild(content);
+          row.appendChild(cost);
+          wrap.appendChild(row);
+        });
+
+        list.appendChild(wrap);
+      });
+    }
+
+    $('#resultSection').style.display = 'block';
+  }
+
+  function goToSearch(code) {
+    switchPage('search');
+    $('#codeInput').value = code;
+    doSearch();
+  }
+
+  /* ===================== TRA CỨU HÀNG LOẠT ===================== */
+  function showBatchMessage(text) {
+    var el = $('#batchMessage');
+    el.textContent = text; el.className = 'message error';
+  }
+  function hideBatchMessage() {
+    var el = $('#batchMessage');
+    el.className = 'message'; el.textContent = '';
+  }
+
+  function clearBatch() {
+    $('#batchInput').value = '';
+    $('#batchResultCard').style.display = 'none';
+    hideBatchMessage();
+  }
+
+  function doBatchSearch() {
+    var text = $('#batchInput').value;
+    if (!text.trim()) { showBatchMessage('Vui lòng nhập ít nhất 1 mã thiết bị.'); return; }
+
+    var btn = $('#batchBtn');
+    btn.disabled = true;
+    showLoading('Đang tra cứu hàng loạt...');
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        btn.disabled = false; hideLoading();
+        if (!res.success) { showBatchMessage(res.message); return; }
+        hideBatchMessage();
+        renderBatchResult(res.results);
+      })
+      .withFailureHandler(function (err) {
+        btn.disabled = false; hideLoading();
+        showBatchMessage('Lỗi hệ thống: ' + err.message);
+      })
+      .batchSearchDevices(text);
+  }
+
+  /** Dấu chấm than cảnh báo ô ngày không đọc được từ dữ liệu gốc. */
+  function mkDateWarn() {
+    var b = document.createElement('span');
+    b.className = 'date-warn';
+    b.textContent = '!';
+    b.title = 'Ngày không hợp lệ trong dữ liệu gốc. Dòng này bị bỏ qua khi lọc theo khoảng ngày '
+            + 'và không tính được tình trạng bảo hành — vui lòng sửa lại trên Google Sheet.';
+    return b;
+  }
+
+  /** Gán ngày vào 1 phần tử bất kỳ, kèm badge cảnh báo nếu cần */
+  function setDateText(el, value, isErr) {
+    el.textContent = '';
+    el.appendChild(document.createTextNode(value || '—'));
+    if (isErr) el.appendChild(mkDateWarn());
+  }
+
+  /** Như metaSpan nhưng dành cho giá trị ngày, có thể kèm badge cảnh báo */
+  function metaDateSpan(label, value, isErr) {
+    var span = document.createElement('span');
+    span.appendChild(document.createTextNode(label + ': '));
+    var b = document.createElement('b');
+    b.textContent = value || '—';
+    span.appendChild(b);
+    if (isErr) span.appendChild(mkDateWarn());
+    return span;
+  }
+
+  function metaSpan(label, value) {
+    var span = document.createElement('span');
+    span.appendChild(document.createTextNode(label + ': '));
+    var b = document.createElement('b');
+    b.textContent = value || '—';
+    span.appendChild(b);
+    return span;
+  }
+
+  function renderBatchResult(results) {
+    $('#batchCount').textContent = formatInt(results.length);
+    var body = $('#batchBody');
+    body.innerHTML = '';
+
+    results.forEach(function (r) {
+      var card = document.createElement('button');
+      card.type = 'button';
+      card.className = 'record-card clickable';
+
+      var top = document.createElement('div');
+      top.className = 'rc-top';
+      var code = document.createElement('span');
+      code.className = 'rc-code';
+      code.textContent = r.code_tu;
+      var cost = document.createElement('span');
+      cost.className = 'rc-cost';
+      cost.textContent = r.chi_phi ? formatCurrency(r.chi_phi) : '—';
+      top.appendChild(code); top.appendChild(cost);
+      card.appendChild(top);
+
+      var meta = document.createElement('div');
+      meta.className = 'rc-meta';
+      meta.appendChild(metaDateSpan('Lắp đặt', r.ngay_lap_dat, r.ngay_lap_dat_loi));
+      meta.appendChild(metaSpan('Nhãn hiệu', r.nhan_hieu));
+      meta.appendChild(metaSpan('Loại tủ', r.loai_tu));
+      card.appendChild(meta);
+
+      var tags = document.createElement('div');
+      tags.className = 'rc-tags';
+      var hasTag = false;
+      if (r.tinh_trang_bao_hanh && r.tinh_trang_bao_hanh !== 'Không xác định') {
+        var t1 = document.createElement('span');
+        t1.className = 'status-pill ' + statusClass(r.tinh_trang_bao_hanh);
+        t1.textContent = r.tinh_trang_bao_hanh;
+        tags.appendChild(t1); hasTag = true;
+      }
+      if (r.tinh_trang_thanh_ly) {
+        var t2 = document.createElement('span');
+        t2.className = 'note-pill';
+        t2.style.flex = '1 1 100%';
+        t2.textContent = r.tinh_trang_thanh_ly;
+        tags.appendChild(t2); hasTag = true;
+      }
+      if (hasTag) card.appendChild(tags);
+
+      card.addEventListener('click', function () { goToSearch(r.code_tu); });
+      body.appendChild(card);
+    });
+
+    $('#batchResultCard').style.display = 'block';
+  }
+
+  /* ===================== DANH SÁCH THIẾT BỊ ===================== */
+  var deviceListLoadedOnce = false;
+  var deviceCurrentRegion = 'toanquoc';
+  var deviceCurrentPage = 1;
+  var DEVICE_PAGE_SIZE = 50;
+
+  var deviceSearchInputEl = $('#deviceSearchInput');
+  deviceSearchInputEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') applyDeviceFilters(); });
+
+  function getDeviceFilters() {
+    return {
+      search: $('#deviceSearchInput').value.trim(),
+      mien: deviceCurrentRegion,
+      npp: $('#deviceFilterNpp').value,
+      loai: $('#deviceFilterLoai').value,
+      nhanHieu: $('#deviceFilterNhanHieu').value,
+      baoHanh: $('#deviceFilterBaoHanh').value
+    };
+  }
+
+  function setDeviceRegion(region) {
+    deviceCurrentRegion = region;
+    $all('#deviceRegionTabs .seg-item').forEach(function (t) { t.classList.remove('active'); });
+    $('#deviceRegionTabs .seg-item[data-region="' + region + '"]').classList.add('active');
+    reloadDeviceFilterOptions(function () { loadDeviceList(1); });
+  }
+
+  function reloadDeviceFilterOptions(callback) {
+    var nppSelect = $('#deviceFilterNpp');
+    var loaiSelect = $('#deviceFilterLoai');
+    var nhSelect = $('#deviceFilterNhanHieu');
+    var prevNpp = nppSelect.value, prevLoai = loaiSelect.value, prevNh = nhSelect.value;
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        nppSelect.innerHTML = '<option value="">Tất cả</option>';
+        loaiSelect.innerHTML = '<option value="">Tất cả</option>';
+        nhSelect.innerHTML = '<option value="">Tất cả</option>';
+        if (res.success) {
+          (res.nppList || []).forEach(function (v) { var o = document.createElement('option'); o.value = v; o.textContent = v; nppSelect.appendChild(o); });
+          (res.loaiList || []).forEach(function (v) { var o = document.createElement('option'); o.value = v; o.textContent = v; loaiSelect.appendChild(o); });
+          (res.nhanHieuList || []).forEach(function (v) { var o = document.createElement('option'); o.value = v; o.textContent = v; nhSelect.appendChild(o); });
+        }
+        nppSelect.value = (res.nppList || []).indexOf(prevNpp) !== -1 ? prevNpp : '';
+        loaiSelect.value = (res.loaiList || []).indexOf(prevLoai) !== -1 ? prevLoai : '';
+        nhSelect.value = (res.nhanHieuList || []).indexOf(prevNh) !== -1 ? prevNh : '';
+        if (callback) callback();
+      })
+      .withFailureHandler(function (err) { console.error(err); if (callback) callback(); })
+      .getDanhSachThietBiFilterOptions({ mien: deviceCurrentRegion });
+  }
+
+  function applyDeviceFilters() { loadDeviceList(1); }
+
+  function resetDeviceFilters() {
+    $('#deviceSearchInput').value = '';
+    $('#deviceFilterNpp').value = '';
+    $('#deviceFilterLoai').value = '';
+    $('#deviceFilterNhanHieu').value = '';
+    $('#deviceFilterBaoHanh').value = '';
+    setDeviceRegion('toanquoc');
+  }
+
+  function initDeviceList() {
+    $('#deviceListBody').innerHTML = skelCards(5);
+    reloadDeviceFilterOptions(function () { loadDeviceList(1); });
+  }
+
+  function loadDeviceList(page) {
+    deviceCurrentPage = page || 1;
+    $('#deviceListBody').innerHTML = skelCards(5);
+    $('#deviceListEmptyNote').style.display = 'none';
+    var filters = getDeviceFilters();
+    filters.page = deviceCurrentPage;
+    filters.pageSize = DEVICE_PAGE_SIZE;
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (!res.success) { $('#deviceListBody').innerHTML = ''; showToast(res.message, 'error'); return; }
+        renderDeviceList(res);
+      })
+      .withFailureHandler(function (err) { $('#deviceListBody').innerHTML = ''; showToast('Lỗi: ' + err.message, 'error'); })
+      .getDanhSachThietBiPageData(filters);
+  }
+
+  function renderDeviceList(res) {
+    $('#deviceTotalCount').textContent = formatInt(res.totalRecords);
+    var body = $('#deviceListBody');
+    var emptyNote = $('#deviceListEmptyNote');
+    body.innerHTML = '';
+
+    if (!res.records || res.records.length === 0) {
+      emptyNote.style.display = 'block';
+    } else {
+      emptyNote.style.display = 'none';
+      res.records.forEach(function (r) {
+        var card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'record-card clickable';
+
+        var top = document.createElement('div');
+        top.className = 'rc-top';
+        var code = document.createElement('span');
+        code.className = 'rc-code';
+        code.textContent = r.code || '—';
+        var vung = document.createElement('span');
+        vung.className = 'rc-cost';
+        vung.style.cssText = 'font-size:12px; color:var(--ink-muted); font-weight:600;';
+        vung.textContent = r.vung || '—';
+        top.appendChild(code); top.appendChild(vung);
+        card.appendChild(top);
+
+        var name = document.createElement('div');
+        name.style.cssText = 'font-weight:700; font-size:13.5px; margin-bottom:4px;';
+        name.textContent = r.tenCuaHang || '(Không có tên)';
+        card.appendChild(name);
+
+        var addr = document.createElement('div');
+        addr.className = 'rc-note';
+        addr.style.marginTop = '0';
+        addr.textContent = r.diaChi || '—';
+        card.appendChild(addr);
+
+        var meta = document.createElement('div');
+        meta.className = 'rc-meta';
+        meta.style.marginTop = '8px';
+        meta.appendChild(metaSpan('SĐT', r.soDienThoai));
+        meta.appendChild(metaSpan('NPP', r.npp));
+        meta.appendChild(metaSpan('Loại', r.loaiTu));
+        meta.appendChild(metaSpan('Nhãn hiệu', r.nhanHieu));
+        meta.appendChild(metaDateSpan('Lắp đặt', r.ngayLapDat, r.ngayLapDatLoi));
+        card.appendChild(meta);
+
+        if (r.tinhTrangBaoHanh && r.tinhTrangBaoHanh !== 'Không xác định') {
+          var tags = document.createElement('div');
+          tags.className = 'rc-tags';
+          var pill = document.createElement('span');
+          pill.className = 'status-pill ' + statusClass(r.tinhTrangBaoHanh);
+          pill.textContent = r.tinhTrangBaoHanh;
+          tags.appendChild(pill);
+          card.appendChild(tags);
+        }
+
+        card.addEventListener('click', function () { goToSearch(r.code); });
+        body.appendChild(card);
+      });
+    }
+
+    renderDevicePagination(res.page, res.totalPages);
+  }
+
+  function renderDevicePagination(page, totalPages) {
+    // Không có trang nào thì ẩn hẳn thanh phân trang, tránh hiện "Trang 1 / 0".
+    if (!totalPages || totalPages < 1) { $('#devicePaginationBottom').innerHTML = ''; return; }
+    $('#devicePaginationBottom').innerHTML =
+      '<button class="btn secondary" type="button" ' + (page <= 1 ? 'disabled' : '') + ' onclick="loadDeviceList(' + (page - 1) + ')">‹ Trước</button>' +
+      '<span>Trang ' + page + ' / ' + totalPages + '</span>' +
+      '<button class="btn secondary" type="button" ' + (page >= totalPages ? 'disabled' : '') + ' onclick="loadDeviceList(' + (page + 1) + ')">Sau ›</button>';
+  }
+
+  /** Từ Dashboard: bấm 1 loại thiết bị trên biểu đồ -> mở Danh sách thiết bị đã lọc theo loại đó */
+  function goToDeviceListByType(loaiTu) {
+    deviceListLoadedOnce = true;
+    var dashFilters = getCurrentFilters();
+
+    $('#deviceSearchInput').value = '';
+    deviceCurrentRegion = dashFilters.mien || 'toanquoc';
+    $all('#deviceRegionTabs .seg-item').forEach(function (t) { t.classList.remove('active'); });
+    $('#deviceRegionTabs .seg-item[data-region="' + deviceCurrentRegion + '"]').classList.add('active');
+
+    switchPage('devicelist');
+
+    reloadDeviceFilterOptions(function () {
+      $('#deviceFilterLoai').value = loaiTu || '';
+      loadDeviceList(1);
+    });
+  }
+
+  /** Từ Dashboard: bấm 1 nhãn hiệu trên biểu đồ -> mở Danh sách thiết bị đã lọc theo nhãn hiệu đó */
+  function goToDeviceListByBrand(nhanHieu) {
+    deviceListLoadedOnce = true;
+    var dashFilters = getCurrentFilters();
+
+    $('#deviceSearchInput').value = '';
+    deviceCurrentRegion = dashFilters.mien || 'toanquoc';
+    $all('#deviceRegionTabs .seg-item').forEach(function (t) { t.classList.remove('active'); });
+    $('#deviceRegionTabs .seg-item[data-region="' + deviceCurrentRegion + '"]').classList.add('active');
+
+    switchPage('devicelist');
+
+    reloadDeviceFilterOptions(function () {
+      $('#deviceFilterNhanHieu').value = nhanHieu || '';
+      loadDeviceList(1);
+    });
+  }
+
+  /* ===================== ĐƠN GIÁ ===================== */
+  var DONGIA_COLUMNS = {
+    bt: [
+      { key: 'dvt', label: 'ĐVT', cls: 'dvt' },
+      { key: 'vatTu', label: 'Vật tư', money: true, cls: 'vattu' },
+      { key: 'nhanCong', label: 'Nhân công', money: true, cls: 'nhancong' },
+      { key: 'tongCong', label: 'Tổng cộng', money: true, cls: 'tongcong' }
+    ],
+    xd: [
+      { key: 'dvt', label: 'ĐVT', cls: 'dvt' },
+      { key: 'donGia', label: 'Đơn giá', money: true, cls: 'tongcong' }
+    ],
+    snk: [
+      { key: 'dvt', label: 'ĐVT', cls: 'dvt' },
+      { key: 'vatTu', label: 'Vật tư', money: true, cls: 'vattu' },
+      { key: 'gasPhinLoc', label: 'Gas & phin lọc', money: true, cls: 'vattu' },
+      { key: 'nhanCong', label: 'Nhân công', money: true, cls: 'nhancong' },
+      { key: 'phuPhi', label: 'Phụ phí', money: true, cls: 'nhancong' },
+      { key: 'donGia', label: 'Tổng cộng', money: true, cls: 'tongcong' }
+    ]
+  };
+
+  var donGiaDataCache = { bt: null, xd: null, snk: null };
+  var currentDonGiaCategory = 'bt';
+  var donGiaLoadedOnce = false;
+
+  function removeDiacriticsJS(str) {
+    return String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd').replace(/Đ/g, 'D');
+  }
+
+  /**
+   * Bóc dấu SẴN cho cả bảng một lần lúc dữ liệu về, thay vì normalize('NFD') 3 trường x mỗi
+   * dòng x mỗi lần gõ phím (bảng 1.000 dòng, gõ từ 3 ký tự = 9.000 lần) cho cùng một kết quả.
+   */
+  function cacheDonGia_(cat, records) {
+    var list = records || [];
+    list.forEach(function (r) {
+      r._maO = String(r.maImc   || '').toLowerCase();
+      r._ndO = String(r.noiDung || '').toLowerCase();
+      r._ycO = String(r.yeuCau  || '').toLowerCase();
+      r._maN = removeDiacriticsJS(r.maImc).toLowerCase();
+      r._ndN = removeDiacriticsJS(r.noiDung).toLowerCase();
+      r._ycN = removeDiacriticsJS(r.yeuCau).toLowerCase();
+    });
+    donGiaDataCache[cat] = list;
+  }
+
+  function setDonGiaCategory(cat) {
+    if (cat === currentDonGiaCategory && donGiaDataCache[cat]) return;
+    currentDonGiaCategory = cat;
+    $all('#donGiaTabs .seg-item').forEach(function (t) { t.classList.remove('active'); });
+    $('#donGiaTabs .seg-item[data-cat="' + cat + '"]').classList.add('active');
+    $('#donGiaSearch').value = '';
+
+    if (donGiaDataCache[cat]) renderDonGia(donGiaDataCache[cat]);
+    else loadDonGiaCategory(cat);
+  }
+
+  function loadDonGiaCategory(cat) {
+    $('#donGiaEmptyNote').style.display = 'none';
+    $('#donGiaBody').innerHTML = skelCards(5, 'skel-dg-card');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (!res.success) { $('#donGiaBody').innerHTML = ''; showToast(res.message, 'error'); return; }
+        cacheDonGia_(cat, res.records);
+        if (currentDonGiaCategory === cat) {
+          // Làm mới khi đang lọc thì phải lọc LẠI, nếu không ô tìm kiếm còn từ khóa mà
+          // danh sách lại hiện đủ toàn bộ -> màn hình tự mâu thuẫn.
+          if ($('#donGiaSearch').value.trim()) filterDonGia();
+          else renderDonGia(donGiaDataCache[cat]);
+        }
+      })
+      .withFailureHandler(function (err) { $('#donGiaBody').innerHTML = ''; showToast('Lỗi: ' + err.message, 'error'); })
+      .getDonGiaData(cat);
+  }
+
+  function buildDonGiaCard(r) {
+    var cols = DONGIA_COLUMNS[currentDonGiaCategory];
+    var card = document.createElement('div');
+    card.className = 'dg-card';
+
+    var title = document.createElement('div');
+    title.className = 'dg-title';
+    var badge = document.createElement('span');
+    badge.className = 'dg-imc-badge';
+    badge.textContent = r.maImc || '—';
+    title.appendChild(badge);
+    title.appendChild(document.createTextNode(r.noiDung || '—'));
+    card.appendChild(title);
+
+    if (r.yeuCau) {
+      var sub = document.createElement('div');
+      sub.className = 'dg-sub';
+      sub.textContent = r.yeuCau;
+      card.appendChild(sub);
+    }
+
+    var tags = document.createElement('div');
+    tags.className = 'dg-tags';
+    cols.forEach(function (c) {
+      var val = r[c.key];
+      var display = c.money ? formatCurrency(val) : (val || '—');
+      var tag = document.createElement('span');
+      tag.className = 'dg-tag ' + (c.cls || '');
+      tag.textContent = c.label + ': ' + display;
+      tags.appendChild(tag);
+    });
+    card.appendChild(tags);
+
+    return card;
+  }
+
+  function renderDonGia(list) {
+    var body = $('#donGiaBody');
+    var emptyNote = $('#donGiaEmptyNote');
+    body.innerHTML = '';
+
+    if (!list || list.length === 0) { emptyNote.style.display = 'block'; return; }
+    emptyNote.style.display = 'none';
+
+    // Gom vào một khay tạm rồi gắn MỘT lần, thay vì gắn từng thẻ (1.000 lần tính lại bố cục).
+    var frag = document.createDocumentFragment();
+    list.forEach(function (r) {
+      if (r.isHeader) {
+        var h = document.createElement('div');
+        h.className = 'dg-group-header';
+        h.textContent = r.maImc + '. ' + r.noiDung;
+        frag.appendChild(h);
+      } else if (r.isSubHeader) {
+        var sh = document.createElement('div');
+        sh.className = 'dg-subgroup-header';
+        sh.textContent = r.maImc + '. ' + r.noiDung;
+        frag.appendChild(sh);
+      } else {
+        frag.appendChild(buildDonGiaCard(r));
+      }
+    });
+    body.appendChild(frag);
+  }
+
+  /* Chờ ngừng gõ 180ms rồi mới lọc -> mỗi từ chỉ dựng lại danh sách đúng một lần. */
+  var donGiaFilterTimer_ = null;
+  function filterDonGiaDebounced() {
+    clearTimeout(donGiaFilterTimer_);
+    donGiaFilterTimer_ = setTimeout(filterDonGia, 180);
+  }
+
+  function filterDonGia() {
+    var data = donGiaDataCache[currentDonGiaCategory];
+    if (!data) return;
+    var q = $('#donGiaSearch').value.trim();
+
+    if (!q) { renderDonGia(data); return; }
+
+    var qNorm = removeDiacriticsJS(q).toLowerCase();
+    var qHasDiacritics = qNorm !== q.toLowerCase();
+    var qCompare = qHasDiacritics ? q.toLowerCase() : qNorm;
+
+    var lastHeaderRecord = {};
+    var lastSubHeaderRecord = {};
+    data.forEach(function (r) {
+      if (r.isHeader) lastHeaderRecord[r.group] = r;
+      else if (r.isSubHeader) lastSubHeaderRecord[r.group + '||' + r.subGroup] = r;
+    });
+
+    var result = [];
+    var addedHeaderForGroup = {};
+    var addedSubHeaderForKey = {};
+
+    data.forEach(function (r) {
+      if (r.isHeader || r.isSubHeader) return;
+
+      // Dùng thẳng chuỗi đã bóc dấu sẵn trong cacheDonGia_ — không tính lại gì ở đây.
+      var searchMa = qHasDiacritics ? r._maO : r._maN;
+      var searchNoiDung = qHasDiacritics ? r._ndO : r._ndN;
+      var searchYeuCau = qHasDiacritics ? r._ycO : r._ycN;
+
+      var isMatch = searchMa.indexOf(qCompare) !== -1 ||
+                    searchNoiDung.indexOf(qCompare) !== -1 ||
+                    searchYeuCau.indexOf(qCompare) !== -1;
+      if (!isMatch) return;
+
+      if (r.group && !addedHeaderForGroup[r.group] && lastHeaderRecord[r.group]) {
+        result.push(lastHeaderRecord[r.group]);
+        addedHeaderForGroup[r.group] = true;
+      }
+      if (r.subGroup) {
+        var subKey = r.group + '||' + r.subGroup;
+        if (!addedSubHeaderForKey[subKey] && lastSubHeaderRecord[subKey]) {
+          result.push(lastSubHeaderRecord[subKey]);
+          addedSubHeaderForKey[subKey] = true;
+        }
+      }
+      result.push(r);
+    });
+
+    renderDonGia(result);
+  }
+
+  /* ===================== DỮ LIỆU CHI PHÍ ===================== */
+  var rawDataLoadedOnce = false;
+  var rawCurrentRegion = 'toanquoc';
+  var rawCurrentPage = 1;
+  var RAW_PAGE_SIZE = 50;
+
+  function getRawFilters() {
+    return {
+      maThietBi: $('#rawCodeInput').value.trim(),
+      mien: rawCurrentRegion,
+      ncc: $('#rawFilterNcc').value,
+      tuNgay: $('#rawFilterTuNgay').value,
+      denNgay: $('#rawFilterDenNgay').value
+    };
+  }
+
+  function setRawRegion(region) {
+    rawCurrentRegion = region;
+    $all('#rawRegionTabs .seg-item').forEach(function (t) { t.classList.remove('active'); });
+    $('#rawRegionTabs .seg-item[data-region="' + region + '"]').classList.add('active');
+    // Chạm khu vực là màn hình phía sau đổi ngay, giống setRegion và setDeviceRegion.
+    reloadRawNccOptions(function () { loadRawData(1); });
+  }
+
+  function reloadRawNccOptions(callback) {
+    var select = $('#rawFilterNcc');
+    var previousValue = select.value;
+    var filters = getRawFilters();
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        select.innerHTML = '<option value="">Tất cả</option>';
+        if (res.success && res.nccList) {
+          res.nccList.forEach(function (ncc) {
+            var opt = document.createElement('option');
+            opt.value = ncc; opt.textContent = ncc;
+            select.appendChild(opt);
+          });
+        }
+        if (res.success && res.nccList && res.nccList.indexOf(previousValue) !== -1) select.value = previousValue;
+        else select.value = '';
+        if (callback) callback();
+      })
+      .withFailureHandler(function (err) { console.error(err); if (callback) callback(); })
+      .getFilterOptions(filters);
+  }
+
+  function applyRawFilters() { reloadRawNccOptions(function () { loadRawData(1); }); }
+
+  function resetRawFilters() {
+    $('#rawCodeInput').value = '';
+    $('#rawFilterTuNgay').value = '';
+    $('#rawFilterDenNgay').value = '';
+    // PHẢI xóa TRƯỚC khi gọi setRawRegion: reloadRawNccOptions giữ lại lựa chọn cũ nếu nó
+    // còn trong danh sách mới, nên không xóa ở đây thì "Xóa lọc" không bỏ được NCC.
+    $('#rawFilterNcc').value = '';
+    setRawRegion('toanquoc');   // đã tự tải lại, không gọi thêm lần nữa
+  }
+
+  function initRawData() {
+    $('#rawDataBody').innerHTML = skelCards(5);
+    reloadRawNccOptions(function () { loadRawData(1); });
+  }
+
+  function loadRawData(page) {
+    rawCurrentPage = page || 1;
+    $('#rawDataBody').innerHTML = skelCards(5);
+    $('#rawDataEmptyNote').style.display = 'none';
+    var filters = getRawFilters();
+    filters.page = rawCurrentPage;
+    filters.pageSize = RAW_PAGE_SIZE;
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (!res.success) { $('#rawDataBody').innerHTML = ''; showToast(res.message, 'error'); return; }
+        renderRawData(res);
+      })
+      .withFailureHandler(function (err) { $('#rawDataBody').innerHTML = ''; showToast('Lỗi: ' + err.message, 'error'); })
+      .getChiPhiPageData(filters);
+  }
+
+  function renderRawData(res) {
+    $('#rawTotalCount').textContent = formatInt(res.totalRecords);
+    var body = $('#rawDataBody');
+    var emptyNote = $('#rawDataEmptyNote');
+    body.innerHTML = '';
+
+    if (!res.records || res.records.length === 0) {
+      emptyNote.style.display = 'block';
+    } else {
+      emptyNote.style.display = 'none';
+      res.records.forEach(function (r) {
+        var card = document.createElement('div');
+        card.className = 'record-card';
+
+        var top = document.createElement('div');
+        top.className = 'rc-top';
+        var code = document.createElement('span');
+        code.className = 'rc-code';
+        code.textContent = r.code || '—';
+        var cost = document.createElement('span');
+        cost.className = 'rc-cost';
+        cost.textContent = formatCurrency(r.chiPhi);
+        top.appendChild(code); top.appendChild(cost);
+        card.appendChild(top);
+
+        var meta = document.createElement('div');
+        meta.className = 'rc-meta';
+        var dateSpan = document.createElement('span');
+        setDateText(dateSpan, r.ngay, r.ngayLoi);
+        meta.appendChild(dateSpan);
+        [r.ncc || 'Không rõ NCC', r.khuVuc || '—'].forEach(function (v) {
+          var s = document.createElement('span');
+          s.textContent = v;
+          meta.appendChild(s);
+        });
+        card.appendChild(meta);
+
+        var note = document.createElement('div');
+        note.className = 'rc-note';
+        note.textContent = r.noiDung || '—';
+        card.appendChild(note);
+
+        body.appendChild(card);
+      });
+    }
+
+    renderRawPagination(res.page, res.totalPages);
+  }
+
+  function renderRawPagination(page, totalPages) {
+    if (!totalPages || totalPages < 1) { $('#paginationBottom').innerHTML = ''; return; }
+    $('#paginationBottom').innerHTML =
+      '<button class="btn secondary" type="button" ' + (page <= 1 ? 'disabled' : '') + ' onclick="loadRawData(' + (page - 1) + ')">‹ Trước</button>' +
+      '<span>Trang ' + page + ' / ' + totalPages + '</span>' +
+      '<button class="btn secondary" type="button" ' + (page >= totalPages ? 'disabled' : '') + ' onclick="loadRawData(' + (page + 1) + ')">Sau ›</button>';
+  }
+
+  function goToRawDataFromDashboard() {
+    rawDataLoadedOnce = true;
+    var dashFilters = getCurrentFilters();
+    var nccVal = $('#filterNcc').value;
+
+    $('#rawCodeInput').value = '';
+    $('#rawFilterTuNgay').value = dashFilters.tuNgay || '';
+    $('#rawFilterDenNgay').value = dashFilters.denNgay || '';
+    rawCurrentRegion = dashFilters.mien || 'toanquoc';
+    $all('#rawRegionTabs .seg-item').forEach(function (t) { t.classList.remove('active'); });
+    $('#rawRegionTabs .seg-item[data-region="' + rawCurrentRegion + '"]').classList.add('active');
+
+    switchPage('rawdata');
+
+    reloadRawNccOptions(function () {
+      $('#rawFilterNcc').value = nccVal || '';
+      loadRawData(1);
+    });
+  }
+
+  /** Từ Dashboard: bấm 1 cột khu vực -> mở Dữ liệu chi phí đã lọc theo khu vực đó */
+  function goToRawDataByRegion(regionKey) {
+    rawDataLoadedOnce = true;
+    var dashFilters = getCurrentFilters();
+
+    $('#rawCodeInput').value = '';
+    $('#rawFilterTuNgay').value = dashFilters.tuNgay || '';
+    $('#rawFilterDenNgay').value = dashFilters.denNgay || '';
+    rawCurrentRegion = regionKey || 'toanquoc';
+    $all('#rawRegionTabs .seg-item').forEach(function (t) { t.classList.remove('active'); });
+    $('#rawRegionTabs .seg-item[data-region="' + rawCurrentRegion + '"]').classList.add('active');
+
+    switchPage('rawdata');
+
+    reloadRawNccOptions(function () {
+      $('#rawFilterNcc').value = '';
+      loadRawData(1);
+    });
+  }
+
+  /** Từ Dashboard: bấm 1 dòng NCC -> mở Dữ liệu chi phí đã lọc theo NCC đó */
+  function goToRawDataByNcc(ncc) {
+    rawDataLoadedOnce = true;
+    var dashFilters = getCurrentFilters();
+
+    $('#rawCodeInput').value = '';
+    $('#rawFilterTuNgay').value = dashFilters.tuNgay || '';
+    $('#rawFilterDenNgay').value = dashFilters.denNgay || '';
+    rawCurrentRegion = dashFilters.mien || 'toanquoc';
+    $all('#rawRegionTabs .seg-item').forEach(function (t) { t.classList.remove('active'); });
+    $('#rawRegionTabs .seg-item[data-region="' + rawCurrentRegion + '"]').classList.add('active');
+
+    switchPage('rawdata');
+
+    reloadRawNccOptions(function () {
+      $('#rawFilterNcc').value = ncc || '';
+      loadRawData(1);
+    });
+  }
+
+  /* ===================== DASHBOARD ===================== */
+  var dashboardLoadedOnce = false;
+  var currentRegion = 'toanquoc';
+  var regionChartInstance = null;
+  var trendChartInstance = null;
+  var deviceTypeChartInstance = null;
+  var deviceBrandChartInstance = null;
+
+  // ===== Bảng màu Untitled UI, dùng chung cho MỌI biểu đồ (đồng bộ với bản desktop) =====
+  var CHART_INK_ = '#101828';        // Gray 900 — số liệu
+  var CHART_AXIS_INK_ = '#475467';   // Gray 600 — nhãn trục
+  var CHART_GRID_ = '#EAECF0';       // Gray 200 — lưới ngang
+  var CHART_TRACK_ = '#F2F4F7';      // Gray 100 — rãnh nền thanh ngang
+  // Nhãn trục và số liệu chỉ khác nhau ở MÀU, không khác độ đậm -> cùng weight 500.
+  var CHART_VALUE_FONT_ = '500 11px "Be Vietnam Pro", sans-serif';
+  var CHART_REGION_COLORS_ = ['#2E90FA', '#F79009', '#12B76A'];   // Bắc · Trung · Nam
+  var CHART_TYPE_COLOR_ = '#2E90FA';
+  var CHART_BRAND_COLOR_ = '#12B76A';
+
+  // Số đo biểu đồ thanh ngang — nhỏ hơn bản desktop cho vừa màn hình 360px
+  var HBAR_ROW_H_ = 30;
+  var HBAR_THICK_ = 8;
+  var HBAR_PAD_RIGHT_ = 46;
+  var HBAR_LABEL_W_ = 96;
+
+  var chartDefaultsApplied_ = false;
+  function applyChartDefaults_() {
+    if (chartDefaultsApplied_ || typeof Chart === 'undefined') return;
+    Chart.defaults.font.family = '"Be Vietnam Pro", sans-serif';
+    Chart.defaults.font.size = 10.5;
+    Chart.defaults.font.weight = 500;
+    Chart.defaults.color = CHART_INK_;
+    chartDefaultsApplied_ = true;
+  }
+
+  var barValueLabelPlugin = {
+    id: 'barValueLabelPlugin',
+    afterDatasetsDraw: function (chart) {
+      var ctx = chart.ctx;
+      chart.data.datasets.forEach(function (dataset, dsIndex) {
+        var meta = chart.getDatasetMeta(dsIndex);
+        if (meta.hidden) return;
+        meta.data.forEach(function (bar, index) {
+          var value = dataset.data[index];
+          if (value === undefined || value === null) return;
+          ctx.save();
+          ctx.fillStyle = CHART_INK_;
+          ctx.font = CHART_VALUE_FONT_;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(Number(value).toLocaleString('vi-VN'), bar.x, bar.y - 6);
+          ctx.restore();
+        });
+      });
+    }
+  };
+
+  /**
+   * Thanh ngang kiểu Untitled UI: rãnh nền xám chạy hết bề ngang + số in ở lề phải.
+   * Rãnh vẽ TRƯỚC dữ liệu (beforeDatasetsDraw) nên luôn nằm dưới thanh màu.
+   */
+  var hBarTrackPlugin = {
+    id: 'hBarTrackPlugin',
+    beforeDatasetsDraw: function (chart) {
+      var ctx = chart.ctx, a = chart.chartArea, t = HBAR_THICK_;
+      if (!a) return;
+      ctx.save();
+      ctx.fillStyle = CHART_TRACK_;
+      chart.getDatasetMeta(0).data.forEach(function (bar) {
+        var y = bar.y - t / 2;
+        ctx.beginPath();
+        // roundRect chưa có ở vài trình duyệt cũ -> lùi về hình chữ nhật vuông góc
+        if (ctx.roundRect) ctx.roundRect(a.left, y, a.right - a.left, t, t / 2);
+        else ctx.rect(a.left, y, a.right - a.left, t);
+        ctx.fill();
+      });
+      ctx.restore();
+    },
+    afterDatasetsDraw: function (chart) {
+      var ctx = chart.ctx, a = chart.chartArea, ds = chart.data.datasets[0];
+      if (!a) return;
+      ctx.save();
+      ctx.fillStyle = CHART_INK_;
+      ctx.font = CHART_VALUE_FONT_;
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      chart.getDatasetMeta(0).data.forEach(function (bar, i) {
+        var v = ds.data[i];
+        if (v === undefined || v === null) return;
+        ctx.fillText(Number(v).toLocaleString('vi-VN'), a.right + HBAR_PAD_RIGHT_ - 4, bar.y);
+      });
+      ctx.restore();
+    }
+  };
+
+  /* Chart.js không có tham số lề dưới cho chú thích -> ghi đè hàm đo chiều cao, cộng 10px. */
+  var legendMarginPlugin = {
+    id: 'legendMarginPlugin',
+    beforeInit: function (chart) {
+      if (!chart.legend) return;
+      var originalFit = chart.legend.fit;
+      chart.legend.fit = function () { originalFit.call(this); this.height += 10; };
+    }
+  };
+
+  function baseBarOptions(onClickFn) {
+    return {
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { top: 20 } },
+      plugins: { legend: { display: false } },
+      scales: {
+        // Nhãn trục là cái thước đo, không phải số liệu -> màu nhạt hơn số trên đỉnh cột
+        x: { grid: { display: false, drawTicks: false }, border: { display: false }, ticks: { color: CHART_AXIS_INK_, font: { size: 10 } } },
+        y: { beginAtZero: true, grid: { color: CHART_GRID_ }, border: { display: false }, ticks: { color: CHART_AXIS_INK_, precision: 0, font: { size: 10 }, callback: function (v) { return Number(v).toLocaleString('vi-VN'); } } }
+      },
+      onClick: onClickFn
+    };
+  }
+
+  /** Bộ tham số dùng chung cho 2 biểu đồ thanh ngang. */
+  function hBarOptions(onClickFn) {
+    return {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { right: HBAR_PAD_RIGHT_, top: 4, bottom: 4 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          displayColors: false,
+          callbacks: { label: function (c) { return Number(c.parsed.x).toLocaleString('vi-VN') + ' thiết bị'; } }
+        }
+      },
+      scales: {
+        // Số đã in ở cuối mỗi thanh -> trục X thành thừa, ẩn hẳn cho thoáng
+        x: { display: false, grid: { display: false } },
+        y: {
+          grid: { display: false }, border: { display: false },
+          ticks: { color: CHART_AXIS_INK_, padding: 6, crossAlign: 'far', font: { size: 10 } },
+          // Khoá bề ngang cột nhãn: tên dài mấy cũng không đẩy vùng vẽ hẹp lại
+          afterFit: function (scale) { scale.width = HBAR_LABEL_W_; }
+        }
+      },
+      onClick: onClickFn
+    };
+  }
+
+  /** Chiều cao khung = số hạng mục x chiều cao dòng, thay cho 210px cố định. */
+  function fitHBarHeight_(canvas, n) {
+    canvas.parentNode.style.height = Math.max(120, n * HBAR_ROW_H_ + 24) + 'px';
+  }
+
+  function getCurrentFilters() {
+    return {
+      mien: currentRegion,
+      tuNgay: $('#filterTuNgay').value,
+      denNgay: $('#filterDenNgay').value
+    };
+  }
+
+  function setRegion(region) {
+    currentRegion = region;
+    $all('#regionTabs .seg-item').forEach(function (t) { t.classList.remove('active'); });
+    $('#regionTabs .seg-item[data-region="' + region + '"]').classList.add('active');
+    reloadNccOptions(getCurrentFilters(), function () { loadDashboard(); });
+  }
+
+  function reloadNccOptions(filters, callback) {
+    var select = $('#filterNcc');
+    var previousValue = select.value;
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        select.innerHTML = '<option value="">Tất cả</option>';
+        if (res.success && res.nccList) {
+          res.nccList.forEach(function (ncc) {
+            var opt = document.createElement('option');
+            opt.value = ncc; opt.textContent = ncc;
+            select.appendChild(opt);
+          });
+        }
+        if (res.success && res.nccList && res.nccList.indexOf(previousValue) !== -1) select.value = previousValue;
+        else select.value = '';
+        if (callback) callback();
+      })
+      .withFailureHandler(function (err) { console.error(err); if (callback) callback(); })
+      .getFilterOptions(filters);
+  }
+
+  function applyFilters() { reloadNccOptions(getCurrentFilters(), function () { loadDashboard(); }); }
+
+  function resetFilters() {
+    $('#filterTuNgay').value = '';
+    $('#filterDenNgay').value = '';
+    $('#filterNcc').value = '';   // xóa TRƯỚC setRegion, cùng lý do như resetRawFilters
+    setRegion('toanquoc');
+  }
+
+  function initDashboard() {
+    setDashboardLoading(true);
+    reloadNccOptions(getCurrentFilters(), function () { loadDashboard(); });
+  }
+
+  function loadDashboard() {
+    setDashboardLoading(true);
+    var filters = {
+      tuNgay: $('#filterTuNgay').value,
+      denNgay: $('#filterDenNgay').value,
+      ncc: $('#filterNcc').value,
+      mien: currentRegion
+    };
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setDashboardLoading(false);
+        if (!res.success) { showToast(res.message, 'error'); return; }
+        renderDashboard(res);
+      })
+      .withFailureHandler(function (err) { setDashboardLoading(false); showToast('Lỗi: ' + err.message, 'error'); })
+      .getDashboardData(filters);
+  }
+
+  function renderDashboard(d) {
+    applyChartDefaults_();
+
+    $('#dTongThietBi').textContent = formatInt(d.tongSoThietBi);
+    $('#dSoThietBiSuaChua').textContent = formatInt(d.soThietBiSuaChua);
+    $('#dSoLuot').textContent = formatInt(d.soLuotSuaChua);
+    setMoneyBox('dTongChiPhi', d.tongChiPhi);
+    setMoneyBox('dChiPhiDiChuyen', d.chiPhiDiChuyen);
+    setMoneyBox('dChiPhiSuaChua', d.chiPhiSuaChua);
+
+    renderRegionChart(d.regionChart);
+    renderTrendChart(d.trendChart);
+    renderDeviceTypeChart(d.deviceTypeChart || []);
+    renderDeviceBrandChart(d.deviceBrandChart || []);
+    renderTopNcc(d.topNcc);
+  }
+
+  function renderRegionChart(data) {
+    var canvas = $('#regionChartCanvas');
+    var ctx = canvas.getContext('2d');
+    var labels = data.map(function (r) { return r.label; });
+    var values = data.map(function (r) { return r.soLuot; });
+    var keys = data.map(function (r) { return r.key; });
+
+    var opts = baseBarOptions(function (evt, elements) {
+      if (elements && elements.length) goToRawDataByRegion(keys[elements[0].index]);
+    });
+
+    if (regionChartInstance) regionChartInstance.destroy();
+    regionChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ label: 'Số lượt sửa chữa', data: values, backgroundColor: CHART_REGION_COLORS_, borderRadius: 6, maxBarThickness: 48 }] },
+      options: opts,
+      plugins: [barValueLabelPlugin]
+    });
+  }
+
+  function renderTrendChart(data) {
+    var ctx = $('#trendChartCanvas').getContext('2d');
+    var labels = data.map(function (r) { return r.thang; });
+
+    if (trendChartInstance) trendChartInstance.destroy();
+    trendChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        // Ba đường ĐỒNG BỘ hoàn toàn: cùng độ dày, cùng độ cong, cùng cỡ điểm, đều LIỀN NÉT.
+        // Chỉ phân biệt bằng màu -> chú giải phía trên cũng là 3 ô màu đặc như nhau.
+        datasets: [
+          { label: 'Miền Bắc', data: data.map(function (r) { return r.bac; }), borderColor: CHART_REGION_COLORS_[0], backgroundColor: 'rgba(46,144,250,0.08)', borderWidth: 2, fill: false, tension: 0.35, pointRadius: 2 },
+          { label: 'Miền Trung', data: data.map(function (r) { return r.trung; }), borderColor: CHART_REGION_COLORS_[1], backgroundColor: 'rgba(247,144,9,0.08)', borderWidth: 2, fill: false, tension: 0.35, pointRadius: 2 },
+          { label: 'Miền Nam', data: data.map(function (r) { return r.nam; }), borderColor: CHART_REGION_COLORS_[2], backgroundColor: 'rgba(18,183,106,0.08)', borderWidth: 2, fill: false, tension: 0.35, pointRadius: 2 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          // Ô màu trong tooltip mặc định lấy backgroundColor của dataset — với biểu đồ đường
+          // đó là màu tô nền mờ 8% (nhìn ra màu TRẮNG). Ép nó dùng màu đường kẻ cho khớp
+          // với chú giải phía trên.
+          tooltip: {
+            callbacks: {
+              labelColor: function (ctx) {
+                return { borderColor: ctx.dataset.borderColor, backgroundColor: ctx.dataset.borderColor };
+              }
+            }
+          },
+          legend: {
+            display: true, position: 'top', align: 'center',
+            labels: { boxWidth: 11, boxHeight: 11, padding: 8, color: CHART_AXIS_INK_, font: { size: 11 } }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, border: { display: false }, ticks: { color: CHART_AXIS_INK_, font: { size: 10 } } },
+          y: { grid: { color: CHART_GRID_ }, border: { display: false }, ticks: { color: CHART_AXIS_INK_, font: { size: 10 }, callback: function (v) { return Number(v).toLocaleString('vi-VN'); } } }
+        }
+      },
+      plugins: [legendMarginPlugin]
+    });
+  }
+
+  function renderDeviceTypeChart(data) {
+    var canvas = $('#deviceTypeChartCanvas');
+    var labels = data.map(function (r) { return r.loai || 'Khác'; });
+    var values = data.map(function (r) { return r.soLuong; });
+    fitHBarHeight_(canvas, labels.length);
+
+    var opts = hBarOptions(function (evt, elements) {
+      if (elements && elements.length) goToDeviceListByType(labels[elements[0].index]);
+    });
+
+    if (deviceTypeChartInstance) deviceTypeChartInstance.destroy();
+    deviceTypeChartInstance = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ label: 'Số lượng thiết bị', data: values, backgroundColor: CHART_TYPE_COLOR_, borderRadius: 4, barThickness: HBAR_THICK_ }] },
+      options: opts,
+      plugins: [hBarTrackPlugin]
+    });
+  }
+
+  function renderDeviceBrandChart(data) {
+    var canvas = $('#deviceBrandChartCanvas');
+    var labels = data.map(function (r) { return r.nhanHieu || 'Khác'; });
+    var values = data.map(function (r) { return r.soLuong; });
+    fitHBarHeight_(canvas, labels.length);
+
+    var opts = hBarOptions(function (evt, elements) {
+      if (elements && elements.length) goToDeviceListByBrand(labels[elements[0].index]);
+    });
+
+    if (deviceBrandChartInstance) deviceBrandChartInstance.destroy();
+    deviceBrandChartInstance = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ label: 'Số lượng thiết bị', data: values, backgroundColor: CHART_BRAND_COLOR_, borderRadius: 4, barThickness: HBAR_THICK_ }] },
+      options: opts,
+      plugins: [hBarTrackPlugin]
+    });
+  }
+
+  function renderTopNcc(list) {
+    var el = $('#topNccList');
+    el.innerHTML = '';
+    if (!list || list.length === 0) { el.innerHTML = '<div class="empty-state"><p>Chưa có dữ liệu.</p></div>'; return; }
+    list.forEach(function (item) {
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'ncc-row';
+      row.title = 'Xem chi tiết chi phí của ' + item.ncc;
+
+      var name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = item.ncc;
+
+      var amount = document.createElement('span');
+      amount.className = 'amount';
+      amount.textContent = formatCurrency(item.chiPhi);
+
+      row.appendChild(name);
+      row.appendChild(amount);
+      row.addEventListener('click', function () { goToRawDataByNcc(item.ncc); });
+      el.appendChild(row);
+    });
+  }
+
+  /* Xoay máy hoặc đổi kích thước cửa sổ làm vùng vẽ đổi bề ngang. Chart.js chỉ bám được
+     lúc CO LẠI; khi nới ra canvas giữ kích thước cũ và tràn khỏi viền thẻ -> gọi resize
+     thủ công sau khi ngừng thay đổi (chặn rung, 180ms). */
+  var resizeTimer_ = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeTimer_);
+    resizeTimer_ = setTimeout(function () {
+      [regionChartInstance, trendChartInstance, deviceTypeChartInstance, deviceBrandChartInstance]
+        .forEach(function (c) { if (c) c.resize(); });
+    }, 180);
+  });
+
+  /* ===================== INIT ===================== */
+  dashboardLoadedOnce = true;
+  initDashboard();
+</script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

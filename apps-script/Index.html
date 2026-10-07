@@ -1,0 +1,2537 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <title>TH true care · Quản lý thiết bị</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Sora:wght@600;700;800&display=swap" rel="stylesheet">
+  <!-- Font riêng cho KHỐI LOGO. Tham số text= cắt bộ ký tự xuống đúng 10 chữ cái cần thiết
+       (T H t r u e M I L K) -> ~2-3 KB thay vì ~40 KB cho 2 font đầy đủ.
+       HỆ QUẢ: 2 font này CHỈ hiển thị được 10 ký tự đó, KHÔNG dùng lại được ở chỗ khác. -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Quicksand:wght@700&text=THtrueMILK&display=swap" rel="stylesheet">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+  <style>
+  :root{
+    /* ================= NGUỒN CHUẨN: bộ nhận diện TH true MILK =================
+       Navy + sky lấy từ logo gốc, gold dùng cho ngôi sao và chỉ báo mục đang chọn. */
+    --brand-900:#0B4C8C;   /* chữ "TH" trong logo */
+    --brand-800:#0F5FA8;
+    --brand-700:#136FBF;
+    --brand-500:#2E9BE0;
+    --brand-300:#7FC4EE;   /* chữ "MILK" trong logo */
+    --sky-400:#4FB3E8;     /* chữ "true" trong logo */
+    --sky-100:#E3F1FC;
+    --gold-500:#C9A961;    /* ngôi sao trong logo */
+    --gold-100:#F5EEDC;
+
+    --ink-900:#33424B;
+    --ink-600:#55666F;
+    --ink-500:#71828B;
+    --ink-300:#A3B1B8;
+
+    --ok:#2C7A55;        --ok-100:#E1F0E6;
+    --danger:#C1443A;    --danger-100:#F7E1DE;
+    --warning:#D99A2B;   --warning-100:#FBF0DC;
+
+    /* ================= BÍ DANH =================
+       Tên biến CŨ trỏ sang token mới -> ~40 chỗ đang gọi var(--primary), var(--green)...
+       chạy nguyên trạng, không phải sửa từng dòng. Code mới nên dùng --brand-*/--ink-*. */
+    --primary:var(--brand-900);
+    --primary-dark:#073C71;
+    --bg:#F3F8FC;
+    --card-bg:#FFFFFF;
+    --text-dark:var(--ink-900);
+    --text-muted:var(--ink-500);
+    --border:#E1E9F2;
+    --green:var(--ok);        --green-bg:var(--ok-100);
+    --red:var(--danger);      --red-bg:var(--danger-100);
+    --gray-bg:#EEF3F8;
+    --sidebar-active:var(--brand-500);
+
+    --sidebar-w:248px;
+    --sidebar-w-collapsed:76px;
+    --ctrl-h:34px;
+    --radius:14px;
+    --radius-sm:10px;
+    --shadow-card:0 1px 2px rgba(11,76,140,.07), 0 8px 24px -12px rgba(11,76,140,.14);
+  }
+
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+
+  body{
+    font-family:'Be Vietnam Pro', -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background:var(--bg);
+    color:var(--ink-900);
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,h4{ font-family:'Sora', sans-serif; margin:0; letter-spacing:-.01em; }
+  button, input, select, textarea{ font-family:inherit; }
+  ::selection{ background:var(--gold-100); }
+
+  .icon{ display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .icon svg{ width:100%; height:100%; }
+
+  /* ===================== SHELL ===================== */
+  .shell{ display:flex; min-height:100vh; }
+
+  /* ===================== SIDEBAR ===================== */
+  .sidebar{
+    width:var(--sidebar-w); flex-shrink:0;
+    background:linear-gradient(185deg, var(--brand-900) 0%, var(--brand-800) 100%);
+    color:#fff;
+    display:flex; flex-direction:column;
+    position:sticky; top:0; height:100vh; z-index:10;
+    transition:width .18s ease;
+    overflow:visible;
+  }
+  .sidebar.collapsed{ width:var(--sidebar-w-collapsed); }
+
+  /* ---- Khối logo: TH serif trên ô trắng, ngôi sao 6 cánh gradient vàng chen giữa
+         TH và "true", wordmark bo tròn thẳng đứng (không nghiêng). ---- */
+  .brand{
+    /* gap 14px: ngôi sao đặt ở right:-7px nên thò ra ngoài ô logo, để 10px thì chỉ còn
+       3px hở và ngôi sao chạm sát chữ "true". */
+    display:flex; align-items:center; gap:14px;
+    padding:22px 16px 18px 22px;
+    border-bottom:1px solid rgba(255,255,255,.1);
+    position:relative;
+  }
+  .sidebar.collapsed .brand{ padding:22px 0 18px; justify-content:center; }
+
+  .brand-mark{
+    width:38px; height:38px; border-radius:10px;
+    background:#fff;
+    display:flex; align-items:center; justify-content:center;
+    color:var(--brand-900);
+    flex-shrink:0; position:relative;
+    box-shadow:0 2px 6px rgba(0,0,0,.18);
+  }
+  .brand-th{
+    font-family:'Playfair Display','Times New Roman',serif;
+    font-weight:700; font-size:17px; line-height:1; letter-spacing:-.01em;
+    margin-right:1px;
+  }
+  .brand-star{
+    position:absolute; right:-7px; top:50%; transform:translateY(-80%);
+    width:15px; height:15px;
+    filter:drop-shadow(0 1px 1.5px rgba(0,0,0,.28));
+  }
+  /* line-height 1.15 quá chật cho chữ hoa tiếng Việt: "QUẢN LÝ THIẾT BỊ" có Ả và Ế
+     chồng hai dấu, phần trên bị overflow:hidden xén mất. Nới hộp dòng ra là hết. */
+  .brand-text{ line-height:1.3; overflow:hidden; white-space:nowrap; }
+  .sidebar.collapsed .brand-text{ display:none; }
+  .brand-wordmark{
+    font-family:'Quicksand','Be Vietnam Pro',sans-serif;
+    font-weight:700; font-size:17px; letter-spacing:-.005em;
+  }
+  /* "true" đậm sky-sáng, "MILK" trắng mảnh + giãn chữ — đúng tương quan của logo gốc */
+  .brand-wordmark .w-true{ color:var(--sky-400); }
+  .brand-wordmark .w-milk{ color:var(--brand-300); font-weight:400; letter-spacing:.06em; }
+  .brand-text .t2{
+    font-size:11px; color:rgba(255,255,255,.55);
+    letter-spacing:.04em; margin-top:3px; line-height:1.6;
+  }
+
+  .collapse-toggle{
+    position:absolute; top:26px; right:-12px;
+    width:24px; height:24px; border-radius:50%;
+    background:#fff; color:var(--brand-900);
+    border:1px solid var(--border); box-shadow:0 2px 6px rgba(0,0,0,.18);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; z-index:20; transition:transform .18s ease;
+  }
+  .collapse-toggle svg{ width:13px; height:13px; }
+  .sidebar.collapsed .collapse-toggle svg{ transform:rotate(180deg); }
+
+  /* KHÔNG đặt overflow-y:auto ở đây. Theo chuẩn CSS Overflow, khi 1 trục là auto thì trục
+     còn lại dù ghi visible cũng bị coi như auto -> tooltip ở left:100% bị xén đúng mép
+     sidebar. Menu chỉ có 6 mục cố định nên không cần cuộn. */
+  .nav{ flex:1; padding:16px 12px; display:flex; flex-direction:column; gap:2px; }
+  .sidebar.collapsed .nav{ padding:16px 10px; }
+
+  .nav-item{
+    display:flex; align-items:center; gap:11px;
+    padding:11px 12px; border-radius:10px;
+    color:rgba(255,255,255,.72);
+    cursor:pointer; font-size:13.5px; font-weight:500;
+    transition:background .15s ease, color .15s ease;
+    user-select:none; position:relative; white-space:nowrap;
+    /* reset để dùng <button> mà không đổi giao diện */
+    width:100%; text-align:left; border:none; background:transparent;
+  }
+  .nav-item .icon{ width:18px; height:18px; opacity:.85; }
+  .nav-item:hover{ background:rgba(255,255,255,.07); color:#fff; }
+  .nav-item.active{ background:rgba(255,255,255,.14); color:#fff; box-shadow:inset 3px 0 0 var(--sky-400); }
+  .nav-item.active .icon{ opacity:1; }
+  .nav-item:focus-visible,
+  .sidebar-refresh-btn:focus-visible{ outline:2px solid var(--sky-400); outline-offset:-2px; }
+
+  .sidebar.collapsed .nav-item{ justify-content:center; padding:11px 0; }
+  .sidebar.collapsed .nav-item span.label{ display:none; }
+  .sidebar.collapsed .nav-item.active{ box-shadow:none; background:rgba(255,255,255,.16); }
+
+  /* Tooltip khi thu gọn sidebar.
+     z-index 45: trên topbar (5), nhưng DƯỚI overlay tải (999) và toast (1100). */
+  .sidebar.collapsed .nav-item::after,
+  .sidebar.collapsed .sidebar-refresh-btn::after{
+    content:attr(data-tooltip);
+    position:absolute; left:100%; top:50%;
+    transform:translateY(-50%) translateX(6px);
+    margin-left:12px; background:#073C71; color:#fff;
+    padding:8px 12px; border-radius:8px; font-size:12px; font-weight:600; line-height:1;
+    white-space:nowrap; box-shadow:0 8px 22px -6px rgba(0,0,0,.45);
+    opacity:0; visibility:hidden; pointer-events:none; z-index:45;
+    transition:opacity .14s ease, transform .14s ease, visibility .14s;
+  }
+  .sidebar.collapsed .nav-item::before,
+  .sidebar.collapsed .sidebar-refresh-btn::before{
+    content:''; position:absolute; left:100%; top:50%;
+    transform:translateY(-50%) translateX(6px);
+    margin-left:2px; border:5px solid transparent; border-right-color:#073C71;
+    opacity:0; visibility:hidden; pointer-events:none; z-index:45;
+    transition:opacity .14s ease, transform .14s ease, visibility .14s;
+  }
+  .sidebar.collapsed .nav-item:hover::after,
+  .sidebar.collapsed .nav-item:hover::before,
+  .sidebar.collapsed .nav-item:focus-visible::after,
+  .sidebar.collapsed .nav-item:focus-visible::before,
+  .sidebar.collapsed .sidebar-refresh-btn:hover::after,
+  .sidebar.collapsed .sidebar-refresh-btn:hover::before,
+  .sidebar.collapsed .sidebar-refresh-btn:focus-visible::after,
+  .sidebar.collapsed .sidebar-refresh-btn:focus-visible::before{
+    opacity:1; visibility:visible; transform:translateY(-50%) translateX(0);
+  }
+  @media (prefers-reduced-motion:reduce){
+    .sidebar, .collapse-toggle,
+    .sidebar.collapsed .nav-item::after,
+    .sidebar.collapsed .nav-item::before,
+    .sidebar.collapsed .sidebar-refresh-btn::after,
+    .sidebar.collapsed .sidebar-refresh-btn::before{ transition:none; }
+  }
+
+  .sidebar-refresh-row{ padding:10px 16px 12px; }
+  .sidebar.collapsed .sidebar-refresh-row{ padding:10px 10px 12px; }
+  .sidebar-refresh-btn{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    width:100%; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.06);
+    color:rgba(255,255,255,.85); border-radius:10px; padding:10px 12px;
+    font-size:12px; font-weight:600; cursor:pointer;
+    transition:background .15s ease, color .15s ease;
+    position:relative; white-space:nowrap;
+  }
+  .sidebar-refresh-btn:hover{ background:rgba(255,255,255,.14); color:#fff; }
+  .sidebar-refresh-btn .icon{ width:14px; height:14px; }
+  .sidebar.collapsed .sidebar-refresh-btn span.label{ display:none; }
+  .sidebar.collapsed .sidebar-refresh-btn{ padding:10px; }
+
+  /* Mốc thời gian dữ liệu, nằm ngay dưới nút "Làm mới dữ liệu".
+     Đặt trong .sidebar-refresh-row nên tự ẩn cùng nhãn khi sidebar thu gọn. */
+  .sidebar-refresh-meta{
+    margin-top:7px; font-size:11px; line-height:1.45;
+    color:rgba(255,255,255,.45); text-align:center;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .sidebar-refresh-meta b{ color:rgba(255,255,255,.72); font-weight:600; }
+  .sidebar.collapsed .sidebar-refresh-meta{ display:none; }
+
+  .sidebar-foot{ padding:14px 16px 18px; border-top:1px solid rgba(255,255,255,.1); }
+  .sidebar-foot-text{ font-size:11.5px; color:rgba(255,255,255,.45); line-height:1.55; }
+  .sidebar-foot-text .copyright{ color:rgba(255,255,255,.72); font-weight:600; }
+  .sidebar.collapsed .sidebar-foot-text{ display:none; }
+
+  /* ===================== MAIN + TOPBAR ===================== */
+  .main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:18px 32px; background:var(--bg);
+    position:sticky; top:0; z-index:5;
+    border-bottom:1px solid var(--border);
+  }
+  .topbar-left{ display:flex; align-items:center; gap:12px; min-width:0; }
+  .topbar h1{ font-size:20px; font-weight:700; color:var(--brand-900); }
+  .topbar .sub{ font-size:12px; color:var(--ink-500); margin-top:3px; }
+  .topbar-menu-btn{
+    display:none; width:38px; height:38px; border-radius:10px; flex-shrink:0;
+    align-items:center; justify-content:center;
+    background:#fff; border:1px solid var(--border); color:var(--brand-900);
+    cursor:pointer; box-shadow:var(--shadow-card);
+  }
+  .topbar-menu-btn .icon{ width:19px; height:19px; }
+  .topbar-menu-btn:focus-visible{ outline:2px solid var(--brand-500); outline-offset:2px; }
+
+  .sidebar-scrim{
+    position:fixed; inset:0; background:rgba(11,35,30,.45); z-index:55;
+    opacity:0; visibility:hidden; transition:opacity .2s ease, visibility .2s;
+  }
+  .sidebar-scrim.active{ opacity:1; visibility:visible; }
+
+  .content{ padding:24px 32px 48px; flex:1; max-width:1440px; margin:0 auto; width:100%; }
+  .page{ display:none; }
+  .page.active{ display:block; animation:fadeIn .22s ease; }
+  @keyframes fadeIn{ from{ opacity:0; transform:translateY(4px); } to{ opacity:1; transform:none; } }
+
+  /* ===================== LOADING / SKELETON / TOAST ===================== */
+  .loading-overlay{
+    display:none; position:fixed; inset:0; background:rgba(243,248,252,.8);
+    backdrop-filter:blur(2px); z-index:999; align-items:center; justify-content:center;
+    flex-direction:column; gap:16px;
+  }
+  .loading-overlay.show{ display:flex; }
+  .spinner{
+    width:44px; height:44px; border:4px solid var(--border);
+    border-top:4px solid var(--brand-500); border-radius:50%;
+    animation:spin .8s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .loading-text{ font-size:13.5px; color:var(--ink-500); font-weight:600; }
+
+  /* Skeleton — thay overlay ở các khối có khung cố định, dữ liệu về không làm giật layout */
+  .skel{ position:relative; overflow:hidden; background:#E7EEF6; border-radius:10px; }
+  .skel::after{
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent);
+    transform:translateX(-100%); animation:shimmer 1.3s infinite;
+  }
+  @keyframes shimmer{ to{ transform:translateX(100%); } }
+  .skel-row{ height:15px; }
+
+  /* Skeleton cho thẻ số & biểu đồ: bật bằng class, KHÔNG thay innerHTML nên không mất id */
+  .summary-strip.is-loading .summary-box{
+    position:relative; overflow:hidden; background:#E7EEF6; box-shadow:none;
+  }
+  .summary-strip.is-loading .summary-box .value,
+  .summary-strip.is-loading .summary-box .label{ visibility:hidden; }
+  .summary-strip.is-loading .summary-box::after{
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent);
+    transform:translateX(-100%); animation:shimmer 1.3s infinite;
+  }
+  .chart-wrap.is-loading{ background:#E7EEF6; border-radius:10px; overflow:hidden; }
+  .chart-wrap.is-loading canvas{ visibility:hidden; }
+  .chart-wrap.is-loading::after{
+    content:''; position:absolute; inset:0;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent);
+    transform:translateX(-100%); animation:shimmer 1.3s infinite;
+  }
+  @media (prefers-reduced-motion:reduce){
+    .skel::after,
+    .summary-strip.is-loading .summary-box::after,
+    .chart-wrap.is-loading::after{ animation:none; }
+  }
+
+  /* Toast thành công dùng màu xanh lá (--ok) cho đúng quy ước của design system:
+     xanh lá = thành công, đỏ = lỗi. Trước đây nền là navy thương hiệu nên nhìn không
+     phân biệt được với thông báo thường. */
+  .toast{
+    position:fixed; top:20px; right:20px;
+    background:var(--ok); color:#fff; padding:14px 20px;
+    border-radius:10px; box-shadow:0 12px 34px -8px rgba(44,122,85,.45);
+    font-size:13.5px; font-weight:600;
+    opacity:0; transform:translateY(-14px); pointer-events:none;
+    transition:opacity .25s, transform .25s;
+    z-index:1100; display:flex; align-items:center; gap:10px; max-width:340px;
+  }
+  .toast.show{ opacity:1; transform:translateY(0); }
+  .toast.error{ background:var(--danger); }
+  .toast .toast-icon{ width:18px; height:18px; flex-shrink:0; }
+  /* Toast lỗi phải đổi CẢ icon, không chỉ đổi nền đỏ. Hai icon dựng sẵn trong HTML,
+     đổi qua lại bằng class nên showToast() không phải đụng tới innerHTML. */
+  .toast .toast-ico-err{ display:none; }
+  .toast.error .toast-ico-ok{ display:none; }
+  .toast.error .toast-ico-err{ display:inline-flex; }
+
+  /* Badge cảnh báo cho ô NGÀY không hợp lệ trong dữ liệu gốc. Giá trị gốc vẫn được hiển thị
+     nguyên văn để người dùng biết phải sửa gì trên Google Sheet. */
+  .date-warn{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:16px; height:16px; margin-left:6px; border-radius:50%;
+    background:var(--warning-100); color:var(--warning);
+    font-size:11px; font-weight:800; line-height:1;
+    cursor:help; vertical-align:middle; flex-shrink:0;
+  }
+
+  /* ===================== SHARED ===================== */
+  .card{
+    background:var(--card-bg); border:1px solid var(--border); border-radius:var(--radius);
+    padding:20px; box-shadow:var(--shadow-card); margin-bottom:20px;
+  }
+  .card h3{ font-size:15px; font-weight:700; color:var(--brand-900); }
+
+  .search-box{ display:flex; gap:10px; }
+  /* 13.5px = dung co chu than bang, thanh tim kiem khong con "to hon noi dung no tim". */
+  .search-box input, .search-box textarea{
+    flex:1; padding:10px 14px; font-size:13.5px; border:1.5px solid var(--border);
+    border-radius:var(--radius-sm); outline:none; background:var(--bg); color:var(--ink-900);
+    transition:border-color .15s, background .15s;
+  }
+  .search-box input:focus, .search-box textarea:focus{ border-color:var(--brand-700); background:#fff; }
+  .search-box input::placeholder, .search-box textarea::placeholder{ color:var(--ink-300); }
+  textarea#batchInput{ min-height:110px; resize:vertical; }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:7px;
+    padding:11px 20px; font-size:13.5px; font-weight:600; color:#fff;
+    background:var(--brand-900); border:none; border-radius:var(--radius-sm);
+    cursor:pointer; transition:filter .12s, transform .05s; white-space:nowrap;
+  }
+  .btn:hover{ filter:brightness(1.18); }
+  .btn:active{ transform:scale(.98); }
+  .btn:disabled{ background:#9BB4CE; cursor:not-allowed; filter:none; }
+  .btn.secondary{ background:#fff; color:var(--brand-900); border:1px solid var(--border); }
+  .btn.secondary:hover{ border-color:var(--brand-300); filter:none; }
+  .btn:focus-visible{ outline:2px solid var(--brand-500); outline-offset:2px; }
+
+  .message{ text-align:center; padding:14px; border-radius:var(--radius-sm); margin-bottom:20px; font-size:13.5px; display:none; font-weight:600; }
+  .message.error{ background:var(--danger-100); color:var(--danger); display:block; }
+
+  .result-section{ display:none; }
+  .info-card-header{
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+    margin-bottom:16px; padding-bottom:12px; border-bottom:1px solid var(--border);
+  }
+  .info-card-header h2{ margin:0; font-size:20px; font-weight:700; color:var(--brand-900); }
+  .info-card-header .code-badge{
+    background:var(--sky-100); color:var(--brand-900); padding:5px 14px; border-radius:20px;
+    font-size:12px; font-weight:700; white-space:nowrap;
+  }
+  .info-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
+  .info-item label{
+    display:block; font-size:11px; color:var(--ink-300); margin-bottom:5px;
+    text-transform:uppercase; letter-spacing:.05em; font-weight:700;
+  }
+  .info-item div{ font-size:13.5px; font-weight:600; }
+  .info-item .value-normal{ font-weight:500; font-size:13.5px; color:var(--ink-900); }
+
+  /* 6 cột CHIA ĐỀU. minmax(0,1fr) chứ không phải 1fr: ô lưới mặc định có min-width:auto nên
+     chuỗi tiền dài ("13.422.502.650 đ") đẩy cột rộng quá phần chia. Khoá đáy về 0 rồi để
+     clamp() co cỡ chữ theo bề ngang cửa sổ, thay vì nới rộng ô. */
+  .summary-strip{ display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:12px; margin-bottom:20px; }
+  .summary-strip.cols-4{ grid-template-columns:repeat(4,minmax(0,1fr)); }
+  .summary-box{
+    min-width:0; width:100%; background:var(--card-bg); border:1px solid var(--border);
+    border-radius:var(--radius); padding:16px 12px; text-align:center; box-shadow:var(--shadow-card);
+    font-family:inherit; display:block;
+  }
+  /* MỘT cỡ chữ cho mọi thẻ số. nowrap + clamp: số và nhãn luôn nằm trên một dòng, cửa sổ hẹp
+     thì chữ co lại chứ không xuống dòng -> 6 thẻ luôn cao bằng nhau, không cần min-height.
+     tabular-nums cho chữ số rộng bằng nhau -> cột số thẳng hàng. */
+  .summary-box .value{
+    font-family:'Sora',sans-serif; font-size:clamp(13px,1.05vw,17px); font-weight:700;
+    color:var(--brand-900); line-height:1.3; font-variant-numeric:tabular-nums; white-space:nowrap;
+  }
+  .summary-box .value.small{ font-size:inherit; }
+  .summary-strip.cols-4 .value{ font-size:clamp(15px,1.25vw,20px); }
+  .summary-box .label{
+    font-size:clamp(10.5px,0.85vw,12px); color:var(--ink-500); margin-top:5px;
+    font-weight:500; white-space:nowrap;
+  }
+  .summary-box.travel .value{ color:var(--warning); }
+  .summary-box.repair .value{ color:var(--ok); }
+  .summary-box.clickable{ cursor:pointer; transition:transform .15s, box-shadow .15s, border-color .15s; }
+  .summary-box.clickable:hover{ transform:translateY(-3px); border-color:var(--brand-300); box-shadow:0 12px 28px -10px rgba(11,76,140,.3); }
+  .summary-box.clickable:active{ transform:translateY(-1px); }
+
+  .pagination-controls{ display:flex; align-items:center; gap:10px; font-size:13.5px; flex-wrap:wrap; }
+  .pagination-controls .btn{ padding:8px 15px; font-size:12px; }
+  .pagination-controls span{ color:var(--ink-500); font-weight:600; white-space:nowrap; }
+
+  /* ===================== BẢNG =====================
+     Mặc định mọi cột nowrap, chỉ cột .col-wrap được xuống dòng. */
+  .table-wrap{ overflow-x:auto; }
+  .table-card h3{ margin:0 0 16px 0; font-size:15px; }
+  table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  thead th{
+    text-align:left; padding:10px 12px; background:var(--gray-bg); color:var(--ink-500);
+    font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+    border-bottom:1px solid var(--border);
+  }
+  tbody td{ padding:12px; border-bottom:1px solid var(--border); vertical-align:top; }
+  tbody tr:hover{ background:rgba(46,155,224,.07); }
+  tbody tr:last-child td{ border-bottom:none; }
+  .cost{ font-weight:600; white-space:nowrap; font-variant-numeric:tabular-nums; }
+
+  .table-wrap.wrap-cells table td,
+  .table-wrap.wrap-cells table th{ white-space:nowrap; }
+  .table-wrap.wrap-cells table td.col-wrap,
+  .table-wrap.wrap-cells table th.col-wrap{
+    white-space:normal; word-break:break-word; overflow-wrap:break-word; min-width:180px;
+  }
+
+  .status{ display:inline-block; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700; white-space:nowrap; }
+  .status.warranty{ background:var(--ok-100); color:var(--ok); }
+  .status.expired{ background:var(--danger-100); color:var(--danger); }
+  .status.unknown{ background:var(--gray-bg); color:var(--ink-500); }
+
+  .empty-note{ text-align:center; color:var(--ink-500); padding:24px; font-size:13.5px; }
+  .muted-text{ color:var(--ink-500); }
+
+  /* ===================== BỘ LỌC ===================== */
+  .filter-bar{ display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+  .filter-item{ display:flex; flex-direction:column; gap:6px; }
+  /* CHỈ dùng ở trang Báo cáo tổng quan. Ở đó bộ lọc có thêm Nhà cung cấp + 2 ô ngày +
+     2 nút nên 4 thẻ khu vực bị đẩy xuống hàng hai; cho nhóm này chiếm trọn một hàng thì
+     4 thẻ nằm gọn ở nguyên cỡ chữ, phần thừa bên phải để trống.
+     Các trang khác giữ nguyên cách xếp cũ. */
+  .filter-item.full-row{ flex:0 0 100%; }
+  /* Ô chỉ chứa nút: căn đáy bằng align-self, KHÔNG dùng <label>&nbsp;</label> giả */
+  .filter-item.btn-slot{ align-self:flex-end; }
+  .filter-item label{ font-size:11px; color:var(--ink-500); font-weight:600; }
+  /* MỌI điều khiển lọc cao đúng --ctrl-h ở MỌI trang, nhờ đó ô nhập, thẻ khu vực và nút
+     luôn thẳng hàng nhau. Chỉ chọn ".filter-bar .btn" để nút Tra cứu / Tìm kiếm ở các
+     trang khác giữ nguyên cỡ cũ. */
+  .filter-item input, .filter-item select{
+    height:var(--ctrl-h); padding:0 10px; border:1px solid var(--border); border-radius:8px;
+    font-size:12.5px; outline:none; background:var(--bg); color:var(--ink-900);
+  }
+  /* Chu goi y trong o loc cung mau voi chu goi y cua cac thanh tim kiem lon,
+     thay vi xam mac dinh cua trinh duyet. */
+  .filter-item input::placeholder{ color:var(--ink-300); }
+  .filter-bar .btn{ height:var(--ctrl-h); padding:0 16px; font-size:12.5px; }
+  .filter-item input:focus, .filter-item select:focus{ border-color:var(--brand-700); background:#fff; }
+
+  .region-tabs{ display:flex; gap:8px; flex-wrap:wrap; }
+  .region-tab{
+    height:var(--ctrl-h); padding:0 13px; border-radius:8px; border:1px solid var(--border);
+    background:#fff; font-size:12.5px; font-weight:600; cursor:pointer; color:var(--ink-500);
+    transition:all .15s; white-space:nowrap; font-family:inherit;
+    display:inline-flex; align-items:center; justify-content:center;
+  }
+  .region-tab:hover{ border-color:var(--brand-300); }
+  .region-tab.active{ background:var(--brand-900); border-color:var(--brand-900); color:#fff; }
+
+  /* ===================== DASHBOARD ===================== */
+  /* minmax(0,1fr) chứ KHÔNG phải 1fr: ô lưới mặc định có min-width:auto, nên bề ngang
+     nội tại của <canvas> đẩy cột rộng ra quá phần chia -> thu nhỏ rồi mở lại cửa sổ là
+     biểu đồ tràn khỏi viền thẻ. minmax(0,...) khoá đáy về 0, cột luôn co lại đúng phần. */
+  .dash-grid{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:20px; }
+  .dash-grid > .card{ min-width:0; overflow:hidden; }
+  @media (max-width:1080px){ .dash-grid{ grid-template-columns:minmax(0,1fr); } }
+  /* Chú giải của biểu đồ xu hướng phải cách tiêu đề và cách vùng vẽ BẰNG NHAU.
+     Trên  = margin-bottom của h3 (8) + labels.padding (8) = 16px
+     Dưới  = labels.padding (8) + legendMarginPlugin (8)   = 16px */
+  .chart-title{ margin:0 0 8px; font-size:15px; }
+  .chart-wrap{ position:relative; height:260px; width:100%; overflow:hidden; }
+  /* Biểu đồ thanh ngang: chiều cao do fitHBarHeight_() tính theo số hạng mục.
+     Giá trị dưới đây chỉ là khung tạm lúc còn skeleton. */
+  .chart-wrap.hbar{ height:300px; }
+  .chart-wrap canvas{ display:block; max-width:100% !important; max-height:100% !important; }
+
+  /* Dựng bằng <button> để bấm được bằng bàn phím; các dòng dưới đây gỡ giao diện mặc
+     định của nút để trông y hệt như khi còn là <div>. */
+  .ncc-row{
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+    padding:11px 8px; border-bottom:1px solid var(--border); font-size:13.5px;
+    border-radius:8px; transition:background .15s; cursor:pointer;
+    width:100%; border-left:none; border-right:none; border-top:none;
+    background:transparent; font-family:inherit; text-align:left; color:inherit;
+  }
+  .ncc-row:focus-visible,
+  .region-tab:focus-visible,
+  .summary-box.clickable:focus-visible{ outline:2px solid var(--brand-500); outline-offset:2px; }
+  .ncc-row:last-child{ border-bottom:none; }
+  .ncc-row:hover{ background:var(--gray-bg); }
+  .ncc-row .name{ font-weight:500; }
+  .ncc-row .amount{ font-weight:700; color:var(--brand-900); font-variant-numeric:tabular-nums; white-space:nowrap; }
+
+  .gsbh-entry{ display:flex; flex-direction:column; gap:3px; padding:9px 0; border-bottom:1px dashed var(--border); font-size:13.5px; }
+  .gsbh-entry:last-child{ border-bottom:none; }
+  .gsbh-entry .gsbh-name{ font-weight:600; }
+  .gsbh-entry .gsbh-phone{ color:var(--ink-500); font-weight:600; white-space:nowrap; }
+  .pc-badge{
+    display:inline-block; background:var(--sky-100); color:var(--brand-900);
+    padding:4px 12px; border-radius:20px; font-size:11px; font-weight:700; margin:2px 4px 2px 0;
+  }
+
+  .code-link{ color:var(--brand-700); font-weight:600; text-decoration:none; cursor:pointer; }
+  .code-link:hover{ text-decoration:underline; }
+  .code-link:focus-visible{ outline:2px solid var(--brand-500); outline-offset:2px; border-radius:4px; }
+
+  /* ===================== ĐƠN GIÁ ===================== */
+  .dongia-header-row td{
+    background:var(--sky-100); color:var(--brand-900); font-weight:700; font-size:13.5px;
+    letter-spacing:.02em; padding:10px 12px; border-bottom:1px solid #CFE4F6;
+  }
+  .dongia-subheader-row td{
+    background:var(--bg); color:var(--ink-600); font-weight:600; font-size:12px;
+    padding:8px 12px 8px 28px; border-bottom:1px solid var(--border);
+  }
+  .dongia-vattu{ color:#7A2FA0; font-weight:600; }
+  .dongia-nhancong{ color:var(--warning); font-weight:600; }
+  .dongia-tongcong{ color:var(--ok); font-weight:700; }
+  #page-dongia thead th.dongia-vattu{ color:#7A2FA0; }
+  #page-dongia thead th.dongia-nhancong{ color:var(--warning); }
+  #page-dongia thead th.dongia-tongcong{ color:var(--ok); }
+  #page-dongia thead th{ font-weight:700; vertical-align:middle; }
+  #page-dongia tbody td{ line-height:1.55; }
+
+  /* ===================== RESPONSIVE ===================== */
+  /* Với số tiền đã rút gọn, 6 thẻ chỉ cần ~988px bề ngang nội dung -> cửa sổ từ ~1320px
+     trở lên là đứng gọn một hàng. Hẹp hơn mới gãy 3 -> 2 -> 1 cột. */
+  @media (max-width:1240px){ .summary-strip{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
+  @media (max-width:1180px){ .summary-strip.cols-4{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media (max-width:900px){
+    .summary-strip,
+    .summary-strip.cols-4{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+  }
+  @media (max-width:560px){
+    .summary-strip,
+    .summary-strip.cols-4{ grid-template-columns:1fr; }
+  }
+  /* Dưới 1300px thì 4 thẻ khu vực + 4 ô lọc của trang Tổng quan không còn đủ một hàng
+     ở nguyên cỡ, thu hẹp đệm ngang của thẻ khu vực là vừa lại. */
+  @media (max-width:1300px){ .region-tab{ padding:0 9px; font-size:12px; } }
+  @media (max-width:900px){
+    .info-grid{ grid-template-columns:1fr; }
+    .search-box{ flex-direction:column; }
+    .filter-bar{ flex-direction:column; align-items:stretch; }
+    .filter-item.btn-slot{ align-self:stretch; }
+    .filter-item.btn-slot .btn{ width:100%; }
+  }
+  @media (max-width:820px){
+    /* .sidebar.collapsed có độ ưu tiên cao hơn .sidebar nên phải nhắc lại CẢ 2 selector,
+       nếu không drawer sẽ không trượt ra được khi sidebar đang ở trạng thái thu gọn. */
+    .sidebar, .sidebar.collapsed{
+      position:fixed; left:-268px; z-index:60; transition:left .2s ease; width:var(--sidebar-w);
+    }
+    .sidebar.open, .sidebar.collapsed.open{ left:0; }
+    .sidebar.collapsed .brand-text,
+    .sidebar.collapsed .sidebar-foot-text,
+    .sidebar.collapsed .nav-item span.label,
+    .sidebar.collapsed .sidebar-refresh-btn span.label{ display:block; }
+    .collapse-toggle{ display:none; }
+    .topbar-menu-btn{ display:flex; }
+    .topbar{ padding:14px 18px; }
+    .content{ padding:18px 18px 40px; }
+  }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <span class="brand-th">TH</span>
+        <svg class="brand-star" viewBox="0 0 24 24" fill="none">
+          <defs>
+            <linearGradient id="thStarGold" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stop-color="#F2E7C8"/>
+              <stop offset=".45" stop-color="#C9A961"/>
+              <stop offset="1" stop-color="#8E6F35"/>
+            </linearGradient>
+          </defs>
+          <path fill="url(#thStarGold)" d="M12 .5Q13.1 10.1 18.5 8.25Q14.2 12 18.5 15.75Q13.1 13.9 12 22Q10.9 13.9 5.5 15.75Q9.8 12 5.5 8.25Q10.9 10.1 12 .5Z"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <div class="brand-wordmark"><span class="w-true">true</span><span class="w-milk">MILK</span></div>
+        <div class="t2">QUẢN LÝ THIẾT BỊ</div>
+      </div>
+      <button class="collapse-toggle" id="collapseToggleBtn" type="button" title="Thu gọn / Mở rộng menu" aria-label="Thu gọn hoặc mở rộng menu">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m14 6-6 6 6 6"/></svg>
+      </button>
+    </div>
+
+    <nav class="nav">
+      <button class="nav-item active" type="button" data-page="dashboard" data-tooltip="Tổng quan">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span>
+        <span class="label">Tổng quan</span>
+      </button>
+      <button class="nav-item" type="button" data-page="search" data-tooltip="Tra cứu thiết bị">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
+        <span class="label">Tra cứu thiết bị</span>
+      </button>
+      <button class="nav-item" type="button" data-page="batch" data-tooltip="Tra cứu danh sách">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2h6a1 1 0 0 1 1 1v2H8V3a1 1 0 0 1 1-1z"></path><rect x="4" y="4" width="16" height="18" rx="2"></rect><line x1="8" y1="11" x2="16" y2="11"></line><line x1="8" y1="15" x2="16" y2="15"></line><line x1="8" y1="19" x2="13" y2="19"></line></svg></span>
+        <span class="label">Tra cứu danh sách</span>
+      </button>
+      <button class="nav-item" type="button" data-page="devicelist" data-tooltip="Danh sách thiết bị">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg></span>
+        <span class="label">Danh sách thiết bị</span>
+      </button>
+      <button class="nav-item" type="button" data-page="rawdata" data-tooltip="Dữ liệu chi phí">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg></span>
+        <span class="label">Dữ liệu chi phí</span>
+      </button>
+      <button class="nav-item" type="button" data-page="dongia" data-tooltip="Đơn giá">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.24L4 3a1 1 0 0 0-1 1l.24 5.59a2 2 0 0 0 .59 1.41l9.58 9.58a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.82z"></path><line x1="7.5" y1="7.5" x2="7.51" y2="7.5"></line></svg></span>
+        <span class="label">Đơn giá</span>
+      </button>
+    </nav>
+
+    <div class="sidebar-refresh-row">
+      <button class="sidebar-refresh-btn" id="refreshDataBtn" type="button" data-tooltip="Làm mới dữ liệu" title="Đọc lại dữ liệu mới nhất từ Google Sheet">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 15.3-6.4L21 8M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.3 6.4L3 16M3 21v-5h5"/></svg></span>
+        <span class="label">Làm mới dữ liệu</span>
+      </button>
+      <div class="sidebar-refresh-meta" id="dataFreshness" title="Thời điểm dữ liệu hiện tại được đọc từ Google Sheet">
+        Cập nhật lần cuối: <b id="dataFreshnessText">đang tải…</b>
+      </div>
+    </div>
+
+    <div class="sidebar-foot">
+      <div class="sidebar-foot-text">
+        <div class="copyright">© 2026 TH FOOD CHAIN JOINT STOCK COMPANY</div>
+        <div>Phòng Dự án &amp; Xây dựng ·<br>
+        Hệ thống quản lý nội bộ</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <main class="main">
+
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="topbar-menu-btn" id="mobileMenuBtn" type="button" aria-label="Mở menu">
+          <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></span>
+        </button>
+        <div>
+          <h1 id="pageTitle">Tổng quan hệ thống</h1>
+          <div class="sub" id="pageSub">Thống kê tổng quan thiết bị và chi phí sửa chữa theo khu vực, nhà cung cấp và thời gian</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- ========== PAGE: DASHBOARD ========== -->
+      <div class="page active" id="page-dashboard">
+        <div class="card">
+          <div class="filter-bar">
+            <div class="filter-item">
+              <label>Khu vực</label>
+              <div class="region-tabs" id="regionTabs">
+                <button type="button" class="region-tab active" data-region="toanquoc" onclick="setRegion('toanquoc')">Toàn quốc</button>
+                <button type="button" class="region-tab" data-region="bac" onclick="setRegion('bac')">Miền Bắc</button>
+                <button type="button" class="region-tab" data-region="trung" onclick="setRegion('trung')">Miền Trung</button>
+                <button type="button" class="region-tab" data-region="nam" onclick="setRegion('nam')">Miền Nam</button>
+              </div>
+            </div>
+            <div class="filter-item">
+              <label>Nhà cung cấp</label>
+              <select id="filterNcc"><option value="">Tất cả</option></select>
+            </div>
+            <div class="filter-item">
+              <label>Từ ngày</label>
+              <input type="date" id="filterTuNgay">
+            </div>
+            <div class="filter-item">
+              <label>Đến ngày</label>
+              <input type="date" id="filterDenNgay">
+            </div>
+            <div class="filter-item btn-slot">
+              <button class="btn" type="button" onclick="applyFilters()">Áp dụng</button>
+            </div>
+            <div class="filter-item btn-slot">
+              <button class="btn secondary" type="button" onclick="resetFilters()">Xóa lọc</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="summary-strip" id="dashSummaryStrip">
+          <div class="summary-box">
+            <div class="value" id="dTongThietBi">0</div>
+            <div class="label">Tổng số thiết bị</div>
+          </div>
+          <button type="button" class="summary-box clickable" onclick="goToRawDataFromDashboard()" title="Xem chi tiết">
+            <div class="value" id="dSoThietBiSuaChua">0</div>
+            <div class="label">Thiết bị đã sửa chữa</div>
+          </button>
+          <button type="button" class="summary-box clickable" onclick="goToRawDataFromDashboard()" title="Xem chi tiết">
+            <div class="value" id="dSoLuot">0</div>
+            <div class="label">Số lượt sửa chữa</div>
+          </button>
+          <div class="summary-box">
+            <div class="value small" id="dTongChiPhi">0 đ</div>
+            <div class="label">Tổng chi phí</div>
+          </div>
+          <div class="summary-box repair">
+            <div class="value small" id="dChiPhiSuaChua">0 đ</div>
+            <div class="label">Chi phí sửa chữa</div>
+          </div>
+          <div class="summary-box travel">
+            <div class="value small" id="dChiPhiDiChuyen">0 đ</div>
+            <div class="label">Chi phí di chuyển</div>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="card">
+            <h3 class="chart-title">Số lượt sửa chữa theo khu vực</h3>
+            <div class="chart-wrap"><canvas id="regionChartCanvas"></canvas></div>
+          </div>
+          <div class="card">
+            <h3 class="chart-title">Xu hướng chi phí theo tháng</h3>
+            <div class="chart-wrap"><canvas id="trendChartCanvas"></canvas></div>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="card">
+            <h3 class="chart-title">Số lượng thiết bị theo loại</h3>
+            <div class="chart-wrap hbar"><canvas id="deviceTypeChartCanvas"></canvas></div>
+          </div>
+          <div class="card">
+            <h3 class="chart-title">Số lượng thiết bị theo nhãn hiệu</h3>
+            <div class="chart-wrap hbar"><canvas id="deviceBrandChartCanvas"></canvas></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 style="margin:0 0 14px;">Chi phí theo nhà cung cấp</h3>
+          <div id="topNccList"><div class="empty-note">Chưa có dữ liệu.</div></div>
+        </div>
+      </div>
+
+      <!-- ========== PAGE: TRA CỨU THIẾT BỊ ========== -->
+      <div class="page" id="page-search">
+        <div class="card">
+          <div class="search-box">
+            <input type="text" id="codeInput" placeholder="Nhập mã thiết bị (code tủ)..." autofocus>
+            <button class="btn" type="button" id="searchBtn" onclick="doSearch()">Tra cứu</button>
+          </div>
+        </div>
+
+        <div class="message" id="searchMessage"></div>
+
+        <div class="result-section" id="resultSection">
+          <div class="card">
+            <div class="info-card-header">
+              <h2 id="tenCuaHang">-</h2>
+              <span class="code-badge" id="codeBadge">-</span>
+            </div>
+            <div class="info-grid">
+              <div class="info-item"><label>Địa chỉ</label><div id="diaChi">-</div></div>
+              <div class="info-item"><label>Số điện thoại</label><div id="soDienThoai">-</div></div>
+              <div class="info-item"><label>Ngày lắp đặt</label><div id="ngayLapDat">-</div></div>
+              <div class="info-item"><label>Loại tủ</label><div id="loaiTu">-</div></div>
+              <div class="info-item"><label>Nhãn hiệu</label><div id="nhanHieu">-</div></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 style="margin:0 0 14px;">Thông tin bổ sung</h3>
+            <div class="info-grid">
+              <div class="info-item">
+                <label>Tình trạng bảo hành</label>
+                <div><span class="status" id="tinhTrangBaoHanhThietBi">—</span></div>
+              </div>
+              <div class="info-item">
+                <label>Tình trạng thanh lý</label>
+                <div class="value-normal" id="tinhTrangThanhLy">—</div>
+              </div>
+              <div class="info-item" style="grid-column:1 / -1;">
+                <label>Thông tin GSBH</label>
+                <div id="thongTinGsbh"><span class="muted-text">—</span></div>
+              </div>
+              <div class="info-item" style="grid-column:1 / -1;">
+                <label>P&amp;C phụ trách</label>
+                <div id="pcPhuTrach"><span class="muted-text">—</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="summary-strip cols-4">
+            <div class="summary-box">
+              <div class="value small" id="tongChiPhi">0 đ</div>
+              <div class="label">Tổng chi phí</div>
+            </div>
+            <div class="summary-box repair">
+              <div class="value small" id="chiPhiSuaChua">0 đ</div>
+              <div class="label">Chi phí sửa chữa</div>
+            </div>
+            <div class="summary-box travel">
+              <div class="value small" id="chiPhiDiChuyen">0 đ</div>
+              <div class="label">Chi phí di chuyển</div>
+            </div>
+            <div class="summary-box">
+              <div class="value" id="soLanSua">0</div>
+              <div class="label">Số lần sửa chữa</div>
+            </div>
+          </div>
+
+          <div class="card table-card">
+            <h3>Lịch sử sửa chữa</h3>
+            <div class="table-wrap wrap-cells">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Ngày sửa chữa</th>
+                    <th class="col-wrap">Nội dung sửa chữa</th>
+                    <th>Chi phí</th>
+                    <th>Nhà cung cấp</th>
+                    <th>Tình trạng</th>
+                  </tr>
+                </thead>
+                <tbody id="historyBody"></tbody>
+              </table>
+            </div>
+            <div class="empty-note" id="emptyNote" style="display:none;">Chưa có lịch sử sửa chữa nào.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== PAGE: TRA CỨU DANH SÁCH ========== -->
+      <div class="page" id="page-batch">
+        <div class="card">
+          <div class="search-box">
+            <textarea id="batchInput" placeholder="Ví dụ:&#10;328017964&#10;328020507&#10;348009171"></textarea>
+          </div>
+          <div style="margin-top:12px; display:flex; gap:10px;">
+            <button class="btn" type="button" id="batchBtn" onclick="doBatchSearch()">Tra cứu danh sách</button>
+            <button class="btn secondary" type="button" onclick="clearBatch()">Xóa</button>
+          </div>
+        </div>
+
+        <div class="message" id="batchMessage"></div>
+
+        <div class="card table-card" id="batchResultCard" style="display:none;">
+          <h3>Kết quả (<span id="batchCount">0</span> mã)</h3>
+          <div class="table-wrap wrap-cells">
+            <table>
+              <thead>
+                <tr>
+                  <th>Mã thiết bị</th>
+                  <th>Chi phí</th>
+                  <th>Ngày lắp đặt</th>
+                  <th>Tình trạng bảo hành</th>
+                  <th>Nhãn hiệu</th>
+                  <th>Loại tủ</th>
+                  <th class="col-wrap">Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody id="batchBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== PAGE: DANH SÁCH THIẾT BỊ ========== -->
+      <div class="page" id="page-devicelist">
+        <div class="card">
+          <div class="search-box">
+            <input type="text" id="deviceSearchInput" placeholder="Nhập mã thiết bị, tên khách hàng hoặc số điện thoại khách hàng...">
+            <button class="btn" type="button" onclick="applyDeviceFilters()">Tìm kiếm</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="filter-bar">
+            <div class="filter-item" style="flex:0 0 auto;">
+              <label>Khu vực</label>
+              <div class="region-tabs" id="deviceRegionTabs" style="display:grid; grid-template-columns:repeat(2,auto); gap:8px;">
+                <button type="button" class="region-tab active" data-region="toanquoc" onclick="setDeviceRegion('toanquoc')">Toàn quốc</button>
+                <button type="button" class="region-tab" data-region="bac" onclick="setDeviceRegion('bac')">Miền Bắc</button>
+                <button type="button" class="region-tab" data-region="trung" onclick="setDeviceRegion('trung')">Miền Trung</button>
+                <button type="button" class="region-tab" data-region="nam" onclick="setDeviceRegion('nam')">Miền Nam</button>
+              </div>
+            </div>
+            <div class="filter-item">
+              <label>Nhà phân phối</label>
+              <select id="deviceFilterNpp"><option value="">Tất cả</option></select>
+            </div>
+            <div class="filter-item">
+              <label>Loại thiết bị</label>
+              <select id="deviceFilterLoai"><option value="">Tất cả</option></select>
+            </div>
+            <div class="filter-item">
+              <label>Nhãn hiệu</label>
+              <select id="deviceFilterNhanHieu"><option value="">Tất cả</option></select>
+            </div>
+            <div class="filter-item">
+              <label>Tình trạng bảo hành</label>
+              <select id="deviceFilterBaoHanh">
+                <option value="">Tất cả</option>
+                <option value="con">Còn bảo hành</option>
+                <option value="het">Hết bảo hành</option>
+              </select>
+            </div>
+            <div class="filter-item btn-slot">
+              <button class="btn" type="button" onclick="applyDeviceFilters()">Lọc</button>
+            </div>
+            <div class="filter-item btn-slot">
+              <button class="btn secondary" type="button" onclick="resetDeviceFilters()">Xóa lọc</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card table-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
+            <h3 style="margin:0;">Danh sách thiết bị (<span id="deviceTotalCount">0</span> thiết bị)</h3>
+            <div class="pagination-controls" id="devicePaginationTop"></div>
+          </div>
+          <div class="table-wrap wrap-cells">
+            <table>
+              <thead>
+                <tr>
+                  <th>Mã thiết bị</th>
+                  <th class="col-wrap">Tên cửa hàng</th>
+                  <th class="col-wrap">Địa chỉ</th>
+                  <th>Số điện thoại</th>
+                  <th>NPP</th>
+                  <th>Vùng</th>
+                  <th>Loại thiết bị</th>
+                  <th>Nhãn hiệu</th>
+                  <th>Ngày lắp đặt</th>
+                  <th>Bảo hành</th>
+                </tr>
+              </thead>
+              <tbody id="deviceListBody"></tbody>
+            </table>
+          </div>
+          <div class="empty-note" id="deviceListEmptyNote" style="display:none;">Không có thiết bị phù hợp.</div>
+          <div class="pagination-controls" id="devicePaginationBottom" style="margin-top:16px; justify-content:flex-end;"></div>
+        </div>
+      </div>
+
+      <!-- ========== PAGE: DỮ LIỆU CHI PHÍ ========== -->
+      <div class="page" id="page-rawdata">
+        <div class="card">
+          <div class="filter-bar">
+            <div class="filter-item" style="flex:1; min-width:180px;">
+              <label>Mã thiết bị</label>
+              <input type="text" id="rawCodeInput" placeholder="Nhập mã thiết bị...">
+            </div>
+            <div class="filter-item" style="flex:0 0 auto;">
+              <label>Khu vực</label>
+              <div class="region-tabs" id="rawRegionTabs" style="display:grid; grid-template-columns:repeat(2,auto); gap:8px;">
+                <button type="button" class="region-tab active" data-region="toanquoc" onclick="setRawRegion('toanquoc')">Toàn quốc</button>
+                <button type="button" class="region-tab" data-region="bac" onclick="setRawRegion('bac')">Miền Bắc</button>
+                <button type="button" class="region-tab" data-region="trung" onclick="setRawRegion('trung')">Miền Trung</button>
+                <button type="button" class="region-tab" data-region="nam" onclick="setRawRegion('nam')">Miền Nam</button>
+              </div>
+            </div>
+            <div class="filter-item">
+              <label>Nhà cung cấp</label>
+              <select id="rawFilterNcc"><option value="">Tất cả</option></select>
+            </div>
+            <div class="filter-item">
+              <label>Từ ngày</label>
+              <input type="date" id="rawFilterTuNgay">
+            </div>
+            <div class="filter-item">
+              <label>Đến ngày</label>
+              <input type="date" id="rawFilterDenNgay">
+            </div>
+            <div class="filter-item btn-slot">
+              <button class="btn" type="button" onclick="applyRawFilters()">Lọc</button>
+            </div>
+            <div class="filter-item btn-slot">
+              <button class="btn secondary" type="button" onclick="resetRawFilters()">Xóa lọc</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="card table-card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
+            <h3 style="margin:0;">Danh sách chi phí (<span id="rawTotalCount">0</span> bản ghi)</h3>
+            <div class="pagination-controls" id="paginationTop"></div>
+          </div>
+          <div class="table-wrap wrap-cells">
+            <table>
+              <thead>
+                <tr>
+                  <th>Mã thiết bị</th>
+                  <th>Ngày thực hiện</th>
+                  <th>Nhà cung cấp</th>
+                  <th class="col-wrap">Nội dung sửa chữa</th>
+                  <th>Chi phí</th>
+                  <th>Khu vực</th>
+                </tr>
+              </thead>
+              <tbody id="rawDataBody"></tbody>
+            </table>
+          </div>
+          <div class="empty-note" id="rawDataEmptyNote" style="display:none;">Không có dữ liệu phù hợp.</div>
+          <div class="pagination-controls" id="paginationBottom" style="margin-top:16px; justify-content:flex-end;"></div>
+        </div>
+      </div>
+
+      <!-- ========== PAGE: ĐƠN GIÁ ========== -->
+      <div class="page" id="page-dongia">
+        <div class="card">
+          <div class="filter-bar" style="margin-bottom:14px;">
+            <div class="filter-item" style="flex:1; min-width:260px;">
+              <label>Loại đơn giá</label>
+              <div class="region-tabs" id="donGiaTabs">
+                <button type="button" class="region-tab active" data-cat="bt" onclick="setDonGiaCategory('bt')">Bảo trì</button>
+                <button type="button" class="region-tab" data-cat="xd" onclick="setDonGiaCategory('xd')">Xây dựng</button>
+                <button type="button" class="region-tab" data-cat="snk" onclick="setDonGiaCategory('snk')">Sanaky</button>
+              </div>
+            </div>
+          </div>
+          <div class="search-box">
+            <input type="text" id="donGiaSearch" placeholder="Nhập nội dung đơn giá hoặc mã imc..." oninput="filterDonGiaDebounced()">
+          </div>
+        </div>
+
+        <div class="card table-card">
+          <div class="table-wrap wrap-cells">
+            <table>
+              <thead><tr id="donGiaTheadRow"></tr></thead>
+              <tbody id="donGiaBody"></tbody>
+            </table>
+          </div>
+          <div class="empty-note" id="donGiaEmptyNote" style="display:none;">Không tìm thấy đơn giá phù hợp.</div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<div class="sidebar-scrim" id="sidebarScrim"></div>
+
+<!-- ===================== LOADING OVERLAY ===================== -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Đang tải dữ liệu...</div>
+</div>
+
+<!-- ===================== TOAST ===================== -->
+<div class="toast" id="toastNotice" role="status" aria-live="polite">
+  <span class="icon toast-icon toast-ico-ok"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+  <span class="icon toast-icon toast-ico-err"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="7.5" x2="12" y2="13"></line><line x1="12" y1="16.5" x2="12.01" y2="16.5"></line></svg></span>
+  <span id="toastText"></span>
+</div>
+
+<script>
+  /* ===================== HELPERS ===================== */
+  function $(sel, root) { return (root || document).querySelector(sel); }
+  function $all(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+
+  function formatCurrency(num) { return Number(num || 0).toLocaleString('vi-VN') + ' đ'; }
+
+  /** Gán số tiền ĐẦY ĐỦ vào thẻ tổng quan (không rút gọn, để đối chiếu được với bảng). */
+  function setMoneyBox(id, value) {
+    $('#' + id).textContent = formatCurrency(value);
+  }
+  /** Định dạng số nguyên có dấu phân cách hàng nghìn kiểu Việt Nam (9964 -> 9.964). */
+  function formatInt(num) { return Number(num || 0).toLocaleString('vi-VN'); }
+
+  /** Tạo 1 ô <td> bằng textContent (không dùng innerHTML với dữ liệu từ sheet). */
+  function mkTd(value, opts) {
+    opts = opts || {};
+    var td = document.createElement('td');
+    var cls = [];
+    if (opts.wrap) cls.push('col-wrap');
+    if (opts.cls) cls.push(opts.cls);
+    if (cls.length) td.className = cls.join(' ');
+    var v = (value === null || value === undefined || value === '') ? '—' : value;
+    td.textContent = v;
+    return td;
+  }
+
+  /** Dấu chấm than cảnh báo ô ngày không đọc được từ dữ liệu gốc */
+  function mkDateWarn() {
+    var b = document.createElement('span');
+    b.className = 'date-warn';
+    b.textContent = '!';
+    b.title = 'Ngày không hợp lệ trong dữ liệu gốc. Dòng này bị bỏ qua khi lọc theo khoảng ngày '
+            + 'và không tính được tình trạng bảo hành — vui lòng sửa lại trên Google Sheet.';
+    return b;
+  }
+
+  /** Ô ngày: hiện giá trị, kèm badge cảnh báo nếu ngày gốc không hợp lệ */
+  function mkDateTd(value, isErr, opts) {
+    var td = mkTd(value, opts);
+    if (isErr) td.appendChild(mkDateWarn());
+    return td;
+  }
+
+  /** Gán ngày vào 1 phần tử bất kỳ, kèm badge cảnh báo nếu cần */
+  function setDateText(el, value, isErr) {
+    el.textContent = '';
+    el.appendChild(document.createTextNode(value || '—'));
+    if (isErr) el.appendChild(mkDateWarn());
+  }
+
+  /* ===================== NAVIGATION ===================== */
+  var TITLES = {
+    dashboard:  ['Tổng quan hệ thống', 'Thống kê tổng quan thiết bị và chi phí sửa chữa theo khu vực, nhà cung cấp và thời gian'],
+    search:     ['Tra cứu thiết bị', 'Nhập mã thiết bị để xem thông tin lắp đặt và lịch sử sửa chữa'],
+    batch:      ['Tra cứu theo danh sách', 'Dán danh sách nhiều mã thiết bị (mỗi mã 1 dòng, hoặc cách nhau bởi dấu phẩy)'],
+    devicelist: ['Danh sách thiết bị', 'Toàn bộ danh sách thiết bị đã lắp đặt'],
+    rawdata:    ['Dữ liệu chi phí', 'Toàn bộ dữ liệu chi phí sửa chữa'],
+    dongia:     ['Đơn giá', 'Tra cứu đơn giá vật tư, nhân công theo mã IMC hoặc nội dung sửa chữa']
+  };
+
+  function switchPage(page) {
+    if (!TITLES[page]) return;   // trang lạ -> bỏ qua, tránh ném lỗi làm dừng cả hàm
+    closeDrawer();
+    $all('.page').forEach(function (p) { p.classList.remove('active'); });
+    $all('.nav-item[data-page]').forEach(function (n) { n.classList.remove('active'); });
+    $('#page-' + page).classList.add('active');
+    $('.nav-item[data-page="' + page + '"]').classList.add('active');
+
+    $('#pageTitle').textContent = TITLES[page][0];
+    $('#pageSub').textContent = TITLES[page][1];
+
+    if (page === 'dashboard' && !dashboardLoadedOnce) { dashboardLoadedOnce = true; initDashboard(); }
+    if (page === 'dongia' && !donGiaLoadedOnce) { donGiaLoadedOnce = true; loadDonGiaCategory(currentDonGiaCategory); }
+    if (page === 'rawdata' && !rawDataLoadedOnce) { rawDataLoadedOnce = true; initRawData(); }
+    if (page === 'devicelist' && !deviceListLoadedOnce) { deviceListLoadedOnce = true; initDeviceList(); }
+
+    window.scrollTo(0, 0);   // đang cuộn giữa danh sách mà đổi trang thì trang mới phải bắt đầu từ đầu
+  }
+
+  $all('.nav-item[data-page]').forEach(function (el) {
+    el.addEventListener('click', function () { switchPage(el.dataset.page); });
+  });
+
+  /* ---- Thu gọn sidebar ---- */
+  var sidebarEl = $('#sidebar');
+  $('#collapseToggleBtn').addEventListener('click', function () {
+    sidebarEl.classList.toggle('collapsed');
+    // Chart.js cần resize lại vì vùng nội dung vừa đổi bề ngang
+    setTimeout(resizeAllCharts, 220);
+  });
+
+  /* ---- Drawer cho cửa sổ hẹp (<=820px) ---- */
+  var scrimEl = $('#sidebarScrim');
+  function openDrawer() { sidebarEl.classList.add('open'); scrimEl.classList.add('active'); }
+  function closeDrawer() { sidebarEl.classList.remove('open'); scrimEl.classList.remove('active'); }
+  $('#mobileMenuBtn').addEventListener('click', openDrawer);
+  scrimEl.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeDrawer(); });
+  window.addEventListener('resize', function () { if (window.innerWidth > 820) closeDrawer(); });
+
+  // Thu nhỏ rồi mở lại cửa sổ (hoặc ẩn/hiện taskbar) làm vùng vẽ đổi bề ngang. Chart.js chỉ
+  // theo dõi được lúc CO LẠI, khi nới ra thì canvas giữ kích thước cũ và tràn khỏi viền thẻ.
+  // Gọi resize thủ công sau khi người dùng ngừng kéo (chặn rung, 180ms).
+  var resizeTimer_ = null;
+  window.addEventListener('resize', function () {
+    clearTimeout(resizeTimer_);
+    resizeTimer_ = setTimeout(resizeAllCharts, 180);
+  });
+
+  /* ===================== LOADING / SKELETON / TOAST ===================== */
+  function showLoading(text) {
+    $('#loadingText').textContent = text || 'Đang tải dữ liệu...';
+    $('#loadingOverlay').classList.add('show');
+  }
+  function hideLoading() { $('#loadingOverlay').classList.remove('show'); }
+
+  /** Dòng skeleton cho <tbody> — giữ đúng số cột nên bảng không co giật khi dữ liệu về. */
+  function skelTableRows(cols, rows) {
+    var out = '';
+    for (var i = 0; i < (rows || 6); i++) {
+      out += '<tr>';
+      for (var j = 0; j < cols; j++) out += '<td><div class="skel skel-row"></div></td>';
+      out += '</tr>';
+    }
+    return out;
+  }
+  function skelNccRows(n) {
+    var out = '';
+    for (var i = 0; i < (n || 6); i++) {
+      out += '<div class="ncc-row" style="cursor:default;"><span class="skel skel-row" style="width:45%;"></span><span class="skel skel-row" style="width:22%;"></span></div>';
+    }
+    return out;
+  }
+  /** Bật/tắt skeleton cho toàn bộ khối Dashboard (thẻ số + 4 biểu đồ + danh sách NCC). */
+  function setDashboardLoading(on) {
+    $all('#page-dashboard .summary-strip').forEach(function (el) { el.classList.toggle('is-loading', !!on); });
+    $all('#page-dashboard .chart-wrap').forEach(function (el) { el.classList.toggle('is-loading', !!on); });
+    if (on) $('#topNccList').innerHTML = skelNccRows(6);
+  }
+
+  var toastTimer = null;
+  function showToast(message, type) {
+    var el = $('#toastNotice');
+    $('#toastText').textContent = message;
+    el.className = 'toast show' + (type === 'error' ? ' error' : '');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove('show'); }, 3200);
+  }
+
+  /* ===================== MỐC THỜI GIAN DỮ LIỆU ===================== */
+
+  /**
+   * Ghi mốc ra sidebar. LUÔN hiển thị, không bao giờ ẩn.
+   *
+   * Không lấy được giá trị thì GIỮ NGUYÊN mốc cũ đang hiện, không ghi đè. Mốc cũ vẫn là thông tin
+   * thật (dữ liệu trên màn hình đúng là của giờ đó) và người dùng nhìn giờ cũ dần là biết có trục
+   * trặc — hữu ích hơn hẳn dòng chữ "không xác định" chẳng nói lên điều gì.
+   *
+   * Con số mô tả DỮ LIỆU ĐANG HIỂN THỊ đọc từ Sheet lúc nào, không phải trạng thái hiện thời của
+   * server: mở app rồi để yên thì nó đứng im dù trigger nền vẫn chạy, đúng như vậy.
+   */
+  function setFreshness(f) {
+    if (f && f.text) $('#dataFreshnessText').textContent = f.text;
+  }
+
+  /**
+   * Gọi riêng lên server, dùng khi renderDashboard() không chạy: bấm "Làm mới dữ liệu" lúc đang
+   * đứng ở trang khác, hoặc dashboard tải lỗi. Thất bại thì không làm gì — setFreshness() giữ
+   * nguyên mốc cũ.
+   */
+  function loadFreshness() {
+    google.script.run
+      .withSuccessHandler(setFreshness)
+      .withFailureHandler(function () { /* giữ nguyên mốc đang hiện */ })
+      .getDataFreshness();
+  }
+
+  function refreshData() {
+    var btn = $('#refreshDataBtn');
+    btn.disabled = true;
+    showLoading('Đang làm mới dữ liệu...');
+    google.script.run
+      .withSuccessHandler(function (res) {
+        hideLoading();
+        btn.disabled = false;
+
+        // Server có thể trả success=false (đọc Sheet lỗi) -> phải là toast đỏ, không phải xanh.
+        if (res && res.success === false) {
+          showToast(res.message || 'Không tải lại được dữ liệu.', 'error');
+          return;
+        }
+        showToast((res && res.message) || 'Đã làm mới dữ liệu.', 'success');
+        loadFreshness();
+
+        /* Hệ thống có 2 TẦNG CACHE: tầng server (CacheService) và tầng client (các cờ
+           ...LoadedOnce + donGiaDataCache ngay trong trình duyệt). Server đã nạp dữ liệu mới,
+           nhưng nếu không xoá tầng client thì các trang ĐÃ TỪNG MỞ sẽ không hỏi lại server nữa
+           và vẫn hiện số liệu cũ. Phải reset TẤT CẢ, không chỉ trang đang mở. */
+        dashboardLoadedOnce = false;
+        donGiaLoadedOnce = false;
+        rawDataLoadedOnce = false;
+        deviceListLoadedOnce = false;
+        donGiaDataCache = { bt: null, xd: null, snk: null };
+
+        // Trang ĐANG MỞ được tải lại ngay tại đây, nên đánh dấu lại cờ của riêng nó để lúc rời
+        // đi rồi quay lại không phải gọi server thêm một lần thừa.
+        var activeNav = $('.nav-item[data-page].active');
+        var activePage = activeNav ? activeNav.dataset.page : 'dashboard';
+        if (activePage === 'dashboard') { dashboardLoadedOnce = true; loadDashboard(); }
+        if (activePage === 'dongia') { donGiaLoadedOnce = true; loadDonGiaCategory(currentDonGiaCategory); }
+        if (activePage === 'rawdata') { rawDataLoadedOnce = true; loadRawData(1); }
+        if (activePage === 'devicelist') {
+          deviceListLoadedOnce = true;
+          reloadDeviceFilterOptions(function () { loadDeviceList(1); });
+        }
+      })
+      .withFailureHandler(function (err) { hideLoading(); btn.disabled = false; showToast('Lỗi: ' + err.message, 'error'); })
+      .refreshCache();
+  }
+  $('#refreshDataBtn').addEventListener('click', refreshData);
+
+  /* ===================== TRA CỨU 1 MÃ ===================== */
+  var codeInput = $('#codeInput');
+  codeInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doSearch(); });
+
+  function statusClass(status) {
+    if (status === 'Còn bảo hành') return 'warranty';
+    if (status === 'Hết bảo hành') return 'expired';
+    return 'unknown';
+  }
+
+  function showSearchMessage(text) {
+    var el = $('#searchMessage');
+    el.textContent = text; el.className = 'message error';
+  }
+  function hideSearchMessage() {
+    var el = $('#searchMessage');
+    el.className = 'message'; el.textContent = '';
+  }
+
+  function doSearch() {
+    var code = codeInput.value.trim();
+    if (!code) { showSearchMessage('Vui lòng nhập mã thiết bị.'); return; }
+
+    $('#resultSection').style.display = 'none';
+    var btn = $('#searchBtn');
+    btn.disabled = true;
+    showLoading('Đang tra cứu thiết bị ' + code + '...');
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        btn.disabled = false; hideLoading();
+        if (!res.success) { showSearchMessage(res.message); return; }
+        hideSearchMessage();
+        renderResult(res);
+      })
+      .withFailureHandler(function (err) {
+        btn.disabled = false; hideLoading();
+        showSearchMessage('Lỗi hệ thống: ' + err.message);
+      })
+      .searchDevice(code);
+  }
+
+  function renderResult(res) {
+    var d = res.device;
+    $('#tenCuaHang').textContent = d.ten_cua_hang || '(Không có tên)';
+    $('#codeBadge').textContent = d.code_tu;
+    $('#diaChi').textContent = d.dia_chi || '—';
+    $('#soDienThoai').textContent = d.so_dien_thoai || '—';
+    setDateText($('#ngayLapDat'), d.ngay_lap_dat, d.ngay_lap_dat_loi);
+    $('#loaiTu').textContent = d.loai_tu || '—';
+    $('#nhanHieu').textContent = d.nhan_hieu || '—';
+
+    setMoneyBox('tongChiPhi', res.tong_chi_phi);
+    setMoneyBox('chiPhiDiChuyen', res.chi_phi_di_chuyen);
+    setMoneyBox('chiPhiSuaChua', res.chi_phi_sua_chua);
+    $('#soLanSua').textContent = formatInt(res.so_lan_sua);
+
+    var badge = $('#tinhTrangBaoHanhThietBi');
+    badge.textContent = res.tinh_trang_bao_hanh_thiet_bi;
+    badge.className = 'status ' + statusClass(res.tinh_trang_bao_hanh_thiet_bi);
+
+    // Tình trạng thanh lý
+    var tl = res.tinh_trang_thanh_ly;
+    var tlEl = $('#tinhTrangThanhLy');
+    tlEl.innerHTML = '';
+    if (tl) {
+      var l1 = document.createElement('div');
+      l1.textContent = tl.thanhLy || '—';
+      tlEl.appendChild(l1);
+      if (tl.dienGiai) {
+        var l2 = document.createElement('div');
+        l2.className = 'muted-text';
+        l2.style.cssText = 'margin-top:4px; font-weight:400;';
+        l2.textContent = tl.dienGiai;
+        tlEl.appendChild(l2);
+      }
+    } else {
+      var none = document.createElement('span');
+      none.className = 'muted-text';
+      none.textContent = 'Chưa có thông tin';
+      tlEl.appendChild(none);
+    }
+
+    // Thông tin GSBH
+    var gsbhEl = $('#thongTinGsbh');
+    gsbhEl.innerHTML = '';
+    if (!res.gsbh_list || res.gsbh_list.length === 0) {
+      var g0 = document.createElement('span');
+      g0.className = 'muted-text'; g0.textContent = 'Chưa có thông tin';
+      gsbhEl.appendChild(g0);
+    } else {
+      res.gsbh_list.forEach(function (g) {
+        var row = document.createElement('div');
+        row.className = 'gsbh-entry';
+        var nameEl = document.createElement('span');
+        nameEl.className = 'gsbh-name';
+        nameEl.textContent = g.hoTen || '—';
+        if (g.tenNpp) {
+          var npp = document.createElement('span');
+          npp.className = 'muted-text';
+          npp.textContent = ' (' + g.tenNpp + ')';
+          nameEl.appendChild(npp);
+        }
+        var phoneEl = document.createElement('span');
+        phoneEl.className = 'gsbh-phone';
+        phoneEl.textContent = g.soDienThoai || '—';
+        row.appendChild(nameEl);
+        row.appendChild(phoneEl);
+        gsbhEl.appendChild(row);
+      });
+    }
+
+    // P&C phụ trách
+    var pcEl = $('#pcPhuTrach');
+    pcEl.innerHTML = '';
+    if (!res.pc_list || res.pc_list.length === 0) {
+      var p0 = document.createElement('span');
+      p0.className = 'muted-text'; p0.textContent = 'Chưa có thông tin';
+      pcEl.appendChild(p0);
+    } else {
+      res.pc_list.forEach(function (pc) {
+        var span = document.createElement('span');
+        span.className = 'pc-badge';
+        span.textContent = pc;
+        pcEl.appendChild(span);
+      });
+    }
+
+    // Lịch sử sửa chữa (gộp ô ngày/NCC/tình trạng bằng rowspan)
+    var body = $('#historyBody');
+    body.innerHTML = '';
+    if (!res.lich_su || res.lich_su.length === 0) {
+      $('#emptyNote').style.display = 'block';
+    } else {
+      $('#emptyNote').style.display = 'none';
+      res.lich_su.forEach(function (group) {
+        var items = group.items && group.items.length ? group.items : [{ noiDung: '', chiPhi: 0 }];
+        var rowspan = items.length;
+        items.forEach(function (item, i) {
+          var tr = document.createElement('tr');
+
+          if (i === 0) {
+            var tdDate = mkDateTd(group.ngaySuaChua, group.ngayLoi);
+            tdDate.rowSpan = rowspan;
+            tr.appendChild(tdDate);
+          }
+
+          tr.appendChild(mkTd(item.noiDung, { wrap: true }));
+          tr.appendChild(mkTd(formatCurrency(item.chiPhi), { cls: 'cost' }));
+
+          if (i === 0) {
+            var tdNcc = mkTd(group.ncc);
+            tdNcc.rowSpan = rowspan;
+            tr.appendChild(tdNcc);
+
+            var tdStatus = document.createElement('td');
+            tdStatus.rowSpan = rowspan;
+            var badgeEl = document.createElement('span');
+            badgeEl.className = 'status ' + statusClass(group.tinhTrang);
+            badgeEl.textContent = group.tinhTrang;
+            tdStatus.appendChild(badgeEl);
+            tr.appendChild(tdStatus);
+          }
+
+          body.appendChild(tr);
+        });
+      });
+    }
+
+    $('#resultSection').style.display = 'block';
+  }
+
+  /* ===================== TRA CỨU HÀNG LOẠT ===================== */
+  function showBatchMessage(text) {
+    var el = $('#batchMessage');
+    el.textContent = text; el.className = 'message error';
+  }
+  function hideBatchMessage() {
+    var el = $('#batchMessage');
+    el.className = 'message'; el.textContent = '';
+  }
+
+  function clearBatch() {
+    $('#batchInput').value = '';
+    $('#batchResultCard').style.display = 'none';
+    hideBatchMessage();
+  }
+
+  function doBatchSearch() {
+    var text = $('#batchInput').value;
+    if (!text.trim()) { showBatchMessage('Vui lòng nhập ít nhất 1 mã thiết bị.'); return; }
+
+    var btn = $('#batchBtn');
+    btn.disabled = true;
+    showLoading('Đang tra cứu hàng loạt...');
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        btn.disabled = false; hideLoading();
+        if (!res.success) { showBatchMessage(res.message); return; }
+        hideBatchMessage();
+        renderBatchResult(res.results);
+      })
+      .withFailureHandler(function (err) {
+        btn.disabled = false; hideLoading();
+        showBatchMessage('Lỗi hệ thống: ' + err.message);
+      })
+      .batchSearchDevices(text);
+  }
+
+  function goToSearch(code) {
+    switchPage('search');
+    $('#codeInput').value = code;
+    doSearch();
+  }
+
+  function makeCodeLinkCell(code) {
+    var td = document.createElement('td');
+    var link = document.createElement('a');
+    link.href = 'javascript:void(0)';
+    link.className = 'code-link';
+    link.textContent = code;
+    link.title = 'Xem chi tiết mã ' + code;
+    link.addEventListener('click', function () { goToSearch(code); });
+    td.appendChild(link);
+    return td;
+  }
+
+  function makeStatusCell(status) {
+    var td = document.createElement('td');
+    if (status && status !== 'Không xác định') {
+      var span = document.createElement('span');
+      span.className = 'status ' + statusClass(status);
+      span.textContent = status;
+      td.appendChild(span);
+    } else {
+      td.textContent = '—';
+    }
+    return td;
+  }
+
+  function renderBatchResult(results) {
+    $('#batchCount').textContent = formatInt(results.length);
+    var body = $('#batchBody');
+    body.innerHTML = '';
+
+    results.forEach(function (r) {
+      var tr = document.createElement('tr');
+      tr.appendChild(makeCodeLinkCell(r.code_tu));
+      tr.appendChild(mkTd(r.chi_phi ? formatCurrency(r.chi_phi) : '', { cls: 'cost' }));
+      tr.appendChild(mkDateTd(r.ngay_lap_dat, r.ngay_lap_dat_loi));
+      tr.appendChild(makeStatusCell(r.tinh_trang_bao_hanh));
+      tr.appendChild(mkTd(r.nhan_hieu));
+      tr.appendChild(mkTd(r.loai_tu));
+      tr.appendChild(mkTd(r.tinh_trang_thanh_ly, { wrap: true }));
+      body.appendChild(tr);
+    });
+
+    $('#batchResultCard').style.display = 'block';
+  }
+
+  /* ===================== DANH SÁCH THIẾT BỊ ===================== */
+  var deviceListLoadedOnce = false;
+  var deviceCurrentRegion = 'toanquoc';
+  var deviceCurrentPage = 1;
+  var DEVICE_PAGE_SIZE = 50;
+
+  // Cấu hình cột (sau cột "Mã thiết bị" dựng riêng). wrap:true -> cột được xuống dòng.
+  var DEVICE_COLUMNS = [
+    { key: 'tenCuaHang', wrap: true },
+    { key: 'diaChi', wrap: true },
+    { key: 'soDienThoai' },
+    { key: 'npp' },
+    { key: 'vung' },
+    { key: 'loaiTu' },
+    { key: 'nhanHieu' },
+    { key: 'ngayLapDat', errKey: 'ngayLapDatLoi' }
+  ];
+
+  var deviceSearchInputEl = $('#deviceSearchInput');
+  deviceSearchInputEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') applyDeviceFilters(); });
+
+  function getDeviceFilters() {
+    return {
+      search: $('#deviceSearchInput').value.trim(),
+      mien: deviceCurrentRegion,
+      npp: $('#deviceFilterNpp').value,
+      loai: $('#deviceFilterLoai').value,
+      nhanHieu: $('#deviceFilterNhanHieu').value,
+      baoHanh: $('#deviceFilterBaoHanh').value
+    };
+  }
+
+  function setDeviceRegion(region) {
+    deviceCurrentRegion = region;
+    $all('#deviceRegionTabs .region-tab').forEach(function (t) { t.classList.remove('active'); });
+    $('#deviceRegionTabs .region-tab[data-region="' + region + '"]').classList.add('active');
+    reloadDeviceFilterOptions(function () { loadDeviceList(1); });
+  }
+
+  function reloadDeviceFilterOptions(callback) {
+    var nppSelect = $('#deviceFilterNpp');
+    var loaiSelect = $('#deviceFilterLoai');
+    var nhSelect = $('#deviceFilterNhanHieu');
+    var prevNpp = nppSelect.value, prevLoai = loaiSelect.value, prevNh = nhSelect.value;
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        nppSelect.innerHTML = '<option value="">Tất cả</option>';
+        loaiSelect.innerHTML = '<option value="">Tất cả</option>';
+        nhSelect.innerHTML = '<option value="">Tất cả</option>';
+        if (res.success) {
+          (res.nppList || []).forEach(function (v) { var o = document.createElement('option'); o.value = v; o.textContent = v; nppSelect.appendChild(o); });
+          (res.loaiList || []).forEach(function (v) { var o = document.createElement('option'); o.value = v; o.textContent = v; loaiSelect.appendChild(o); });
+          (res.nhanHieuList || []).forEach(function (v) { var o = document.createElement('option'); o.value = v; o.textContent = v; nhSelect.appendChild(o); });
+        }
+        nppSelect.value = (res.nppList || []).indexOf(prevNpp) !== -1 ? prevNpp : '';
+        loaiSelect.value = (res.loaiList || []).indexOf(prevLoai) !== -1 ? prevLoai : '';
+        nhSelect.value = (res.nhanHieuList || []).indexOf(prevNh) !== -1 ? prevNh : '';
+        if (callback) callback();
+      })
+      .withFailureHandler(function (err) { console.error(err); if (callback) callback(); })
+      .getDanhSachThietBiFilterOptions({ mien: deviceCurrentRegion });
+  }
+
+  function applyDeviceFilters() { loadDeviceList(1); }
+
+  function resetDeviceFilters() {
+    $('#deviceSearchInput').value = '';
+    $('#deviceFilterNpp').value = '';
+    $('#deviceFilterLoai').value = '';
+    $('#deviceFilterNhanHieu').value = '';
+    $('#deviceFilterBaoHanh').value = '';
+    setDeviceRegion('toanquoc');
+  }
+
+  function initDeviceList() {
+    $('#deviceListBody').innerHTML = skelTableRows(10, 6);
+    reloadDeviceFilterOptions(function () { loadDeviceList(1); });
+  }
+
+  function loadDeviceList(page) {
+    deviceCurrentPage = page || 1;
+    $('#deviceListBody').innerHTML = skelTableRows(10, 6);
+    $('#deviceListEmptyNote').style.display = 'none';
+    var filters = getDeviceFilters();
+    filters.page = deviceCurrentPage;
+    filters.pageSize = DEVICE_PAGE_SIZE;
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (!res.success) { $('#deviceListBody').innerHTML = ''; showToast(res.message, 'error'); return; }
+        renderDeviceList(res);
+      })
+      .withFailureHandler(function (err) { $('#deviceListBody').innerHTML = ''; showToast('Lỗi: ' + err.message, 'error'); })
+      .getDanhSachThietBiPageData(filters);
+  }
+
+  function renderDeviceList(res) {
+    $('#deviceTotalCount').textContent = formatInt(res.totalRecords);
+    var body = $('#deviceListBody');
+    var emptyNote = $('#deviceListEmptyNote');
+    body.innerHTML = '';
+
+    if (!res.records || res.records.length === 0) {
+      emptyNote.style.display = 'block';
+    } else {
+      emptyNote.style.display = 'none';
+      res.records.forEach(function (r) {
+        var tr = document.createElement('tr');
+        tr.appendChild(makeCodeLinkCell(r.code));
+        DEVICE_COLUMNS.forEach(function (c) {
+          tr.appendChild(c.errKey
+            ? mkDateTd(r[c.key], r[c.errKey], { wrap: c.wrap })
+            : mkTd(r[c.key], { wrap: c.wrap }));
+        });
+        tr.appendChild(makeStatusCell(r.tinhTrangBaoHanh));
+        body.appendChild(tr);
+      });
+    }
+
+    renderDevicePagination(res.page, res.totalPages);
+  }
+
+  function renderDevicePagination(page, totalPages) {
+    // Không có trang nào thì ẩn hẳn thanh phân trang, tránh hiện "Trang 1 / 0".
+    if (!totalPages || totalPages < 1) {
+      $('#devicePaginationTop').innerHTML = '';
+      $('#devicePaginationBottom').innerHTML = '';
+      return;
+    }
+    var html =
+      '<button class="btn secondary" type="button" ' + (page <= 1 ? 'disabled' : '') + ' onclick="loadDeviceList(' + (page - 1) + ')">‹ Trước</button>' +
+      '<span>Trang ' + page + ' / ' + totalPages + '</span>' +
+      '<button class="btn secondary" type="button" ' + (page >= totalPages ? 'disabled' : '') + ' onclick="loadDeviceList(' + (page + 1) + ')">Sau ›</button>';
+    $('#devicePaginationTop').innerHTML = html;
+    $('#devicePaginationBottom').innerHTML = html;
+  }
+
+  /** Từ Dashboard: bấm 1 loại thiết bị trên biểu đồ -> mở Danh sách thiết bị đã lọc theo loại đó */
+  function goToDeviceListByType(loaiTu) {
+    deviceListLoadedOnce = true;
+    var dashFilters = getCurrentFilters();
+
+    $('#deviceSearchInput').value = '';
+    deviceCurrentRegion = dashFilters.mien || 'toanquoc';
+    $all('#deviceRegionTabs .region-tab').forEach(function (t) { t.classList.remove('active'); });
+    $('#deviceRegionTabs .region-tab[data-region="' + deviceCurrentRegion + '"]').classList.add('active');
+
+    switchPage('devicelist');
+
+    reloadDeviceFilterOptions(function () {
+      $('#deviceFilterLoai').value = loaiTu || '';
+      loadDeviceList(1);
+    });
+  }
+
+  /** Từ Dashboard: bấm 1 nhãn hiệu trên biểu đồ -> mở Danh sách thiết bị đã lọc theo nhãn hiệu đó */
+  function goToDeviceListByBrand(nhanHieu) {
+    deviceListLoadedOnce = true;
+    var dashFilters = getCurrentFilters();
+
+    $('#deviceSearchInput').value = '';
+    deviceCurrentRegion = dashFilters.mien || 'toanquoc';
+    $all('#deviceRegionTabs .region-tab').forEach(function (t) { t.classList.remove('active'); });
+    $('#deviceRegionTabs .region-tab[data-region="' + deviceCurrentRegion + '"]').classList.add('active');
+
+    switchPage('devicelist');
+
+    reloadDeviceFilterOptions(function () {
+      $('#deviceFilterNhanHieu').value = nhanHieu || '';
+      loadDeviceList(1);
+    });
+  }
+
+  /* ===================== ĐƠN GIÁ (Bảo trì / Xây dựng / Sanaky) ===================== */
+  // "cls" tái dùng class màu cho cả tiêu đề cột (th) và dữ liệu (td).
+  // "wrap: true" -> cột được phép xuống dòng. Mặc định mọi cột nowrap, kể cả Mã IMC.
+  // "labelLines" -> ngắt dòng THỦ CÔNG cho tiêu đề dài (thay vì để trình duyệt tự ngắt).
+  var DONGIA_COLUMNS = {
+    bt: [
+      { key: 'maImc', label: 'Mã IMC' },
+      { key: 'noiDung', label: 'Nội dung công việc', wrap: true },
+      { key: 'dvt', label: 'ĐVT' },
+      { key: 'vatTu', label: 'Vật tư', money: true, cls: 'dongia-vattu' },
+      { key: 'nhanCong', label: 'Nhân công', money: true, cls: 'dongia-nhancong' },
+      { key: 'tongCong', label: 'Tổng cộng', money: true, cls: 'dongia-tongcong' }
+    ],
+    xd: [
+      { key: 'maImc', label: 'Mã IMC' },
+      { key: 'noiDung', label: 'Nội dung công việc', wrap: true },
+      { key: 'yeuCau', label: 'Yêu cầu kỹ thuật / vật liệu', wrap: true },
+      { key: 'dvt', label: 'ĐVT' },
+      { key: 'donGia', label: 'Đơn giá', money: true, cls: 'dongia-tongcong' }
+    ],
+    snk: [
+      { key: 'maImc', label: 'Mã IMC' },
+      { key: 'noiDung', label: 'Nội dung công việc', wrap: true },
+      { key: 'dvt', label: 'ĐVT' },
+      { key: 'vatTu', label: 'Vật tư', money: true, cls: 'dongia-vattu' },
+      { key: 'gasPhinLoc', label: 'Gas & phin lọc', labelLines: ['Gas &', 'phin lọc'], money: true, cls: 'dongia-vattu' },
+      { key: 'nhanCong', label: 'Nhân công', money: true, cls: 'dongia-nhancong' },
+      { key: 'phuPhi', label: 'Phụ phí (v.chuyển/đi lại)', labelLines: ['Phụ phí (v.chuyển/', 'đi lại)'], money: true, cls: 'dongia-nhancong' },
+      { key: 'donGia', label: 'Tổng cộng', money: true, cls: 'dongia-tongcong' }
+    ]
+  };
+
+  var donGiaDataCache = { bt: null, xd: null, snk: null };
+  var currentDonGiaCategory = 'bt';
+  var donGiaLoadedOnce = false;
+
+  function removeDiacriticsJS(str) {
+    return String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd').replace(/Đ/g, 'D');
+  }
+
+  /**
+   * Bóc dấu SẴN cho cả bảng một lần lúc dữ liệu về. Nếu để filterDonGia() tự normalize('NFD')
+   * thì thành 3 trường x mỗi dòng x MỖI LẦN GÕ PHÍM (bảng 1.000 dòng, gõ từ 3 ký tự = 9.000
+   * lần) cho cùng một kết quả.
+   */
+  function cacheDonGia_(cat, records) {
+    var list = records || [];
+    list.forEach(function (r) {
+      r._maO = String(r.maImc   || '').toLowerCase();
+      r._ndO = String(r.noiDung || '').toLowerCase();
+      r._ycO = String(r.yeuCau  || '').toLowerCase();
+      r._maN = removeDiacriticsJS(r.maImc).toLowerCase();
+      r._ndN = removeDiacriticsJS(r.noiDung).toLowerCase();
+      r._ycN = removeDiacriticsJS(r.yeuCau).toLowerCase();
+    });
+    donGiaDataCache[cat] = list;
+  }
+
+  function setDonGiaCategory(cat) {
+    if (cat === currentDonGiaCategory && donGiaDataCache[cat]) return;
+    currentDonGiaCategory = cat;
+    $all('#donGiaTabs .region-tab').forEach(function (t) { t.classList.remove('active'); });
+    $('#donGiaTabs .region-tab[data-cat="' + cat + '"]').classList.add('active');
+    $('#donGiaSearch').value = '';
+
+    if (donGiaDataCache[cat]) renderDonGia(donGiaDataCache[cat]);
+    else loadDonGiaCategory(cat);
+  }
+
+  function loadDonGiaCategory(cat) {
+    renderDonGiaHead(cat);
+    $('#donGiaEmptyNote').style.display = 'none';
+    $('#donGiaBody').innerHTML = skelTableRows(DONGIA_COLUMNS[cat].length, 6);
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (!res.success) { $('#donGiaBody').innerHTML = ''; showToast(res.message, 'error'); return; }
+        cacheDonGia_(cat, res.records);
+        if (currentDonGiaCategory === cat) {
+          // Làm mới dữ liệu khi đang lọc thì phải lọc LẠI, nếu không ô tìm kiếm còn từ khóa
+          // mà bảng lại hiện đủ toàn bộ -> màn hình tự mâu thuẫn.
+          if ($('#donGiaSearch').value.trim()) filterDonGia();
+          else renderDonGia(donGiaDataCache[cat]);
+        }
+      })
+      .withFailureHandler(function (err) { $('#donGiaBody').innerHTML = ''; showToast('Lỗi: ' + err.message, 'error'); })
+      .getDonGiaData(cat);
+  }
+
+  function renderDonGiaHead(cat) {
+    var cols = DONGIA_COLUMNS[cat];
+    $('#donGiaTheadRow').innerHTML = cols.map(function (c) {
+      var labelHtml = c.labelLines ? c.labelLines.join('<br>') : c.label;
+      var cls = (c.cls ? c.cls : '') + (c.wrap ? ' col-wrap' : '');
+      return '<th' + (cls.trim() ? ' class="' + cls.trim() + '"' : '') + '>' + labelHtml + '</th>';
+    }).join('');
+  }
+
+  function renderDonGia(list) {
+    var cols = DONGIA_COLUMNS[currentDonGiaCategory];
+    renderDonGiaHead(currentDonGiaCategory);
+
+    var body = $('#donGiaBody');
+    var emptyNote = $('#donGiaEmptyNote');
+    body.innerHTML = '';
+
+    if (!list || list.length === 0) { emptyNote.style.display = 'block'; return; }
+    emptyNote.style.display = 'none';
+
+    // Gom vào một khay tạm rồi gắn MỘT lần: trình duyệt chỉ tính lại bố cục 1 lần
+    // thay vì 1.000 lần như khi appendChild từng dòng.
+    var frag = document.createDocumentFragment();
+    list.forEach(function (r) {
+      var tr = document.createElement('tr');
+
+      if (r.isHeader || r.isSubHeader) {
+        tr.className = r.isHeader ? 'dongia-header-row' : 'dongia-subheader-row';
+        var td = document.createElement('td');
+        td.colSpan = cols.length;
+        td.textContent = r.isHeader ? (r.maImc + ' — ' + r.noiDung) : (r.maImc + '. ' + r.noiDung);
+        tr.appendChild(td);
+      } else {
+        cols.forEach(function (c) {
+          var val = r[c.key];
+          var display = c.money ? formatCurrency(val) : val;
+          tr.appendChild(mkTd(display, { wrap: c.wrap, cls: c.cls }));
+        });
+      }
+
+      frag.appendChild(tr);
+    });
+    body.appendChild(frag);
+  }
+
+  // Lọc theo nội dung/mã IMC (và yêu cầu kỹ thuật với Xây dựng), luôn kèm đầu mục LỚN phía
+  // trên (và đầu mục NHỎ nếu có, riêng Xây dựng). Chờ ngừng gõ 180ms rồi mới lọc -> mỗi từ
+  // chỉ dựng lại bảng đúng một lần.
+  var donGiaFilterTimer_ = null;
+  function filterDonGiaDebounced() {
+    clearTimeout(donGiaFilterTimer_);
+    donGiaFilterTimer_ = setTimeout(filterDonGia, 180);
+  }
+
+  function filterDonGia() {
+    var data = donGiaDataCache[currentDonGiaCategory];
+    if (!data) return;
+    var q = $('#donGiaSearch').value.trim();
+
+    if (!q) { renderDonGia(data); return; }
+
+    var qNorm = removeDiacriticsJS(q).toLowerCase();
+    // Gõ CÓ dấu ("vân") -> so khớp CÓ dấu, không lẫn "văn".
+    // Gõ KHÔNG dấu ("van") -> so khớp KHÔNG dấu, ra cả "vân"/"văn"/"ván".
+    var qHasDiacritics = qNorm !== q.toLowerCase();
+    var qCompare = qHasDiacritics ? q.toLowerCase() : qNorm;
+
+    var lastHeaderRecord = {};
+    var lastSubHeaderRecord = {};
+    data.forEach(function (r) {
+      if (r.isHeader) lastHeaderRecord[r.group] = r;
+      else if (r.isSubHeader) lastSubHeaderRecord[r.group + '||' + r.subGroup] = r;
+    });
+
+    var result = [];
+    var addedHeaderForGroup = {};
+    var addedSubHeaderForKey = {};
+
+    data.forEach(function (r) {
+      if (r.isHeader || r.isSubHeader) return;
+
+      // Dùng thẳng chuỗi đã bóc dấu sẵn trong cacheDonGia_ — không tính lại gì ở đây.
+      var searchMa = qHasDiacritics ? r._maO : r._maN;
+      var searchNoiDung = qHasDiacritics ? r._ndO : r._ndN;
+      var searchYeuCau = qHasDiacritics ? r._ycO : r._ycN;
+
+      var isMatch = searchMa.indexOf(qCompare) !== -1 ||
+                    searchNoiDung.indexOf(qCompare) !== -1 ||
+                    searchYeuCau.indexOf(qCompare) !== -1;
+      if (!isMatch) return;
+
+      if (r.group && !addedHeaderForGroup[r.group] && lastHeaderRecord[r.group]) {
+        result.push(lastHeaderRecord[r.group]);
+        addedHeaderForGroup[r.group] = true;
+      }
+      if (r.subGroup) {
+        var subKey = r.group + '||' + r.subGroup;
+        if (!addedSubHeaderForKey[subKey] && lastSubHeaderRecord[subKey]) {
+          result.push(lastSubHeaderRecord[subKey]);
+          addedSubHeaderForKey[subKey] = true;
+        }
+      }
+      result.push(r);
+    });
+
+    renderDonGia(result);
+  }
+
+  /* ===================== DỮ LIỆU CHI PHÍ (CÓ PHÂN TRANG) ===================== */
+  var rawDataLoadedOnce = false;
+  var rawCurrentRegion = 'toanquoc';
+  var rawCurrentPage = 1;
+  var RAW_PAGE_SIZE = 50;
+
+  function getRawFilters() {
+    return {
+      maThietBi: $('#rawCodeInput').value.trim(),
+      mien: rawCurrentRegion,
+      ncc: $('#rawFilterNcc').value,
+      tuNgay: $('#rawFilterTuNgay').value,
+      denNgay: $('#rawFilterDenNgay').value
+    };
+  }
+
+  function setRawRegion(region) {
+    rawCurrentRegion = region;
+    $all('#rawRegionTabs .region-tab').forEach(function (t) { t.classList.remove('active'); });
+    $('#rawRegionTabs .region-tab[data-region="' + region + '"]').classList.add('active');
+    reloadRawNccOptions(function () { loadRawData(1); });
+  }
+
+  function reloadRawNccOptions(callback) {
+    var select = $('#rawFilterNcc');
+    var previousValue = select.value;
+    var filters = getRawFilters();
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        select.innerHTML = '<option value="">Tất cả</option>';
+        if (res.success && res.nccList) {
+          res.nccList.forEach(function (ncc) {
+            var opt = document.createElement('option');
+            opt.value = ncc; opt.textContent = ncc;
+            select.appendChild(opt);
+          });
+        }
+        if (res.success && res.nccList && res.nccList.indexOf(previousValue) !== -1) select.value = previousValue;
+        else select.value = '';
+        if (callback) callback();
+      })
+      .withFailureHandler(function (err) { console.error(err); if (callback) callback(); })
+      .getFilterOptions(filters);
+  }
+
+  function applyRawFilters() { reloadRawNccOptions(function () { loadRawData(1); }); }
+
+  function resetRawFilters() {
+    $('#rawCodeInput').value = '';
+    $('#rawFilterTuNgay').value = '';
+    $('#rawFilterDenNgay').value = '';
+    // PHẢI xóa TRƯỚC khi gọi setRawRegion: reloadRawNccOptions giữ lại lựa chọn cũ nếu
+    // nó còn nằm trong danh sách mới, nên không xóa ở đây thì "Xóa lọc" không bỏ được NCC.
+    $('#rawFilterNcc').value = '';
+    setRawRegion('toanquoc');
+  }
+
+  function initRawData() {
+    $('#rawDataBody').innerHTML = skelTableRows(6, 6);
+    reloadRawNccOptions(function () { loadRawData(1); });
+  }
+
+  function loadRawData(page) {
+    rawCurrentPage = page || 1;
+    $('#rawDataBody').innerHTML = skelTableRows(6, 6);
+    $('#rawDataEmptyNote').style.display = 'none';
+    var filters = getRawFilters();
+    filters.page = rawCurrentPage;
+    filters.pageSize = RAW_PAGE_SIZE;
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        if (!res.success) { $('#rawDataBody').innerHTML = ''; showToast(res.message, 'error'); return; }
+        renderRawData(res);
+      })
+      .withFailureHandler(function (err) { $('#rawDataBody').innerHTML = ''; showToast('Lỗi: ' + err.message, 'error'); })
+      .getChiPhiPageData(filters);
+  }
+
+  function renderRawData(res) {
+    $('#rawTotalCount').textContent = formatInt(res.totalRecords);
+    var body = $('#rawDataBody');
+    var emptyNote = $('#rawDataEmptyNote');
+    body.innerHTML = '';
+
+    if (!res.records || res.records.length === 0) {
+      emptyNote.style.display = 'block';
+    } else {
+      emptyNote.style.display = 'none';
+      res.records.forEach(function (r) {
+        var tr = document.createElement('tr');
+        tr.appendChild(mkTd(r.code));
+        tr.appendChild(mkDateTd(r.ngay, r.ngayLoi));
+        tr.appendChild(mkTd(r.ncc));
+        tr.appendChild(mkTd(r.noiDung, { wrap: true }));
+        tr.appendChild(mkTd(formatCurrency(r.chiPhi), { cls: 'cost' }));
+        tr.appendChild(mkTd(r.khuVuc));
+        body.appendChild(tr);
+      });
+    }
+
+    renderRawPagination(res.page, res.totalPages);
+  }
+
+  function renderRawPagination(page, totalPages) {
+    if (!totalPages || totalPages < 1) {
+      $('#paginationTop').innerHTML = '';
+      $('#paginationBottom').innerHTML = '';
+      return;
+    }
+    var html =
+      '<button class="btn secondary" type="button" ' + (page <= 1 ? 'disabled' : '') + ' onclick="loadRawData(' + (page - 1) + ')">‹ Trước</button>' +
+      '<span>Trang ' + page + ' / ' + totalPages + '</span>' +
+      '<button class="btn secondary" type="button" ' + (page >= totalPages ? 'disabled' : '') + ' onclick="loadRawData(' + (page + 1) + ')">Sau ›</button>';
+    $('#paginationTop').innerHTML = html;
+    $('#paginationBottom').innerHTML = html;
+  }
+
+  /** Chuyển từ báo cáo tổng quan sang "Dữ liệu chi phí", áp dụng đúng bộ lọc đang xem */
+  function goToRawDataFromDashboard() {
+    rawDataLoadedOnce = true;
+    var dashFilters = getCurrentFilters();
+    var nccVal = $('#filterNcc').value;
+
+    $('#rawCodeInput').value = '';
+    $('#rawFilterTuNgay').value = dashFilters.tuNgay || '';
+    $('#rawFilterDenNgay').value = dashFilters.denNgay || '';
+    rawCurrentRegion = dashFilters.mien || 'toanquoc';
+    $all('#rawRegionTabs .region-tab').forEach(function (t) { t.classList.remove('active'); });
+    $('#rawRegionTabs .region-tab[data-region="' + rawCurrentRegion + '"]').classList.add('active');
+
+    switchPage('rawdata');
+
+    reloadRawNccOptions(function () {
+      $('#rawFilterNcc').value = nccVal || '';
+      loadRawData(1);
+    });
+  }
+
+  /** Từ Dashboard: bấm 1 cột khu vực -> mở Dữ liệu chi phí đã lọc theo khu vực đó */
+  function goToRawDataByRegion(regionKey) {
+    rawDataLoadedOnce = true;
+    var dashFilters = getCurrentFilters();
+
+    $('#rawCodeInput').value = '';
+    $('#rawFilterTuNgay').value = dashFilters.tuNgay || '';
+    $('#rawFilterDenNgay').value = dashFilters.denNgay || '';
+    rawCurrentRegion = regionKey || 'toanquoc';
+    $all('#rawRegionTabs .region-tab').forEach(function (t) { t.classList.remove('active'); });
+    $('#rawRegionTabs .region-tab[data-region="' + rawCurrentRegion + '"]').classList.add('active');
+
+    switchPage('rawdata');
+
+    reloadRawNccOptions(function () {
+      $('#rawFilterNcc').value = '';
+      loadRawData(1);
+    });
+  }
+
+  /** Từ Dashboard: bấm 1 dòng NCC -> mở Dữ liệu chi phí đã lọc theo NCC đó */
+  function goToRawDataByNcc(ncc) {
+    rawDataLoadedOnce = true;
+    var dashFilters = getCurrentFilters();
+
+    $('#rawCodeInput').value = '';
+    $('#rawFilterTuNgay').value = dashFilters.tuNgay || '';
+    $('#rawFilterDenNgay').value = dashFilters.denNgay || '';
+    rawCurrentRegion = dashFilters.mien || 'toanquoc';
+    $all('#rawRegionTabs .region-tab').forEach(function (t) { t.classList.remove('active'); });
+    $('#rawRegionTabs .region-tab[data-region="' + rawCurrentRegion + '"]').classList.add('active');
+
+    switchPage('rawdata');
+
+    reloadRawNccOptions(function () {
+      $('#rawFilterNcc').value = ncc || '';
+      loadRawData(1);
+    });
+  }
+
+  /* ===================== DASHBOARD ===================== */
+  var dashboardLoadedOnce = false;
+  var currentRegion = 'toanquoc';
+  var regionChartInstance = null;
+  var trendChartInstance = null;
+  var deviceTypeChartInstance = null;
+  var deviceBrandChartInstance = null;
+
+  // ===== Bảng màu Untitled UI, dùng chung cho MỌI biểu đồ ở cả bản desktop lẫn mobile =====
+  // Bộ cũ (#2E9BE0 / #E3A83B / #2C7A4B) ngả xám-lục nên chìm trên nền #F3F8FC.
+  var CHART_INK_ = '#101828';        // Gray 900 — số liệu
+  var CHART_AXIS_INK_ = '#475467';   // Gray 600 — nhãn trục
+  var CHART_GRID_ = '#EAECF0';       // Gray 200 — lưới ngang
+  var CHART_TRACK_ = '#F2F4F7';      // Gray 100 — rãnh nền thanh ngang
+  // Nhãn trục và số liệu chỉ khác nhau ở MÀU, không khác độ đậm -> cùng weight 500.
+  var CHART_VALUE_FONT_ = '500 11px "Be Vietnam Pro", sans-serif';
+  var CHART_REGION_COLORS_ = ['#2E90FA', '#F79009', '#12B76A'];   // Bắc · Trung · Nam
+  var CHART_TYPE_COLOR_ = '#2E90FA';
+  var CHART_BRAND_COLOR_ = '#12B76A';
+
+  // Số đo biểu đồ thanh ngang
+  var HBAR_ROW_H_ = 34;        // chiều cao 1 dòng
+  var HBAR_THICK_ = 10;        // bề dày thanh
+  var HBAR_PAD_RIGHT_ = 56;    // chỗ trống bên phải để in số
+  var HBAR_LABEL_W_ = 118;     // bề ngang cột nhãn
+
+  var chartDefaultsApplied_ = false;
+  function applyChartDefaults_() {
+    if (chartDefaultsApplied_ || typeof Chart === 'undefined') return;
+    Chart.defaults.font.family = '"Be Vietnam Pro", sans-serif';
+    Chart.defaults.font.size = 11;
+    Chart.defaults.font.weight = 500;
+    Chart.defaults.color = CHART_INK_;
+    chartDefaultsApplied_ = true;
+  }
+
+  function resizeAllCharts() {
+    [regionChartInstance, trendChartInstance, deviceTypeChartInstance, deviceBrandChartInstance]
+      .forEach(function (c) { if (c) c.resize(); });
+  }
+
+  /** Vẽ số ngay trên đỉnh mỗi cột. */
+  var barValueLabelPlugin = {
+    id: 'barValueLabelPlugin',
+    afterDatasetsDraw: function (chart) {
+      var ctx = chart.ctx;
+      chart.data.datasets.forEach(function (dataset, dsIndex) {
+        var meta = chart.getDatasetMeta(dsIndex);
+        if (meta.hidden) return;
+        meta.data.forEach(function (bar, index) {
+          var value = dataset.data[index];
+          if (value === undefined || value === null) return;
+          ctx.save();
+          ctx.fillStyle = CHART_INK_;
+          ctx.font = CHART_VALUE_FONT_;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(Number(value).toLocaleString('vi-VN'), bar.x, bar.y - 6);
+          ctx.restore();
+        });
+      });
+    }
+  };
+
+  /**
+   * Thanh ngang kiểu Untitled UI: rãnh nền xám chạy hết bề ngang + số in ở lề phải.
+   * Rãnh vẽ TRƯỚC dữ liệu (beforeDatasetsDraw) nên luôn nằm dưới thanh màu.
+   */
+  var hBarTrackPlugin = {
+    id: 'hBarTrackPlugin',
+    beforeDatasetsDraw: function (chart) {
+      var ctx = chart.ctx, a = chart.chartArea, t = HBAR_THICK_;
+      if (!a) return;
+      ctx.save();
+      ctx.fillStyle = CHART_TRACK_;
+      chart.getDatasetMeta(0).data.forEach(function (bar) {
+        var y = bar.y - t / 2;
+        ctx.beginPath();
+        // roundRect chưa có ở vài trình duyệt cũ -> lùi về hình chữ nhật vuông góc
+        if (ctx.roundRect) ctx.roundRect(a.left, y, a.right - a.left, t, t / 2);
+        else ctx.rect(a.left, y, a.right - a.left, t);
+        ctx.fill();
+      });
+      ctx.restore();
+    },
+    afterDatasetsDraw: function (chart) {
+      var ctx = chart.ctx, a = chart.chartArea, ds = chart.data.datasets[0];
+      if (!a) return;
+      ctx.save();
+      ctx.fillStyle = CHART_INK_;
+      ctx.font = CHART_VALUE_FONT_;
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      chart.getDatasetMeta(0).data.forEach(function (bar, i) {
+        var v = ds.data[i];
+        if (v === undefined || v === null) return;
+        ctx.fillText(Number(v).toLocaleString('vi-VN'), a.right + HBAR_PAD_RIGHT_ - 4, bar.y);
+      });
+      ctx.restore();
+    }
+  };
+
+  /**
+   * Chart.js KHÔNG có tham số lề dưới cho khối chú thích, nên chú thích luôn dính sát vùng
+   * vẽ. Cách xử lý chuẩn: ghi đè hàm đo chiều cao của khối chú thích, cộng thêm 8px.
+   */
+  var legendMarginPlugin = {
+    id: 'legendMarginPlugin',
+    beforeInit: function (chart) {
+      if (!chart.legend) return;
+      var originalFit = chart.legend.fit;
+      chart.legend.fit = function () { originalFit.call(this); this.height += 8; };
+    }
+  };
+
+  function baseBarOptions(onClickFn) {
+    return {
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { top: 20 } },
+      plugins: { legend: { display: false } },
+      scales: {
+        // Nhãn trục là cái thước đo, không phải số liệu -> để màu nhạt hơn số trên đỉnh cột
+        x: { grid: { display: false, drawTicks: false }, border: { display: false }, ticks: { color: CHART_AXIS_INK_ } },
+        y: { beginAtZero: true, grid: { color: CHART_GRID_ }, border: { display: false }, ticks: { color: CHART_AXIS_INK_, precision: 0, callback: function (v) { return Number(v).toLocaleString('vi-VN'); } } }
+      },
+      onClick: onClickFn
+    };
+  }
+
+  /** Bộ tham số dùng chung cho 2 biểu đồ thanh ngang. */
+  function hBarOptions(onClickFn) {
+    return {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      layout: { padding: { right: HBAR_PAD_RIGHT_, top: 4, bottom: 4 } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          displayColors: false,
+          callbacks: { label: function (c) { return Number(c.parsed.x).toLocaleString('vi-VN') + ' thiết bị'; } }
+        }
+      },
+      scales: {
+        // Số đã in ở cuối mỗi thanh -> trục X thành thừa, ẩn hẳn cho thoáng
+        x: { display: false, grid: { display: false } },
+        y: {
+          grid: { display: false }, border: { display: false },
+          ticks: { color: CHART_AXIS_INK_, padding: 8, crossAlign: 'far' },
+          // Khoá bề ngang cột nhãn: tên dài mấy cũng không đẩy vùng vẽ hẹp lại
+          afterFit: function (scale) { scale.width = HBAR_LABEL_W_; }
+        }
+      },
+      onClick: onClickFn
+    };
+  }
+
+  /** Chiều cao khung = số hạng mục x chiều cao dòng, thay cho 260px cố định. */
+  function fitHBarHeight_(canvas, n) {
+    canvas.parentNode.style.height = Math.max(140, n * HBAR_ROW_H_ + 24) + 'px';
+  }
+
+  function getCurrentFilters() {
+    return {
+      mien: currentRegion,
+      tuNgay: $('#filterTuNgay').value,
+      denNgay: $('#filterDenNgay').value
+    };
+  }
+
+  function setRegion(region) {
+    currentRegion = region;
+    // Chỉ đụng tab của Dashboard (#regionTabs), không xóa trạng thái tab của trang khác
+    $all('#regionTabs .region-tab').forEach(function (t) { t.classList.remove('active'); });
+    $('#regionTabs .region-tab[data-region="' + region + '"]').classList.add('active');
+    reloadNccOptions(getCurrentFilters(), function () { loadDashboard(); });
+  }
+
+  function reloadNccOptions(filters, callback) {
+    var select = $('#filterNcc');
+    var previousValue = select.value;
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        select.innerHTML = '<option value="">Tất cả</option>';
+        if (res.success && res.nccList) {
+          res.nccList.forEach(function (ncc) {
+            var opt = document.createElement('option');
+            opt.value = ncc; opt.textContent = ncc;
+            select.appendChild(opt);
+          });
+        }
+        if (res.success && res.nccList && res.nccList.indexOf(previousValue) !== -1) select.value = previousValue;
+        else select.value = '';
+        if (callback) callback();
+      })
+      .withFailureHandler(function (err) { console.error(err); if (callback) callback(); })
+      .getFilterOptions(filters);
+  }
+
+  function applyFilters() { reloadNccOptions(getCurrentFilters(), function () { loadDashboard(); }); }
+
+  $('#filterTuNgay').addEventListener('change', applyFilters);
+  $('#filterDenNgay').addEventListener('change', applyFilters);
+
+  function resetFilters() {
+    $('#filterTuNgay').value = '';
+    $('#filterDenNgay').value = '';
+    // Xóa TRƯỚC khi gọi setRegion, cùng lý do như resetRawFilters.
+    $('#filterNcc').value = '';
+    setRegion('toanquoc');
+  }
+
+  function initDashboard() {
+    setDashboardLoading(true);
+    reloadNccOptions(getCurrentFilters(), function () { loadDashboard(); });
+  }
+
+  function loadDashboard() {
+    setDashboardLoading(true);
+    var filters = {
+      tuNgay: $('#filterTuNgay').value,
+      denNgay: $('#filterDenNgay').value,
+      ncc: $('#filterNcc').value,
+      mien: currentRegion
+    };
+
+    google.script.run
+      .withSuccessHandler(function (res) {
+        setDashboardLoading(false);
+        // Hai nhánh dưới đây KHÔNG gọi renderDashboard() nên mốc thời gian sẽ kẹt ở "đang tải…";
+        // gọi riêng loadFreshness() để nó vẫn có giá trị, hoặc chuyển sang "không xác định".
+        if (!res.success) { showToast(res.message, 'error'); loadFreshness(); return; }
+        renderDashboard(res);
+      })
+      .withFailureHandler(function (err) { setDashboardLoading(false); showToast('Lỗi: ' + err.message, 'error'); loadFreshness(); })
+      .getDashboardData(filters);
+  }
+
+  function renderDashboard(d) {
+    applyChartDefaults_();
+
+    // Mốc đi ké sẵn trong phản hồi getDashboardData -> không tốn thêm vòng gọi server nào.
+    setFreshness(d.capNhat);
+
+    $('#dTongThietBi').textContent = formatInt(d.tongSoThietBi);
+    $('#dSoThietBiSuaChua').textContent = formatInt(d.soThietBiSuaChua);
+    $('#dSoLuot').textContent = formatInt(d.soLuotSuaChua);
+    setMoneyBox('dTongChiPhi', d.tongChiPhi);
+    setMoneyBox('dChiPhiDiChuyen', d.chiPhiDiChuyen);
+    setMoneyBox('dChiPhiSuaChua', d.chiPhiSuaChua);
+
+    renderRegionChart(d.regionChart);
+    renderTrendChart(d.trendChart);
+    renderDeviceTypeChart(d.deviceTypeChart || []);
+    renderDeviceBrandChart(d.deviceBrandChart || []);
+    renderTopNcc(d.topNcc);
+  }
+
+  function renderRegionChart(data) {
+    var canvas = $('#regionChartCanvas');
+    var ctx = canvas.getContext('2d');
+    var labels = data.map(function (r) { return r.label; });
+    var values = data.map(function (r) { return r.soLuot; });
+    var keys = data.map(function (r) { return r.key; });
+
+    var opts = baseBarOptions(function (evt, elements) {
+      if (elements && elements.length) goToRawDataByRegion(keys[elements[0].index]);
+    });
+    opts.onHover = function (evt, elements) { canvas.style.cursor = elements && elements.length ? 'pointer' : 'default'; };
+
+    if (regionChartInstance) regionChartInstance.destroy();
+    regionChartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ label: 'Số lượt sửa chữa', data: values, backgroundColor: CHART_REGION_COLORS_, borderRadius: 6, maxBarThickness: 48 }] },
+      options: opts,
+      plugins: [barValueLabelPlugin]
+    });
+  }
+
+  function renderTrendChart(data) {
+    var ctx = $('#trendChartCanvas').getContext('2d');
+    var labels = data.map(function (r) { return r.thang; });
+
+    if (trendChartInstance) trendChartInstance.destroy();
+    trendChartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        // Ba đường ĐỒNG BỘ hoàn toàn: cùng độ dày, cùng độ cong, cùng cỡ điểm, đều LIỀN NÉT.
+        // Chỉ phân biệt bằng màu -> chú giải phía trên cũng là 3 ô màu đặc như nhau.
+        datasets: [
+          { label: 'Miền Bắc', data: data.map(function (r) { return r.bac; }), borderColor: CHART_REGION_COLORS_[0], backgroundColor: 'rgba(46,144,250,.08)', borderWidth: 2, fill: false, tension: .3, pointRadius: 2 },
+          { label: 'Miền Trung', data: data.map(function (r) { return r.trung; }), borderColor: CHART_REGION_COLORS_[1], backgroundColor: 'rgba(247,144,9,.08)', borderWidth: 2, fill: false, tension: .3, pointRadius: 2 },
+          { label: 'Miền Nam', data: data.map(function (r) { return r.nam; }), borderColor: CHART_REGION_COLORS_[2], backgroundColor: 'rgba(18,183,106,.08)', borderWidth: 2, fill: false, tension: .3, pointRadius: 2 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          // Ô màu trong tooltip mặc định lấy backgroundColor của dataset — với biểu đồ đường
+          // đó là màu tô nền mờ 8% (nhìn ra màu TRẮNG). Ép nó dùng màu đường kẻ cho khớp
+          // với chú giải phía trên.
+          tooltip: {
+            callbacks: {
+              labelColor: function (ctx) {
+                return { borderColor: ctx.dataset.borderColor, backgroundColor: ctx.dataset.borderColor };
+              }
+            }
+          },
+          legend: {
+            display: true, position: 'top', align: 'center',
+            // labels.padding cộng vào CẢ TRÊN LẪN DƯỚI hộp chú thích, nên để 18 thì khoảng
+            // hở phía trên phình ra trong khi lề dưới do plugin thêm lại nhỏ hơn -> lệch.
+            labels: { boxWidth: 12, boxHeight: 12, padding: 8, color: CHART_AXIS_INK_, font: { size: 12 } }
+          }
+        },
+        scales: {
+          x: { grid: { display: false }, border: { display: false }, ticks: { color: CHART_AXIS_INK_ } },
+          y: { grid: { color: CHART_GRID_ }, border: { display: false }, ticks: { color: CHART_AXIS_INK_, callback: function (v) { return Number(v).toLocaleString('vi-VN'); } } }
+        }
+      },
+      plugins: [legendMarginPlugin]
+    });
+  }
+
+  function renderDeviceTypeChart(data) {
+    var canvas = $('#deviceTypeChartCanvas');
+    var labels = data.map(function (r) { return r.loai || 'Khác'; });
+    var values = data.map(function (r) { return r.soLuong; });
+    fitHBarHeight_(canvas, labels.length);
+
+    var opts = hBarOptions(function (evt, elements) {
+      if (elements && elements.length) goToDeviceListByType(labels[elements[0].index]);
+    });
+    opts.onHover = function (evt, elements) { canvas.style.cursor = elements && elements.length ? 'pointer' : 'default'; };
+
+    if (deviceTypeChartInstance) deviceTypeChartInstance.destroy();
+    deviceTypeChartInstance = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ label: 'Số lượng thiết bị', data: values, backgroundColor: CHART_TYPE_COLOR_, borderRadius: 5, barThickness: HBAR_THICK_ }] },
+      options: opts,
+      plugins: [hBarTrackPlugin]
+    });
+  }
+
+  function renderDeviceBrandChart(data) {
+    var canvas = $('#deviceBrandChartCanvas');
+    var labels = data.map(function (r) { return r.nhanHieu || 'Khác'; });
+    var values = data.map(function (r) { return r.soLuong; });
+    fitHBarHeight_(canvas, labels.length);
+
+    var opts = hBarOptions(function (evt, elements) {
+      if (elements && elements.length) goToDeviceListByBrand(labels[elements[0].index]);
+    });
+    opts.onHover = function (evt, elements) { canvas.style.cursor = elements && elements.length ? 'pointer' : 'default'; };
+
+    if (deviceBrandChartInstance) deviceBrandChartInstance.destroy();
+    deviceBrandChartInstance = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ label: 'Số lượng thiết bị', data: values, backgroundColor: CHART_BRAND_COLOR_, borderRadius: 5, barThickness: HBAR_THICK_ }] },
+      options: opts,
+      plugins: [hBarTrackPlugin]
+    });
+  }
+
+  function renderTopNcc(list) {
+    var el = $('#topNccList');
+    el.innerHTML = '';
+    if (!list || list.length === 0) { el.innerHTML = '<div class="empty-note">Chưa có dữ liệu.</div>'; return; }
+    list.forEach(function (item) {
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'ncc-row';
+      row.title = 'Xem chi tiết chi phí của ' + item.ncc;
+
+      var name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = item.ncc;
+
+      var amount = document.createElement('span');
+      amount.className = 'amount';
+      amount.textContent = formatCurrency(item.chiPhi);
+
+      row.appendChild(name);
+      row.appendChild(amount);
+      row.addEventListener('click', function () { goToRawDataByNcc(item.ncc); });
+      el.appendChild(row);
+    });
+  }
+
+  /* ===================== INIT ===================== */
+  dashboardLoadedOnce = true;
+  initDashboard();
+</script>
+</body>
+</html>

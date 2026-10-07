@@ -99,3 +99,19 @@
 .tm-acc-bottom .btn{flex:1;}
 .tm-acc .btn.tm-acc-logout{color:#C1443A;}
 .tm-acc [hidden]{display:none !important;}
+
+/* ---- Tự co giãn theo màn hình (js/ui-scale.js đặt zoom cho <html>) ----
+   Khi trang bị thu nhỏ/phóng to bằng CSS zoom, đơn vị vh cũng bị nhân theo -> sidebar 100vh sẽ hụt
+   chiều cao. Chia lại cho hệ số zoom (--uiz) để luôn phủ đúng chiều cao cửa sổ. */
+html.uiz .shell{min-height:calc(100vh / var(--uiz));}
+html.uiz .sidebar{height:calc(100vh / var(--uiz));}
+html.uiz .modal{max-height:calc(90vh / var(--uiz));}
+html.uiz .tc-modal{max-height:calc(90vh / var(--uiz));}
+
+/* ---- Bản điện thoại mở từ màn hình chính (PWA) ----
+   Thanh dưới: chiều cao gốc 66px đã GỒM phần chừa vạch Home của iPhone (~34px) -> các nút bị ép
+   còn một nửa. Cộng thêm phần chừa đó vào chiều cao cho nút giữ nguyên kích thước.
+   Thanh trên: chừa vùng giờ/pin nếu máy vẫn để nội dung tràn lên dưới thanh trạng thái. */
+body .bottom-nav{height:calc(var(--nav-h) + env(safe-area-inset-bottom));}
+body .app-content{padding-bottom:calc(var(--nav-h) + 28px + env(safe-area-inset-bottom));}
+body .topbar{height:calc(var(--top-h) + env(safe-area-inset-top)); padding-top:env(safe-area-inset-top);}

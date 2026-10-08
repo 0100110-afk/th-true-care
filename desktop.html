@@ -407,7 +407,17 @@
   .btn.btn-export{ padding:8px 14px; font-size:12.5px; gap:6px; }
   .head-actions{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
   /* Tìm kiếm + bộ lọc chung một khung: ô tìm kiếm ở trên, đường kẻ mảnh, bộ lọc ở dưới */
-  .search-filter-card .filter-bar{ margin-top:16px; padding-top:16px; border-top:1px solid var(--line, #E4E9F0); }
+  /* Ô tìm kiếm gọn đặt cạnh tiêu đề bảng (Danh sách thiết bị / Dữ liệu chi phí) — gõ rồi Enter */
+  .head-left{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+  .sx{ position:relative; display:flex; align-items:center; width:280px; }
+  .sx svg{ position:absolute; left:11px; width:16px; height:16px; color:var(--ink-300); pointer-events:none; }
+  .sx input{ width:100%; height:var(--ctrl-h); padding:0 12px 0 34px; border:1.5px solid var(--border); border-radius:var(--radius-sm); background:var(--bg); font-size:13px; color:var(--ink-900); font-family:inherit; outline:none; }
+  .sx input::placeholder{ color:var(--ink-300); }
+  .sx input:focus{ border-color:var(--brand-700); background:#fff; }
+  /* Khu vực: 4 nút liền một thanh */
+  .region-tabs.seg{ display:inline-flex; gap:0; flex-wrap:nowrap; border:1px solid var(--border); border-radius:10px; overflow:hidden; background:#fff; }
+  .region-tabs.seg .region-tab{ border:0; border-radius:0; height:var(--ctrl-h); padding:0 14px; }
+  .region-tabs.seg .region-tab + .region-tab{ border-left:1px solid var(--border); }
   .btn.btn-export svg{ width:15px; height:15px; flex-shrink:0; }
 
   .message{ text-align:center; padding:14px; border-radius:var(--radius-sm); margin-bottom:20px; font-size:13.5px; display:none; font-weight:600; }
@@ -944,15 +954,11 @@
 
       <!-- ========== PAGE: DANH SÁCH THIẾT BỊ ========== -->
       <div class="page" id="page-devicelist">
-        <div class="card search-filter-card">
-          <div class="search-box">
-            <input type="text" id="deviceSearchInput" placeholder="Nhập mã thiết bị, tên khách hàng hoặc số điện thoại khách hàng...">
-            <button class="btn" type="button" onclick="applyDeviceFilters()">Tìm kiếm</button>
-          </div>
+        <div class="card">
           <div class="filter-bar">
             <div class="filter-item" style="flex:0 0 auto;">
               <label>Khu vực</label>
-              <div class="region-tabs" id="deviceRegionTabs" style="display:grid; grid-template-columns:repeat(2,auto); gap:8px;">
+              <div class="region-tabs seg" id="deviceRegionTabs">
                 <button type="button" class="region-tab active" data-region="toanquoc" onclick="setDeviceRegion('toanquoc')">Toàn quốc</button>
                 <button type="button" class="region-tab" data-region="bac" onclick="setDeviceRegion('bac')">Miền Bắc</button>
                 <button type="button" class="region-tab" data-region="trung" onclick="setDeviceRegion('trung')">Miền Trung</button>
@@ -990,7 +996,10 @@
 
         <div class="card table-card">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
-            <h3 style="margin:0;">Danh sách thiết bị (<span id="deviceTotalCount">0</span> thiết bị)</h3>
+            <div class="head-left">
+              <h3 style="margin:0;">Danh sách thiết bị (<span id="deviceTotalCount">0</span> thiết bị)</h3>
+              <div class="sx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" id="deviceSearchInput" placeholder="Mã thiết bị, tên hoặc SĐT khách hàng..." enterkeyhint="search"></div>
+            </div>
             <div class="head-actions">
               <button class="btn secondary btn-export" type="button" id="deviceExportBtn" onclick="exportDeviceExcel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19h14"/></svg>Xuất Excel</button>
               <div class="pagination-controls" id="devicePaginationTop"></div>
@@ -1022,15 +1031,11 @@
 
       <!-- ========== PAGE: DỮ LIỆU CHI PHÍ ========== -->
       <div class="page" id="page-rawdata">
-        <div class="card search-filter-card">
-          <div class="search-box">
-            <input type="text" id="rawCodeInput" placeholder="Nhập mã thiết bị...">
-            <button class="btn" type="button" onclick="applyRawFilters()">Tìm kiếm</button>
-          </div>
+        <div class="card">
           <div class="filter-bar">
             <div class="filter-item" style="flex:0 0 auto;">
               <label>Khu vực</label>
-              <div class="region-tabs" id="rawRegionTabs" style="display:grid; grid-template-columns:repeat(2,auto); gap:8px;">
+              <div class="region-tabs seg" id="rawRegionTabs">
                 <button type="button" class="region-tab active" data-region="toanquoc" onclick="setRawRegion('toanquoc')">Toàn quốc</button>
                 <button type="button" class="region-tab" data-region="bac" onclick="setRawRegion('bac')">Miền Bắc</button>
                 <button type="button" class="region-tab" data-region="trung" onclick="setRawRegion('trung')">Miền Trung</button>
@@ -1060,7 +1065,10 @@
 
         <div class="card table-card">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
-            <h3 style="margin:0;">Danh sách chi phí (<span id="rawTotalCount">0</span> bản ghi)</h3>
+            <div class="head-left">
+              <h3 style="margin:0;">Danh sách chi phí (<span id="rawTotalCount">0</span> bản ghi)</h3>
+              <div class="sx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" id="rawCodeInput" placeholder="Mã thiết bị..." enterkeyhint="search"></div>
+            </div>
             <div class="head-actions">
               <button class="btn secondary btn-export" type="button" id="rawExportBtn" onclick="exportRawExcel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19h14"/></svg>Xuất Excel</button>
               <div class="pagination-controls" id="paginationTop"></div>

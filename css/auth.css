@@ -112,6 +112,19 @@ html.uiz .tc-modal{max-height:calc(90vh / var(--uiz));}
    Thanh dưới: chiều cao gốc 66px đã GỒM phần chừa vạch Home của iPhone (~34px) -> các nút bị ép
    còn một nửa. Cộng thêm phần chừa đó vào chiều cao cho nút giữ nguyên kích thước.
    Thanh trên: chừa vùng giờ/pin nếu máy vẫn để nội dung tràn lên dưới thanh trạng thái. */
-body .bottom-nav{height:calc(var(--nav-h) + env(safe-area-inset-bottom));}
-body .app-content{padding-bottom:calc(var(--nav-h) + 28px + env(safe-area-inset-bottom));}
-body .topbar{height:calc(var(--top-h) + env(safe-area-inset-top)); padding-top:env(safe-area-inset-top);}
+html[data-ui="mobile"] .bottom-nav{height:calc(var(--nav-h) + env(safe-area-inset-bottom));}
+html[data-ui="mobile"] .app-content{padding-bottom:calc(var(--nav-h) + 28px + env(safe-area-inset-bottom));}
+html[data-ui="mobile"] .topbar{height:calc(var(--top-h) + env(safe-area-inset-top)); padding-top:env(safe-area-inset-top);}
+
+/* ---- Đường kẻ dưới khối logo (sidebar) và dưới thanh tiêu đề trang nằm CÙNG MỘT ĐƯỜNG ----
+   Cả hai cao đúng 80px (tính cả đường kẻ), nội dung căn giữa theo chiều dọc. Dùng chung số 80
+   cho cả 3 app: Hệ thống quản lý, TH true care, Phiếu sửa chữa. */
+html:not([data-ui="mobile"]) .brand{box-sizing:border-box; height:80px; padding-top:0; padding-bottom:0;}
+html:not([data-ui="mobile"]) .topbar{box-sizing:border-box; min-height:80px; padding-top:0; padding-bottom:0;}
+
+/* Chữ cạnh logo: cùng màu và khoảng cách với "truemart / HỆ THỐNG QUẢN LÝ" của Hệ thống quản lý */
+.sidebar .brand-wordmark{line-height:1.15;}
+.sidebar .brand-wordmark .w-true{color:#8FD3FF;}
+.sidebar .brand-wordmark .w-milk{color:#fff;}
+.sidebar .brand-text .t2{margin-top:-1px;}
+html:not([data-ui="mobile"]) .sidebar.collapsed .brand{padding-top:0; padding-bottom:0;}

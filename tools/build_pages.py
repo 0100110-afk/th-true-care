@@ -23,6 +23,9 @@ HEAD = '''<meta name="theme-color" content="#0B4C8C">
 def build(src, dst, desktop):
     s = open(os.path.join(root, 'apps-script', src), encoding='utf-8').read()
     s = s.replace('<base target="_top">', '')
+    # Đánh dấu bản điện thoại để css/auth.css chỉ áp các chỉnh riêng cho nó (dùng chung 1 file css).
+    if not desktop:
+        s = s.replace('<html', '<html data-ui="mobile"', 1)
     has_vp = 'name="viewport"' in s
     head = HEAD.format(viewport='' if has_vp else
                        '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">\n  ',

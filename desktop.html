@@ -448,7 +448,7 @@
   .summary-box .value.small{ font-size:inherit; }
   .summary-strip.cols-4 .value{ font-size:clamp(15px,1.25vw,20px); }
   .summary-box .label{
-    font-size:clamp(10.5px,0.85vw,12px); color:var(--ink-500); margin-top:5px;
+    font-size:12px; color:var(--ink-500); margin-top:5px;
     font-weight:500; white-space:nowrap;
   }
   .summary-box.travel .value{ color:var(--warning); }
@@ -546,7 +546,7 @@
      định của nút để trông y hệt như khi còn là <div>. */
   .ncc-row{
     display:flex; justify-content:space-between; align-items:center; gap:12px;
-    padding:11px 8px; border-bottom:1px solid var(--border); font-size:13.5px;
+    padding:11px 8px; border-bottom:1px solid var(--border); font-size:13px;
     border-radius:8px; transition:background .15s; cursor:pointer;
     width:100%; border-left:none; border-right:none; border-top:none;
     background:transparent; font-family:inherit; text-align:left; color:inherit;
@@ -557,7 +557,7 @@
   .ncc-row:last-child{ border-bottom:none; }
   .ncc-row:hover{ background:var(--gray-bg); }
   .ncc-row .name{ font-weight:500; }
-  .ncc-row .amount{ font-weight:700; color:var(--brand-900); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .ncc-row .amount{ font-weight:600; color:var(--brand-900); font-variant-numeric:tabular-nums; white-space:nowrap; }
 
   .gsbh-entry{ display:flex; flex-direction:column; gap:3px; padding:9px 0; border-bottom:1px dashed var(--border); font-size:13.5px; }
   .gsbh-entry:last-child{ border-bottom:none; }
@@ -2222,7 +2222,7 @@
   var CHART_GRID_ = '#EAECF0';       // Gray 200 — lưới ngang
   var CHART_TRACK_ = '#F2F4F7';      // Gray 100 — rãnh nền thanh ngang
   // Nhãn trục và số liệu chỉ khác nhau ở MÀU, không khác độ đậm -> cùng weight 500.
-  var CHART_VALUE_FONT_ = '500 11px "Be Vietnam Pro", sans-serif';
+  var CHART_VALUE_FONT_ = '600 12px "Be Vietnam Pro", sans-serif';   // số liệu: 12px · 600
   var CHART_REGION_COLORS_ = ['#2E90FA', '#F79009', '#12B76A'];   // Bắc · Trung · Nam
   var CHART_TYPE_COLOR_ = '#2E90FA';
   var CHART_BRAND_COLOR_ = '#12B76A';
@@ -2237,7 +2237,7 @@
   function applyChartDefaults_() {
     if (chartDefaultsApplied_ || typeof Chart === 'undefined') return;
     Chart.defaults.font.family = '"Be Vietnam Pro", sans-serif';
-    Chart.defaults.font.size = 11;
+    Chart.defaults.font.size = 12;      // nhãn trục / tên loại: 12px · 500
     Chart.defaults.font.weight = 500;
     Chart.defaults.color = CHART_INK_;
     chartDefaultsApplied_ = true;

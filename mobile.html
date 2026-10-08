@@ -477,9 +477,6 @@
 
     .result-count { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
     .result-count h3 { margin: 0; font-size: 13.5px; color: var(--brand-900); }
-    .result-count h3 .count-pill { margin-left: 6px; vertical-align: 1px; }
-    .btn.btn-export { width: auto; padding: 7px 12px; font-size: 12.5px; gap: 6px; display: inline-flex; align-items: center; }
-    .btn.btn-export svg { width: 15px; height: 15px; flex-shrink: 0; }
     .result-count .count-pill { background: var(--primary-soft); color: var(--brand-900); font-size: 12px; font-weight: 800; padding: 4px 11px; border-radius: 20px; }
 
     .pagination-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; }
@@ -707,8 +704,8 @@
 
       <div id="batchResultCard" style="display:none;">
         <div class="result-count">
-          <h3>Kết quả <span class="count-pill" id="batchCount">0</span></h3>
-          <button class="btn secondary btn-export" type="button" id="batchExportBtn" onclick="exportBatchExcel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19h14"/></svg>Xuất Excel</button>
+          <h3>Kết quả</h3>
+          <span class="count-pill" id="batchCount">0</span>
         </div>
         <div id="batchBody"></div>
       </div>
@@ -1336,52 +1333,7 @@
     return span;
   }
 
-  /* ===================== XUẤT EXCEL KẾT QUẢ TRA CỨU DANH SÁCH =====================
-     Thư viện SheetJS chỉ tải khi bấm nút lần đầu (không làm chậm lúc mở app). */
-  var lastBatchResults = [];
-  function loadXlsxLib_(cb) {
-    if (window.XLSX) { cb(); return; }
-    var s = document.createElement('script');
-    s.src = 'js/vendor/xlsx.mini.min.js';
-    s.onload = function () { cb(); };
-    s.onerror = function () { showToast('Không tải được thư viện xuất Excel, thử lại sau.', 'error'); };
-    document.head.appendChild(s);
-  }
-  function exportBatchExcel() {
-    if (!lastBatchResults.length) return;
-    var btn = $('#batchExportBtn');
-    if (btn) btn.disabled = true;
-    loadXlsxLib_(function () {
-      try {
-        var XL = window.XLSX;
-        var aoa = [['Mã thiết bị', 'Chi phí', 'Ngày lắp đặt', 'Tình trạng bảo hành', 'Nhãn hiệu', 'Loại tủ', 'Ghi chú']];
-        lastBatchResults.forEach(function (r) {
-          aoa.push([r.code_tu, r.chi_phi || '', r.ngay_lap_dat || '',
-            (r.tinh_trang_bao_hanh && r.tinh_trang_bao_hanh !== 'Không xác định') ? r.tinh_trang_bao_hanh : '',
-            r.nhan_hieu || '', r.loai_tu || '', r.found ? (r.tinh_trang_thanh_ly || '') : 'Không tìm thấy']);
-        });
-        var ws = XL.utils.aoa_to_sheet(aoa);
-        ws['!cols'] = [14, 14, 13, 18, 14, 16, 60].map(function (w) { return { wch: w }; });
-        for (var i = 1; i < aoa.length; i++) {                 // cột Chi phí: số có dấu chấm nghìn
-          var c = ws[XL.utils.encode_cell({ r: i, c: 1 })];
-          if (c) c.z = '#,##0';
-        }
-        var wb = XL.utils.book_new();
-        XL.utils.book_append_sheet(wb, ws, 'TraCuuDanhSach');
-        var d = new Date(), p2 = function (n) { return (n < 10 ? '0' : '') + n; };
-        var a = document.createElement('a');
-        a.href = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + XL.write(wb, { bookType: 'xlsx', type: 'base64' });
-        a.download = 'TraCuu_DanhSach_' + p2(d.getDate()) + '-' + p2(d.getMonth() + 1) + '-' + d.getFullYear() + '.xlsx';
-        document.body.appendChild(a); a.click(); a.remove();
-      } catch (e) {
-        showToast('Không xuất được file Excel: ' + e.message, 'error');
-      }
-      if (btn) btn.disabled = false;
-    });
-  }
-
   function renderBatchResult(results) {
-    lastBatchResults = results || [];
     $('#batchCount').textContent = formatInt(results.length);
     var body = $('#batchBody');
     body.innerHTML = '';

@@ -160,18 +160,28 @@ html .dg-group-header{background:#E3F1FC; color:var(--brand-900); font-weight:70
 html .dg-group-header::before{display:none;}
 html[data-ui="mobile"] .topbar-titles{gap:12px;}
 
-/* ===== Màn chờ tải: giống app Phiếu sửa chữa — icon app thở nhẹ, vòng cung chạy quanh ===== */
+/* ===== Màn chờ tải (giống Phiếu sửa chữa): logo tự ghép lại 1 lần (1,8s),
+   sau đó icon phồng xẹp + vòng cung chạy quanh cho tới khi tải xong ===== */
 #tmAuth.is-loading{background:#F3F8FC;}
 .tm-loader{display:flex; flex-direction:column; align-items:center; gap:18px;}
 .tm-loader-stage{position:relative; width:128px; height:128px; display:flex; align-items:center; justify-content:center;}
-.tm-loader-ring{position:absolute; inset:0; width:100%; height:100%; animation:tmLoaderSpin 1.15s linear infinite;}
-.tm-loader-ring circle{fill:none; stroke:#8EDCD3; stroke-width:3.5; stroke-linecap:round; stroke-dasharray:62 227; opacity:.9;}
-.tm-loader-icon{width:84px; height:84px; filter:drop-shadow(0 14px 28px rgba(14,120,140,.26)); animation:tmLoaderBreath 1.9s ease-in-out infinite;}
+.tm-loader-ring{position:absolute; inset:0; width:100%; height:100%; opacity:0;
+  animation:tmLoaderSpin 1.15s linear infinite, tmRingIn .45s ease 1.6s forwards;}
+.tm-loader-ring circle{fill:none; stroke:#8EDCD3; stroke-width:3.5; stroke-linecap:round; stroke-dasharray:62 227;}
+.tm-loader-icon{width:84px; height:84px; overflow:visible; filter:drop-shadow(0 14px 28px rgba(14,120,140,.26));
+  animation:tmLoaderBreath 1.9s ease-in-out 1.8s infinite;}
+.tm-loader-icon .hill{transform-box:view-box; transform-origin:50px 100px; animation:tmHill 1.8s cubic-bezier(.3,.7,.3,1) both;}
 .tm-loader-msg{font-size:13px; color:#7A8794; min-height:18px; text-align:center;}
-.tm-loader-icon .wv-f{animation:tmWaveF 1.9s ease-in-out infinite;}
-.tm-loader-icon .wv-b{animation:tmWaveB 1.9s ease-in-out infinite;}
-@keyframes tmWaveF{0%,100%{transform:translateX(-2.5px)}50%{transform:translateX(3px)}}
-@keyframes tmWaveB{0%,100%{transform:translateX(3px)}50%{transform:translateX(-2.5px)}}
+@keyframes tmHill{0%{transform:translateY(22px)}30%,100%{transform:none}}
 @keyframes tmLoaderSpin{to{transform:rotate(360deg)}}
+@keyframes tmRingIn{to{opacity:.9}}
 @keyframes tmLoaderBreath{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
-@media (prefers-reduced-motion:reduce){.tm-loader-ring,.tm-loader-icon,.tm-loader-icon *{animation-duration:3s !important;}}
+.tm-loader-icon .sky{transform-box:view-box; transform-origin:50px 50px; animation:tmSky 1.8s cubic-bezier(.3,.8,.3,1) both;}
+.tm-loader-icon .wb{animation:tmWb 1.8s cubic-bezier(.3,.8,.3,1) both;}
+.tm-loader-icon .wf{transform-box:view-box; transform-origin:30px 86px; animation:tmWf 1.8s cubic-bezier(.3,.8,.3,1) both;}
+.tm-loader-icon .foam{animation:tmFoam 1.8s ease-in-out both;}
+@keyframes tmSky{0%,10%{transform:scale(0)}42%,100%{transform:none}}
+@keyframes tmWb{0%,28%{transform:translateY(40px)}64%{transform:translateY(-2px)}78%,100%{transform:none}}
+@keyframes tmWf{0%,45%{transform:translate(-30px,34px) rotate(-12deg);opacity:0}64%{opacity:.92}86%{transform:translate(2px,-2px) rotate(1.5deg)}100%{transform:none;opacity:.92}}
+@keyframes tmFoam{0%,64%{transform:translateY(16px)}96%,100%{transform:none}}
+@media (prefers-reduced-motion:reduce){.tm-loader-icon,.tm-loader-icon *{animation:none !important;} .tm-loader-ring{opacity:.9; animation-duration:3s;}}

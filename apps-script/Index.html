@@ -391,6 +391,9 @@
   .card-head-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
   .card-head-row h3{ margin:0; }
   .btn.btn-export{ padding:8px 14px; font-size:12.5px; gap:6px; }
+  .head-actions{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  /* Tìm kiếm + bộ lọc chung một khung: ô tìm kiếm ở trên, đường kẻ mảnh, bộ lọc ở dưới */
+  .search-filter-card .filter-bar{ margin-top:16px; padding-top:16px; border-top:1px solid var(--line, #E4E9F0); }
   .btn.btn-export svg{ width:15px; height:15px; flex-shrink:0; }
 
   .message{ text-align:center; padding:14px; border-radius:var(--radius-sm); margin-bottom:20px; font-size:13.5px; display:none; font-weight:600; }
@@ -926,14 +929,11 @@
 
       <!-- ========== PAGE: DANH SÁCH THIẾT BỊ ========== -->
       <div class="page" id="page-devicelist">
-        <div class="card">
+        <div class="card search-filter-card">
           <div class="search-box">
             <input type="text" id="deviceSearchInput" placeholder="Nhập mã thiết bị, tên khách hàng hoặc số điện thoại khách hàng...">
             <button class="btn" type="button" onclick="applyDeviceFilters()">Tìm kiếm</button>
           </div>
-        </div>
-
-        <div class="card">
           <div class="filter-bar">
             <div class="filter-item" style="flex:0 0 auto;">
               <label>Khu vực</label>
@@ -976,7 +976,10 @@
         <div class="card table-card">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
             <h3 style="margin:0;">Danh sách thiết bị (<span id="deviceTotalCount">0</span> thiết bị)</h3>
-            <div class="pagination-controls" id="devicePaginationTop"></div>
+            <div class="head-actions">
+              <button class="btn secondary btn-export" type="button" id="deviceExportBtn" onclick="exportDeviceExcel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19h14"/></svg>Xuất Excel</button>
+              <div class="pagination-controls" id="devicePaginationTop"></div>
+            </div>
           </div>
           <div class="table-wrap wrap-cells">
             <table>
@@ -1004,12 +1007,12 @@
 
       <!-- ========== PAGE: DỮ LIỆU CHI PHÍ ========== -->
       <div class="page" id="page-rawdata">
-        <div class="card">
+        <div class="card search-filter-card">
+          <div class="search-box">
+            <input type="text" id="rawCodeInput" placeholder="Nhập mã thiết bị...">
+            <button class="btn" type="button" onclick="applyRawFilters()">Tìm kiếm</button>
+          </div>
           <div class="filter-bar">
-            <div class="filter-item" style="flex:1; min-width:180px;">
-              <label>Mã thiết bị</label>
-              <input type="text" id="rawCodeInput" placeholder="Nhập mã thiết bị...">
-            </div>
             <div class="filter-item" style="flex:0 0 auto;">
               <label>Khu vực</label>
               <div class="region-tabs" id="rawRegionTabs" style="display:grid; grid-template-columns:repeat(2,auto); gap:8px;">
@@ -1043,7 +1046,10 @@
         <div class="card table-card">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
             <h3 style="margin:0;">Danh sách chi phí (<span id="rawTotalCount">0</span> bản ghi)</h3>
-            <div class="pagination-controls" id="paginationTop"></div>
+            <div class="head-actions">
+              <button class="btn secondary btn-export" type="button" id="rawExportBtn" onclick="exportRawExcel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19h14"/></svg>Xuất Excel</button>
+              <div class="pagination-controls" id="paginationTop"></div>
+            </div>
           </div>
           <div class="table-wrap wrap-cells">
             <table>
@@ -1641,6 +1647,57 @@
     });
   }
 
+  /* ----- Xuất Excel Danh sách thiết bị / Dữ liệu chi phí: TẤT CẢ dòng theo bộ lọc đang áp dụng ----- */
+  var lastDeviceFilters = null, lastRawFilters = null;
+  function downloadXlsx_(XL, wb, name) {
+    var buf = XL.write(wb, { bookType: 'xlsx', type: 'array' });
+    var url = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+    var a = document.createElement('a'); a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+  }
+  function todayStamp_() { var d = new Date(), p2 = function (n) { return (n < 10 ? '0' : '') + n; }; return p2(d.getDate()) + '-' + p2(d.getMonth() + 1) + '-' + d.getFullYear(); }
+  function exportPaged_(btnId, fnName, filters, build) {
+    var btn = $('#' + btnId); if (btn.disabled) return;
+    btn.disabled = true; var label = btn.lastChild.textContent; btn.lastChild.textContent = 'Đang xuất…';
+    var done = function () { btn.disabled = false; btn.lastChild.textContent = label; };
+    var f = JSON.parse(JSON.stringify(filters || {})); f.all = true; f.page = 1;
+    loadXlsxLib_(function () {
+      google.script.run
+        .withSuccessHandler(function (res) {
+          if (!res || !res.success) { showToast((res && res.message) || 'Không lấy được dữ liệu.', 'error'); done(); return; }
+          if (!res.records.length) { showToast('Không có dòng nào để xuất.', 'error'); done(); return; }
+          try { build(window.XLSX, res.records); } catch (e) { showToast('Không xuất được file Excel: ' + e.message, 'error'); }
+          done();
+        })
+        .withFailureHandler(function (err) { showToast('Lỗi: ' + err.message, 'error'); done(); })[fnName](f);
+    });
+  }
+  function exportDeviceExcel() {
+    exportPaged_('deviceExportBtn', 'getDanhSachThietBiPageData', lastDeviceFilters || getDeviceFilters(), function (XL, rows) {
+      var aoa = [['Mã thiết bị', 'Tên cửa hàng', 'Địa chỉ', 'Số điện thoại', 'NPP', 'Vùng', 'Loại thiết bị', 'Nhãn hiệu', 'Ngày lắp đặt', 'Bảo hành']];
+      rows.forEach(function (r) {
+        aoa.push([r.code, r.tenCuaHang || '', r.diaChi || '', r.soDienThoai || '', r.npp || '', r.vung || '', r.loaiTu || '', r.nhanHieu || '', r.ngayLapDat || '',
+          (r.tinhTrangBaoHanh && r.tinhTrangBaoHanh !== 'Không xác định') ? r.tinhTrangBaoHanh : '']);
+      });
+      var ws = XL.utils.aoa_to_sheet(aoa);
+      ws['!cols'] = [14, 28, 44, 14, 22, 12, 16, 14, 13, 16].map(function (w) { return { wch: w }; });
+      var wb = XL.utils.book_new(); XL.utils.book_append_sheet(wb, ws, 'DanhSachThietBi');
+      downloadXlsx_(XL, wb, 'DanhSach_ThietBi_' + todayStamp_() + '.xlsx');
+    });
+  }
+  function exportRawExcel() {
+    exportPaged_('rawExportBtn', 'getChiPhiPageData', lastRawFilters || getRawFilters(), function (XL, rows) {
+      var aoa = [['Mã thiết bị', 'Ngày thực hiện', 'Nhà cung cấp', 'Nội dung sửa chữa', 'Chi phí', 'Khu vực']];
+      rows.forEach(function (r) { aoa.push([r.code, r.ngay || '', r.ncc || '', r.noiDung || '', Number(r.chiPhi) || 0, r.khuVuc || '']); });
+      var ws = XL.utils.aoa_to_sheet(aoa);
+      ws['!cols'] = [14, 14, 18, 60, 14, 12].map(function (w) { return { wch: w }; });
+      for (var i = 1; i < aoa.length; i++) { var c = ws[XL.utils.encode_cell({ r: i, c: 4 })]; if (c) c.z = '#,##0'; }
+      var wb = XL.utils.book_new(); XL.utils.book_append_sheet(wb, ws, 'DuLieuChiPhi');
+      downloadXlsx_(XL, wb, 'DuLieu_ChiPhi_' + todayStamp_() + '.xlsx');
+    });
+  }
+
   /* ===================== DANH SÁCH THIẾT BỊ ===================== */
   var deviceListLoadedOnce = false;
   var deviceCurrentRegion = 'toanquoc';
@@ -1661,6 +1718,7 @@
 
   var deviceSearchInputEl = $('#deviceSearchInput');
   deviceSearchInputEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') applyDeviceFilters(); });
+  $('#rawCodeInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') applyRawFilters(); });
 
   function getDeviceFilters() {
     return {
@@ -1726,6 +1784,7 @@
     $('#deviceListBody').innerHTML = skelTableRows(10, 6);
     $('#deviceListEmptyNote').style.display = 'none';
     var filters = getDeviceFilters();
+    lastDeviceFilters = JSON.parse(JSON.stringify(filters));
     filters.page = deviceCurrentPage;
     filters.pageSize = DEVICE_PAGE_SIZE;
 
@@ -2080,6 +2139,7 @@
     $('#rawDataBody').innerHTML = skelTableRows(6, 6);
     $('#rawDataEmptyNote').style.display = 'none';
     var filters = getRawFilters();
+    lastRawFilters = JSON.parse(JSON.stringify(filters));
     filters.page = rawCurrentPage;
     filters.pageSize = RAW_PAGE_SIZE;
 

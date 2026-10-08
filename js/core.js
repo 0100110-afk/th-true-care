@@ -522,6 +522,8 @@ var CareCore = (function () {
       });
 
       var totalRecords = filtered.length;
+      // Nút "Xuất Excel": lấy TẤT CẢ dòng theo bộ lọc hiện tại trong một lần (không phân trang).
+      if (params.all) { pageSize = Math.max(1, totalRecords); page = 1; }
       var totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
       if (page > totalPages) page = totalPages;
       var startIdx = (page - 1) * pageSize;
@@ -972,6 +974,8 @@ var CareCore = (function () {
       filtered.sort(function (a, b) { return b.rec[LS.ROW] - a.rec[LS.ROW]; });
 
       var totalRecords = filtered.length;
+      // Nút "Xuất Excel": lấy TẤT CẢ dòng theo bộ lọc hiện tại trong một lần (không phân trang).
+      if (params.all) { pageSize = Math.max(1, totalRecords); page = 1; }
       var totalPages = Math.max(1, Math.ceil(totalRecords / pageSize));
       if (page > totalPages) page = totalPages;
       var startIdx = (page - 1) * pageSize;

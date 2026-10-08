@@ -11,8 +11,8 @@ HEAD = '''<meta name="theme-color" content="#0B4C8C">
   <meta name="apple-mobile-web-app-status-bar-style" content="{statusbar}">
   <meta name="apple-mobile-web-app-title" content="TH true care">
   {viewport}<link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" type="image/png" href="icons/favicon-96.png">
-  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="icons/favicon-96.png?v=2">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png?v=2">
   <link rel="stylesheet" href="css/auth.css">
   <!-- Thứ tự quan trọng: shim + core phải có TRƯỚC script inline của giao diện bên dưới -->
   {uiscale}<script src="js/gas-shim.js"></script>

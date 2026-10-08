@@ -36,7 +36,7 @@ def build(src, dst, desktop):
     i = s.index('<meta charset="UTF-8">') + len('<meta charset="UTF-8">')   # charset phải nằm sớm nhất
     s = s[:i] + '\n  ' + head.rstrip() + s[i:]
     i = s.index('<body>') + len('<body>')
-    s = s[:i] + '\n  <div id="tmAuth"></div>' + s[i:]
+    s = s[:i] + '\n  <div id="tmAuth" class="is-loading"></div>' + s[i:]
     i = s.rindex('</body>')
     s = s[:i] + '  <script type="module" src="js/app.js"></script>\n' + s[i:]
     open(os.path.join(root, dst), 'w', encoding='utf-8').write(s)

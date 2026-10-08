@@ -82,12 +82,20 @@ const BRAND = '<div class="tm-auth-brand"><div class="tm-auth-mark"><span class=
 
 function showAuth(html) {
   authEl.innerHTML = '<div class="tm-auth-card">' + BRAND + html + '</div>';
-  authEl.classList.remove('hidden');
+  authEl.classList.remove('hidden', 'is-loading');
 }
+
+// Màn chờ tải giống app Phiếu sửa chữa: icon app thở nhẹ, vòng cung chạy quanh.
+const LOADER_ICON = '<svg viewBox="0 0 100 100" class="tm-loader-icon" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="ldbg" gradientUnits="userSpaceOnUse" x1="15.85" y1="-9.15" x2="84.15" y2="109.15"><stop offset="0" stop-color="#F3FCFA"></stop><stop offset="1" stop-color="#CDEFE8"></stop></linearGradient><linearGradient id="ldfl" gradientUnits="userSpaceOnUse" x1="-40.2" y1="64.53" x2="125.2" y2="180.47"><stop offset="0" stop-color="#FFFFFF"></stop><stop offset="1" stop-color="#E6F8F4"></stop></linearGradient><clipPath id="ldfr"><rect x="0" y="0" width="100" height="100" rx="22.5" ry="22.5"></rect></clipPath></defs><g clip-path="url(#ldfr)"><rect x="0" y="0" width="100" height="100" fill="url(#ldbg)"></rect><circle cx="42.5" cy="122.5" r="72.5" fill="url(#ldfl)"></circle><defs><linearGradient id="ldks" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#D4F1FF"></stop><stop offset="1" stop-color="#9FDCF5"></stop></linearGradient><linearGradient id="ldkw" gradientUnits="userSpaceOnUse" x1="20" y1="80" x2="80" y2="40"><stop offset="0" stop-color="#1E6FE0"></stop><stop offset="1" stop-color="#22A9E8"></stop></linearGradient><clipPath id="ldkc"><circle cx="50" cy="50" r="30"></circle></clipPath></defs><g clip-path="url(#ldkc)"><rect x="18" y="18" width="64" height="64" fill="url(#ldks)"></rect><path class="wv wv-b" d="M16 50 C30 38 46 36 58 44 S78 50 86 40 V86 H16Z" fill="#3CCFC3" opacity=".75"></path><path class="wv wv-f" d="M16 82 C20 56 42 38 62 40 C80 42 86 60 76 68 C68 74 58 68 62 58 C52 62 48 76 56 86 H16Z" fill="url(#ldkw)" opacity=".92"></path><path d="M16 84 C34 76 54 80 86 72 V90 H16Z" fill="#B8F0E6" opacity=".7"></path></g></g></svg>';
+
 function hideAuth() { authEl.classList.add('hidden'); }
 
 function showLoading(msg) {
-  showAuth('<div class="tm-auth-loading"><div class="tm-spin"></div><div id="tmLoadMsg">' + esc(msg) + '</div></div>');
+  authEl.innerHTML = '<div class="tm-loader" role="status"><div class="tm-loader-stage">' +
+    '<svg class="tm-loader-ring" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="46"/></svg>' +
+    LOADER_ICON + '</div><div class="tm-loader-msg" id="tmLoadMsg">' + esc(msg) + '</div></div>';
+  authEl.classList.add('is-loading');
+  authEl.classList.remove('hidden');
 }
 function setLoadMsg(t) { const el = $('#tmLoadMsg'); if (el) el.textContent = t; }
 

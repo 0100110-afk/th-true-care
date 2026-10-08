@@ -158,3 +158,4 @@ html .dg-tag.tongcong{background:#E4F1E9; color:#2C7A4B;}
 html .dg-group-header{background:#E3F1FC; color:var(--brand-900); font-weight:700; font-size:12.5px;
   text-transform:none; letter-spacing:0; padding:10px 14px; border-radius:12px; margin:14px 0 8px; line-height:1.4;}
 html .dg-group-header::before{display:none;}
+html[data-ui="mobile"] .topbar-titles{gap:12px;}

@@ -387,6 +387,11 @@
   .btn.secondary{ background:#fff; color:var(--brand-900); border:1px solid var(--border); }
   .btn.secondary:hover{ border-color:var(--brand-300); filter:none; }
   .btn:focus-visible{ outline:2px solid var(--brand-500); outline-offset:2px; }
+  /* Tiêu đề thẻ + nút thao tác cùng một hàng (Kết quả ... | Xuất Excel) */
+  .card-head-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
+  .card-head-row h3{ margin:0; }
+  .btn.btn-export{ padding:8px 14px; font-size:12.5px; gap:6px; }
+  .btn.btn-export svg{ width:15px; height:15px; flex-shrink:0; }
 
   .message{ text-align:center; padding:14px; border-radius:var(--radius-sm); margin-bottom:20px; font-size:13.5px; display:none; font-weight:600; }
   .message.error{ background:var(--danger-100); color:var(--danger); display:block; }
@@ -429,7 +434,7 @@
   .summary-box .value.small{ font-size:inherit; }
   .summary-strip.cols-4 .value{ font-size:clamp(15px,1.25vw,20px); }
   .summary-box .label{
-    font-size:clamp(10.5px,0.85vw,12px); color:var(--ink-500); margin-top:5px;
+    font-size:12px; color:var(--ink-500); margin-top:5px;
     font-weight:500; white-space:nowrap;
   }
   .summary-box.travel .value{ color:var(--warning); }
@@ -527,7 +532,7 @@
      định của nút để trông y hệt như khi còn là <div>. */
   .ncc-row{
     display:flex; justify-content:space-between; align-items:center; gap:12px;
-    padding:11px 8px; border-bottom:1px solid var(--border); font-size:13.5px;
+    padding:11px 8px; border-bottom:1px solid var(--border); font-size:13px;
     border-radius:8px; transition:background .15s; cursor:pointer;
     width:100%; border-left:none; border-right:none; border-top:none;
     background:transparent; font-family:inherit; text-align:left; color:inherit;
@@ -538,7 +543,7 @@
   .ncc-row:last-child{ border-bottom:none; }
   .ncc-row:hover{ background:var(--gray-bg); }
   .ncc-row .name{ font-weight:500; }
-  .ncc-row .amount{ font-weight:700; color:var(--brand-900); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .ncc-row .amount{ font-weight:600; color:var(--brand-900); font-variant-numeric:tabular-nums; white-space:nowrap; }
 
   .gsbh-entry{ display:flex; flex-direction:column; gap:3px; padding:9px 0; border-bottom:1px dashed var(--border); font-size:13.5px; }
   .gsbh-entry:last-child{ border-bottom:none; }
@@ -896,7 +901,10 @@
         <div class="message" id="batchMessage"></div>
 
         <div class="card table-card" id="batchResultCard" style="display:none;">
-          <h3>Kết quả (<span id="batchCount">0</span> mã)</h3>
+          <div class="card-head-row">
+            <h3>Kết quả (<span id="batchCount">0</span> mã)</h3>
+            <button class="btn secondary btn-export" type="button" id="batchExportBtn" onclick="exportBatchExcel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19h14"/></svg>Xuất Excel</button>
+          </div>
           <div class="table-wrap wrap-cells">
             <table>
               <thead>
@@ -1569,6 +1577,7 @@
   }
 
   function renderBatchResult(results) {
+    lastBatchResults = results || [];
     $('#batchCount').textContent = formatInt(results.length);
     var body = $('#batchBody');
     body.innerHTML = '';
@@ -1586,6 +1595,50 @@
     });
 
     $('#batchResultCard').style.display = 'block';
+  }
+
+  /* ===================== XUẤT EXCEL KẾT QUẢ TRA CỨU DANH SÁCH =====================
+     Thư viện SheetJS chỉ tải khi bấm nút lần đầu (không làm chậm lúc mở app). */
+  var lastBatchResults = [];
+  function loadXlsxLib_(cb) {
+    if (window.XLSX) { cb(); return; }
+    var s = document.createElement('script');
+    s.src = 'js/vendor/xlsx.mini.min.js';
+    s.onload = function () { cb(); };
+    s.onerror = function () { showToast('Không tải được thư viện xuất Excel, thử lại sau.', 'error'); };
+    document.head.appendChild(s);
+  }
+  function exportBatchExcel() {
+    if (!lastBatchResults.length) return;
+    var btn = $('#batchExportBtn');
+    if (btn) btn.disabled = true;
+    loadXlsxLib_(function () {
+      try {
+        var XL = window.XLSX;
+        var aoa = [['Mã thiết bị', 'Chi phí', 'Ngày lắp đặt', 'Tình trạng bảo hành', 'Nhãn hiệu', 'Loại tủ', 'Ghi chú']];
+        lastBatchResults.forEach(function (r) {
+          aoa.push([r.code_tu, r.chi_phi || '', r.ngay_lap_dat || '',
+            (r.tinh_trang_bao_hanh && r.tinh_trang_bao_hanh !== 'Không xác định') ? r.tinh_trang_bao_hanh : '',
+            r.nhan_hieu || '', r.loai_tu || '', r.found ? (r.tinh_trang_thanh_ly || '') : 'Không tìm thấy']);
+        });
+        var ws = XL.utils.aoa_to_sheet(aoa);
+        ws['!cols'] = [14, 14, 13, 18, 14, 16, 60].map(function (w) { return { wch: w }; });
+        for (var i = 1; i < aoa.length; i++) {                 // cột Chi phí: số có dấu chấm nghìn
+          var c = ws[XL.utils.encode_cell({ r: i, c: 1 })];
+          if (c) c.z = '#,##0';
+        }
+        var wb = XL.utils.book_new();
+        XL.utils.book_append_sheet(wb, ws, 'TraCuuDanhSach');
+        var d = new Date(), p2 = function (n) { return (n < 10 ? '0' : '') + n; };
+        var a = document.createElement('a');
+        a.href = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + XL.write(wb, { bookType: 'xlsx', type: 'base64' });
+        a.download = 'TraCuu_DanhSach_' + p2(d.getDate()) + '-' + p2(d.getMonth() + 1) + '-' + d.getFullYear() + '.xlsx';
+        document.body.appendChild(a); a.click(); a.remove();
+      } catch (e) {
+        showToast('Không xuất được file Excel: ' + e.message, 'error');
+      }
+      if (btn) btn.disabled = false;
+    });
   }
 
   /* ===================== DANH SÁCH THIẾT BỊ ===================== */
@@ -2154,7 +2207,7 @@
   var CHART_GRID_ = '#EAECF0';       // Gray 200 — lưới ngang
   var CHART_TRACK_ = '#F2F4F7';      // Gray 100 — rãnh nền thanh ngang
   // Nhãn trục và số liệu chỉ khác nhau ở MÀU, không khác độ đậm -> cùng weight 500.
-  var CHART_VALUE_FONT_ = '500 11px "Be Vietnam Pro", sans-serif';
+  var CHART_VALUE_FONT_ = '600 12px "Be Vietnam Pro", sans-serif';   // số liệu: 12px · 600
   var CHART_REGION_COLORS_ = ['#2E90FA', '#F79009', '#12B76A'];   // Bắc · Trung · Nam
   var CHART_TYPE_COLOR_ = '#2E90FA';
   var CHART_BRAND_COLOR_ = '#12B76A';
@@ -2169,7 +2222,7 @@
   function applyChartDefaults_() {
     if (chartDefaultsApplied_ || typeof Chart === 'undefined') return;
     Chart.defaults.font.family = '"Be Vietnam Pro", sans-serif';
-    Chart.defaults.font.size = 11;
+    Chart.defaults.font.size = 12;      // nhãn trục / tên loại: 12px · 500
     Chart.defaults.font.weight = 500;
     Chart.defaults.color = CHART_INK_;
     chartDefaultsApplied_ = true;

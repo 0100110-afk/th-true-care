@@ -74,8 +74,8 @@ function esc(v) {
 // Logo giống giao diện app: ô TH + ngôi sao 6 cánh vàng, chữ "true" + "MILK".
 const STAR_SVG = '<svg class="tm-auth-star" viewBox="0 0 24 24" fill="none" aria-hidden="true"><defs>' +
   '<linearGradient id="tcStarGold" x1="4" y1="2" x2="20" y2="22" gradientUnits="userSpaceOnUse">' +
-  '<stop offset="0" stop-color="#F2E7C8"/><stop offset=".45" stop-color="#C9A961"/><stop offset="1" stop-color="#8E6F35"/>' +
-  '</linearGradient></defs><path fill="url(#tcStarGold)" d="M12 .5Q13.1 10.1 18.5 8.25Q14.2 12 18.5 15.75Q13.1 13.9 12 22Q10.9 13.9 5.5 15.75Q9.8 12 5.5 8.25Q10.9 10.1 12 .5Z"/></svg>';
+  '<stop offset="0" stop-color="#FDF0C6"/><stop offset=".45" stop-color="#E9B24A"/><stop offset="1" stop-color="#B67F22"/>' +
+  '</linearGradient></defs><path fill="url(#tcStarGold)" d="M12 1.5Q13 10.27 21.09 6.75Q14 12 21.09 17.25Q13 13.73 12 22.5Q11 13.73 2.91 17.25Q10 12 2.91 6.75Q11 10.27 12 1.5Z"/></svg>';
 const BRAND = '<div class="tm-auth-brand"><div class="tm-auth-mark"><span class="tm-auth-th">TH</span>' + STAR_SVG + '</div>' +
   '<div><div class="tm-auth-word"><span class="w-true">true</span><span class="w-milk">MILK</span></div>' +
   '<div class="tm-auth-sub">' + esc(APP_TITLE) + '</div></div></div>';

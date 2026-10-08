@@ -128,3 +128,33 @@ html:not([data-ui="mobile"]) .topbar{box-sizing:border-box; min-height:80px; pad
 .sidebar .brand-wordmark .w-milk{color:#fff;}
 .sidebar .brand-text .t2{margin-top:-1px;}
 html:not([data-ui="mobile"]) .sidebar.collapsed .brand{padding-top:0; padding-bottom:0;}
+
+/* ---- Bản điện thoại: khối logo trên thanh tiêu đề cùng cỡ/khoảng cách với app Phiếu sửa chữa ----
+   Chữ "trueMILK" 17px, tên trang ngay bên dưới cách 2px. Tên trang có đệm trên 2px để dấu chồng
+   của chữ hoa (Ổ, Ế) không bị cắt. */
+html[data-ui="mobile"] .brand-mark-m{width:40px; height:40px; border-radius:10px;}
+html[data-ui="mobile"] .brand-mark-m .brand-th{font-size:18px;}
+html[data-ui="mobile"] .brand-mark-m .brand-star{width:15px; height:15px; right:-7px;}
+html[data-ui="mobile"] .brand-wordmark-m{font-size:17px; line-height:1.15;}
+html[data-ui="mobile"] .topbar-titles h1{margin:0; padding-top:2px; line-height:1.4;}
+
+/* ---- Đơn giá: cùng màu với Hệ thống quản lý (TH true mart) ---- */
+/* Máy tính: Vật tư tím · Nhân công cam · Tổng cộng xanh lá; tiêu đề cột chữ hoa xanh đậm */
+html #page-dongia .dongia-vattu{color:#7C3AED; font-weight:600;}
+html #page-dongia .dongia-nhancong{color:#F59E0B; font-weight:600;}
+html #page-dongia .dongia-tongcong{color:#16A34A; font-weight:700;}
+html #page-dongia table thead th{background:transparent; color:var(--brand-900); font-size:11px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.05em;}
+html #page-dongia table thead th.dongia-vattu{color:#7C3AED;}
+html #page-dongia table thead th.dongia-nhancong{color:#F59E0B;}
+html #page-dongia table thead th.dongia-tongcong{color:#16A34A; font-weight:800;}
+html #page-dongia table tbody td{font-size:13px;}
+html #page-dongia .dongia-header-row td{background:#E3F1FC; color:var(--brand-900); font-weight:700;}
+html #page-dongia .dongia-subheader-row td{background:#F3F8FC; color:#40514A; font-weight:600;}
+/* Điện thoại: thẻ giá cùng màu bản điện thoại Hệ thống quản lý */
+html .dg-tag.vattu{background:#F1EAFD; color:#7C3AED;}
+html .dg-tag.nhancong{background:#FBF3DC; color:#B8860B;}
+html .dg-tag.tongcong{background:#E4F1E9; color:#2C7A4B;}
+html .dg-group-header{background:#E3F1FC; color:var(--brand-900); font-weight:700; font-size:12.5px;
+  text-transform:none; letter-spacing:0; padding:10px 14px; border-radius:12px; margin:14px 0 8px; line-height:1.4;}
+html .dg-group-header::before{display:none;}

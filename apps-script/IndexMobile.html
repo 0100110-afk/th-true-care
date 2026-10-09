@@ -1365,13 +1365,14 @@
         t1.textContent = r.tinh_trang_bao_hanh;
         tags.appendChild(t1); hasTag = true;
       }
-      if (r.tinh_trang_thanh_ly) {
+      [['Thanh lý', r.thanh_ly], ['Lý do thanh lý', r.ly_do_thanh_ly]].forEach(function (p) {
+        if (!p[1]) return;
         var t2 = document.createElement('span');
         t2.className = 'note-pill';
         t2.style.flex = '1 1 100%';
-        t2.textContent = r.tinh_trang_thanh_ly;
+        t2.textContent = p[0] + ': ' + p[1];
         tags.appendChild(t2); hasTag = true;
-      }
+      });
       if (hasTag) card.appendChild(tags);
 
       card.addEventListener('click', function () { goToSearch(r.code_tu); });

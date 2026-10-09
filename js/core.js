@@ -835,7 +835,10 @@ var CareCore = (function () {
           tinh_trang_bao_hanh: tinhTrangBaoHanh,
           nhan_hieu: info ? info[LS.NHANHIEU] : '',
           loai_tu: info ? info[LS.LOAITU] : '',
-          tinh_trang_thanh_ly: tl ? (tl[TL.THANHLY] + (tl[TL.DIENGIAI] ? ' — ' + tl[TL.DIENGIAI] : '')) : ''
+          tinh_trang_thanh_ly: tl ? (tl[TL.THANHLY] + (tl[TL.DIENGIAI] ? ' — ' + tl[TL.DIENGIAI] : '')) : '',
+          // Hai cột riêng cho bảng Tra cứu danh sách: sheet THANH LY cột thanh_ly và dien_giai
+          thanh_ly: tl ? String(tl[TL.THANHLY] || '') : '',
+          ly_do_thanh_ly: tl ? String(tl[TL.DIENGIAI] || '') : ''
         };
       });
 

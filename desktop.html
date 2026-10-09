@@ -409,7 +409,7 @@
   /* Tìm kiếm + bộ lọc chung một khung: ô tìm kiếm ở trên, đường kẻ mảnh, bộ lọc ở dưới */
   /* Ô tìm kiếm gọn đặt cạnh tiêu đề bảng (Danh sách thiết bị / Dữ liệu chi phí) — gõ rồi Enter */
   .head-left{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
-  .sx{ position:relative; display:flex; align-items:center; width:280px; }
+  .sx{ position:relative; display:flex; align-items:center; width:360px; max-width:100%; }
   .sx svg{ position:absolute; left:11px; width:16px; height:16px; color:var(--ink-300); pointer-events:none; }
   .sx input{ width:100%; height:var(--ctrl-h); padding:0 12px 0 34px; border:1.5px solid var(--border); border-radius:var(--radius-sm); background:var(--bg); font-size:13px; color:var(--ink-900); font-family:inherit; outline:none; }
   .sx input::placeholder{ color:var(--ink-300); }
@@ -998,7 +998,7 @@
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:14px;">
             <div class="head-left">
               <h3 style="margin:0;">Danh sách thiết bị (<span id="deviceTotalCount">0</span> thiết bị)</h3>
-              <div class="sx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" id="deviceSearchInput" placeholder="Mã thiết bị, tên hoặc SĐT khách hàng..." enterkeyhint="search"></div>
+              <div class="sx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><input type="text" id="deviceSearchInput" placeholder="Mã thiết bị, tên khách hàng, SĐT khách hàng..." enterkeyhint="search"></div>
             </div>
             <div class="head-actions">
               <button class="btn secondary btn-export" type="button" id="deviceExportBtn" onclick="exportDeviceExcel()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5"/><path d="M5 19h14"/></svg>Xuất Excel</button>
@@ -1742,6 +1742,13 @@
   var deviceSearchInputEl = $('#deviceSearchInput');
   deviceSearchInputEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') applyDeviceFilters(); });
   $('#rawCodeInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') applyRawFilters(); });
+  // Xoá hết chữ trong ô tìm kiếm -> tự tải lại danh sách (chỉ khi đang có kết quả tìm kiếm)
+  deviceSearchInputEl.addEventListener('input', function () {
+    if (!this.value.trim() && lastDeviceFilters && lastDeviceFilters.search) applyDeviceFilters();
+  });
+  $('#rawCodeInput').addEventListener('input', function () {
+    if (!this.value.trim() && lastRawFilters && lastRawFilters.maThietBi) applyRawFilters();
+  });
 
   function getDeviceFilters() {
     return {

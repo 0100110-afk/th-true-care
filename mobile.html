@@ -552,7 +552,7 @@
         <button type="button" class="seg-item" data-region="nam" onclick="setRegion('nam')">Miền Nam</button>
       </div>
 
-      <div class="hero-card" id="dashHeroCard" style="margin-top:14px;">
+      <div class="hero-card" id="dashHeroCard" style="margin-top:14px; cursor:pointer;" role="button" onclick="goToRawDataFromDashboard()">
         <div class="hero-label">Tổng chi phí</div>
         <div class="hero-value" id="dTongChiPhi">0 đ</div>
         <div class="hero-split">
@@ -568,10 +568,10 @@
       </div>
 
       <div class="stat-grid" id="dashStatGrid">
-        <div class="stat-box">
+        <button type="button" class="stat-box clickable" onclick="goToDeviceListByType('')">
           <div class="stat-value" id="dTongThietBi">0</div>
           <div class="stat-label">Tổng thiết bị</div>
-        </div>
+        </button>
         <button type="button" class="stat-box clickable" onclick="goToRawDataFromDashboard()">
           <div class="stat-value" id="dSoThietBiSuaChua">0</div>
           <div class="stat-label">Thiết bị đã sửa</div>

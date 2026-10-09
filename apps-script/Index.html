@@ -757,10 +757,10 @@
         </div>
 
         <div class="summary-strip" id="dashSummaryStrip">
-          <div class="summary-box">
+          <button type="button" class="summary-box clickable" onclick="goToDeviceListByType('')" title="Xem danh sách thiết bị">
             <div class="value" id="dTongThietBi">0</div>
             <div class="label">Tổng số thiết bị</div>
-          </div>
+          </button>
           <button type="button" class="summary-box clickable" onclick="goToRawDataFromDashboard()" title="Xem chi tiết">
             <div class="value" id="dSoThietBiSuaChua">0</div>
             <div class="label">Thiết bị đã sửa chữa</div>
@@ -769,18 +769,18 @@
             <div class="value" id="dSoLuot">0</div>
             <div class="label">Số lượt sửa chữa</div>
           </button>
-          <div class="summary-box">
+          <button type="button" class="summary-box clickable" onclick="goToRawDataFromDashboard()" title="Xem chi tiết">
             <div class="value small" id="dTongChiPhi">0 đ</div>
             <div class="label">Tổng chi phí</div>
-          </div>
-          <div class="summary-box repair">
+          </button>
+          <button type="button" class="summary-box repair clickable" onclick="goToRawDataFromDashboard()" title="Xem chi tiết">
             <div class="value small" id="dChiPhiSuaChua">0 đ</div>
             <div class="label">Chi phí sửa chữa</div>
-          </div>
-          <div class="summary-box travel">
+          </button>
+          <button type="button" class="summary-box travel clickable" onclick="goToRawDataFromDashboard()" title="Xem chi tiết">
             <div class="value small" id="dChiPhiDiChuyen">0 đ</div>
             <div class="label">Chi phí di chuyển</div>
-          </div>
+          </button>
         </div>
 
         <div class="dash-grid">

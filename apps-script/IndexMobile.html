@@ -1051,6 +1051,8 @@
   /* ===================== TRA CỨU 1 MÃ ===================== */
   var codeInput = $('#codeInput');
   codeInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doSearch(); });
+  // Xoá hết chữ -> tự xoá kết quả tra cứu
+  codeInput.addEventListener('input', function () { if (!this.value.trim()) { $('#resultSection').style.display = 'none'; hideSearchMessage(); } });
   // Sau khi đã tra cứu xong, bấm lại vào ô tìm kiếm sẽ tự xóa mã cũ để nhập mã mới
   codeInput.addEventListener('focus', function () {
     if (codeInput.dataset.hasSearched === '1') {
@@ -1381,6 +1383,8 @@
 
   var deviceSearchInputEl = $('#deviceSearchInput');
   deviceSearchInputEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') applyDeviceFilters(); });
+  var lastDeviceSearchM = '';
+  deviceSearchInputEl.addEventListener('input', function () { if (!this.value.trim() && lastDeviceSearchM) applyDeviceFilters(); });
 
   function getDeviceFilters() {
     return {
@@ -1446,6 +1450,7 @@
     $('#deviceListBody').innerHTML = skelCards(5);
     $('#deviceListEmptyNote').style.display = 'none';
     var filters = getDeviceFilters();
+    lastDeviceSearchM = filters.search || '';
     filters.page = deviceCurrentPage;
     filters.pageSize = DEVICE_PAGE_SIZE;
 

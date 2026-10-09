@@ -1367,6 +1367,8 @@
   /* ===================== TRA CỨU 1 MÃ ===================== */
   var codeInput = $('#codeInput');
   codeInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doSearch(); });
+  // Xoá hết chữ -> tự xoá kết quả tra cứu
+  codeInput.addEventListener('input', function () { if (!this.value.trim()) { $('#resultSection').style.display = 'none'; hideSearchMessage(); } });
 
   function statusClass(status) {
     if (status === 'Còn bảo hành') return 'warranty';

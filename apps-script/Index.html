@@ -390,6 +390,8 @@
   /* Tiêu đề thẻ + nút thao tác cùng một hàng (Kết quả ... | Xuất Excel) */
   .card-head-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; flex-wrap:wrap; }
   .card-head-row h3{ margin:0; }
+  #batchResultCard th.col-upd, #batchResultCard td.col-upd{ width:1%; white-space:nowrap; }
+  #batchResultCard td.col-upd.long{ white-space:normal; min-width:150px; max-width:200px; }
   .btn.btn-export{ padding:8px 14px; font-size:12.5px; gap:6px; }
   .head-actions{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
   /* Tìm kiếm + bộ lọc chung một khung: ô tìm kiếm ở trên, đường kẻ mảnh, bộ lọc ở dưới */
@@ -928,7 +930,7 @@
                   <th>Bảo hành</th>
                   <th>Nhãn hiệu</th>
                   <th>Loại tủ</th>
-                  <th class="col-wrap">Cập nhật</th>
+                  <th class="col-upd">Cập nhật</th>
                   <th class="col-wrap">Diễn giải</th>
                 </tr>
               </thead>
@@ -1613,7 +1615,8 @@
       tr.appendChild(makeStatusCell(r.tinh_trang_bao_hanh));
       tr.appendChild(mkTd(r.nhan_hieu));
       tr.appendChild(mkTd(r.loai_tu));
-      tr.appendChild(mkTd(r.thanh_ly, { wrap: true }));
+      // Cột Cập nhật co theo nội dung: ngày / chữ ngắn nằm 1 dòng, chữ dài mới xuống dòng (tối đa 200px)
+      tr.appendChild(mkTd(r.thanh_ly, { cls: String(r.thanh_ly || '').length > 22 ? 'col-upd long' : 'col-upd' }));
       tr.appendChild(mkTd(r.ly_do_thanh_ly, { wrap: true }));
       body.appendChild(tr);
     });

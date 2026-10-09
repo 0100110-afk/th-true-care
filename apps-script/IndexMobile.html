@@ -1365,7 +1365,7 @@
         t1.textContent = r.tinh_trang_bao_hanh;
         tags.appendChild(t1); hasTag = true;
       }
-      [['Thanh lý', r.thanh_ly], ['Lý do thanh lý', r.ly_do_thanh_ly]].forEach(function (p) {
+      [['Cập nhật', r.thanh_ly], ['Diễn giải', r.ly_do_thanh_ly]].forEach(function (p) {
         if (!p[1]) return;
         var t2 = document.createElement('span');
         t2.className = 'note-pill';

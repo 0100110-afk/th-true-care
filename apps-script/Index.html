@@ -928,8 +928,8 @@
                   <th>Bảo hành</th>
                   <th>Nhãn hiệu</th>
                   <th>Loại tủ</th>
-                  <th class="col-wrap">Thanh lý</th>
-                  <th class="col-wrap">Lý do thanh lý</th>
+                  <th class="col-wrap">Cập nhật</th>
+                  <th class="col-wrap">Diễn giải</th>
                 </tr>
               </thead>
               <tbody id="batchBody"></tbody>
@@ -1613,7 +1613,7 @@
       tr.appendChild(makeStatusCell(r.tinh_trang_bao_hanh));
       tr.appendChild(mkTd(r.nhan_hieu));
       tr.appendChild(mkTd(r.loai_tu));
-      tr.appendChild(mkTd(r.found ? r.thanh_ly : 'Không tìm thấy mã', { wrap: true }));
+      tr.appendChild(mkTd(r.thanh_ly, { wrap: true }));
       tr.appendChild(mkTd(r.ly_do_thanh_ly, { wrap: true }));
       body.appendChild(tr);
     });
@@ -1639,11 +1639,11 @@
     loadXlsxLib_(function () {
       try {
         var XL = window.XLSX;
-        var aoa = [['Mã thiết bị', 'Chi phí', 'Ngày lắp đặt', 'Bảo hành', 'Nhãn hiệu', 'Loại tủ', 'Thanh lý', 'Lý do thanh lý']];
+        var aoa = [['Mã thiết bị', 'Chi phí', 'Ngày lắp đặt', 'Bảo hành', 'Nhãn hiệu', 'Loại tủ', 'Cập nhật', 'Diễn giải']];
         lastBatchResults.forEach(function (r) {
           aoa.push([r.code_tu, r.chi_phi || '', r.ngay_lap_dat || '',
             (r.tinh_trang_bao_hanh && r.tinh_trang_bao_hanh !== 'Không xác định') ? r.tinh_trang_bao_hanh : '',
-            r.nhan_hieu || '', r.loai_tu || '', r.found ? (r.thanh_ly || '') : 'Không tìm thấy mã', r.ly_do_thanh_ly || '']);
+            r.nhan_hieu || '', r.loai_tu || '', r.thanh_ly || '', r.ly_do_thanh_ly || '']);
         });
         var ws = XL.utils.aoa_to_sheet(aoa);
         ws['!cols'] = [14, 14, 13, 16, 14, 16, 24, 44].map(function (w) { return { wch: w }; });

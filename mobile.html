@@ -1065,7 +1065,13 @@
   var codeInput = $('#codeInput');
   codeInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doSearch(); });
   // Xoá hết chữ -> tự xoá kết quả tra cứu
-  codeInput.addEventListener('input', function () { if (!this.value.trim()) { $('#resultSection').style.display = 'none'; hideSearchMessage(); } });
+  // Tra cứu ngay khi gõ (chờ 500ms sau phím cuối); xoá hết chữ -> xoá kết quả
+  var codeDebounce_ = null;
+  codeInput.addEventListener('input', function () {
+    clearTimeout(codeDebounce_);
+    if (!this.value.trim()) { $('#resultSection').style.display = 'none'; hideSearchMessage(); return; }
+    codeDebounce_ = setTimeout(doSearch, 500);
+  });
   // Sau khi đã tra cứu xong, bấm lại vào ô tìm kiếm sẽ tự xóa mã cũ để nhập mã mới
   codeInput.addEventListener('focus', function () {
     if (codeInput.dataset.hasSearched === '1') {
@@ -1397,7 +1403,11 @@
   var deviceSearchInputEl = $('#deviceSearchInput');
   deviceSearchInputEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') applyDeviceFilters(); });
   var lastDeviceSearchM = '';
-  deviceSearchInputEl.addEventListener('input', function () { if (!this.value.trim() && lastDeviceSearchM) applyDeviceFilters(); });
+  var deviceDebounce_ = null;
+  deviceSearchInputEl.addEventListener('input', function () {
+    clearTimeout(deviceDebounce_);
+    deviceDebounce_ = setTimeout(function () { if (deviceSearchInputEl.value.trim() !== lastDeviceSearchM) applyDeviceFilters(); }, 400);
+  });
 
   function getDeviceFilters() {
     return {

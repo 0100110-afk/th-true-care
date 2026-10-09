@@ -1353,7 +1353,13 @@
   var codeInput = $('#codeInput');
   codeInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') doSearch(); });
   // Xoá hết chữ -> tự xoá kết quả tra cứu
-  codeInput.addEventListener('input', function () { if (!this.value.trim()) { $('#resultSection').style.display = 'none'; hideSearchMessage(); } });
+  // Tra cứu ngay khi gõ (chờ 500ms sau phím cuối); xoá hết chữ -> xoá kết quả
+  var codeDebounce_ = null;
+  codeInput.addEventListener('input', function () {
+    clearTimeout(codeDebounce_);
+    if (!this.value.trim()) { $('#resultSection').style.display = 'none'; hideSearchMessage(); return; }
+    codeDebounce_ = setTimeout(doSearch, 500);
+  });
 
   function statusClass(status) {
     if (status === 'Còn bảo hành') return 'warranty';
@@ -1730,11 +1736,18 @@
   deviceSearchInputEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') applyDeviceFilters(); });
   $('#rawCodeInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') applyRawFilters(); });
   // Xoá hết chữ trong ô tìm kiếm -> tự tải lại danh sách (chỉ khi đang có kết quả tìm kiếm)
+  var deviceDebounce_ = null, rawDebounce_ = null;
   deviceSearchInputEl.addEventListener('input', function () {
-    if (!this.value.trim() && lastDeviceFilters && lastDeviceFilters.search) applyDeviceFilters();
+    clearTimeout(deviceDebounce_);
+    deviceDebounce_ = setTimeout(function () {
+      if (deviceSearchInputEl.value.trim() !== ((lastDeviceFilters && lastDeviceFilters.search) || '')) applyDeviceFilters();
+    }, 400);
   });
   $('#rawCodeInput').addEventListener('input', function () {
-    if (!this.value.trim() && lastRawFilters && lastRawFilters.maThietBi) applyRawFilters();
+    clearTimeout(rawDebounce_);
+    rawDebounce_ = setTimeout(function () {
+      if ($('#rawCodeInput').value.trim() !== ((lastRawFilters && lastRawFilters.maThietBi) || '')) applyRawFilters();
+    }, 400);
   });
 
   function getDeviceFilters() {

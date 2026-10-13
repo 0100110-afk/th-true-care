@@ -490,6 +490,23 @@
     .dg-tag.nhancong { background: var(--warning-soft); color: var(--warning); }
     .dg-tag.tongcong { background: var(--success-soft); color: var(--success); }
     .dg-imc-badge { font-size: 11px; font-weight: 800; color: var(--brand-900); background: var(--primary-soft); padding: 3px 9px; border-radius: 7px; margin-right: 7px; }
+
+  .sync-card{position:fixed; top:calc(env(safe-area-inset-top,0px) + 66px); left:12px; right:12px; z-index:400; border-radius:14px; padding:13px 15px;
+    font-size:13px; font-weight:600; color:#fff; display:flex; gap:11px; align-items:flex-start;
+    box-shadow:0 12px 34px -8px rgba(8,58,107,.5); opacity:0; transform:translateY(-12px); pointer-events:none; transition:opacity .24s, transform .24s;}
+  .sync-card.show{opacity:1; transform:translateY(0); pointer-events:auto;}
+  .sync-card svg{width:18px; height:18px; flex-shrink:0; margin-top:1px;}
+  .sync-card .sc-s{font-weight:500; font-size:12px; opacity:.92; margin-top:3px; line-height:1.45;}
+  .sync-card.sc-run{background:var(--brand-900);} .sync-card.sc-ok{background:var(--ok);} .sync-card.sc-none{background:#475467;} .sync-card.sc-err{background:var(--danger);}
+  .sync-card.sc-new{background:#fff; color:var(--ink-900); border:1px solid var(--border);}
+  .sync-card.sc-new .sc-s{color:var(--ink-500); opacity:1;}
+  .sync-card .sc-acts{display:flex; gap:8px; margin-top:10px;}
+  .sync-card .sc-acts button{height:30px; padding:0 14px; border-radius:8px; font-weight:700; font-size:12.5px; cursor:pointer; font-family:inherit;}
+  .sync-card .sc-go{background:var(--brand-900); color:#fff; border:0;} .sync-card .sc-later{background:#fff; color:var(--brand-900); border:1px solid var(--border);}
+  .sync-card .sc-dot{width:9px; height:9px; border-radius:50%; background:#F79009; margin-top:5px; flex-shrink:0; box-shadow:0 0 0 4px #FEF0C7;}
+  .sync-card .sc-spin{width:16px; height:16px; border-radius:50%; border:2.5px solid rgba(255,255,255,.35); border-top-color:#fff; animation:scspin .7s linear infinite; flex-shrink:0; margin-top:1px;}
+  @keyframes scspin{to{transform:rotate(360deg);}}
+  #refreshDataBtn.is-busy svg{animation:scspin 1s linear infinite;} #refreshDataBtn.is-busy{opacity:.75;}
   </style>
 </head>
 <body>
@@ -1005,7 +1022,7 @@
     toastTimer = setTimeout(function () { el.classList.remove('show'); }, 3200);
   }
 
-  function refreshData() {
+  function refreshDataOld_() {
     // Khóa nút trong lúc chạy, nếu không chạm nhiều lần sẽ bắn nhiều refreshCache() song song.
     var btn = $('#refreshDataBtn');
     btn.disabled = true;
@@ -1047,6 +1064,92 @@
       .withFailureHandler(function (err) { hideLoading(); btn.disabled = false; showToast('Lỗi: ' + err.message, 'error'); })
       .refreshCache();
   }
+  function reloadAfterData_() {
+    dashboardLoadedOnce = false;
+    donGiaLoadedOnce = false;
+    rawDataLoadedOnce = false;
+    deviceListLoadedOnce = false;
+    donGiaDataCache = { bt: null, xd: null, snk: null };
+
+    // Trang ĐANG MỞ được tải lại ngay tại đây, nên đánh dấu lại cờ của riêng nó để lúc rời
+    // đi rồi quay lại không phải gọi server thêm một lần thừa.
+    var activeNav = $('.nav-btn.active');
+    var activePage = activeNav ? activeNav.dataset.page : 'dashboard';
+    if (activePage === 'dashboard') { dashboardLoadedOnce = true; loadDashboard(); }
+    if (activePage === 'dongia') { donGiaLoadedOnce = true; loadDonGiaCategory(currentDonGiaCategory); }
+    if (activePage === 'rawdata') { rawDataLoadedOnce = true; loadRawData(1); }
+    if (activePage === 'devicelist') {
+      deviceListLoadedOnce = true;
+      reloadDeviceFilterOptions(function () { loadDeviceList(1); });
+    }
+  }
+
+  /* ===== Đồng bộ từ Google Sheet (admin, bản web) + báo dữ liệu mới ===== */
+  var scTimer_ = null;
+  function syncCard_(kind, title, sub, actions) {
+    clearTimeout(scTimer_);
+    var el = $('#syncCard');
+    if (!kind) { el.className = 'sync-card'; return; }
+    var ico = kind === 'run' ? '<span class="sc-spin"></span>' : kind === 'new' ? '<span class="sc-dot"></span>' :
+      (kind === 'ok' ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' :
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></svg>');
+    var esc_ = function (t) { var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; };
+    el.innerHTML = ico + '<div><div class="sc-t">' + esc_(title) + '</div>' + (sub ? '<div class="sc-s">' + esc_(sub) + '</div>' : '') + (actions ? '<div class="sc-acts">' + actions + '</div>' : '') + '</div>';
+    el.className = 'sync-card show sc-' + kind;
+    if (kind === 'ok' || kind === 'none' || kind === 'err') scTimer_ = setTimeout(function () { el.className = 'sync-card'; }, kind === 'err' ? 7000 : 5000);
+  }
+  function nowVn_() { var d = new Date(), p = function (n) { return (n < 10 ? '0' : '') + n; }; return p(d.getHours()) + ':' + p(d.getMinutes()) + ' ' + p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear(); }
+  function refreshData() {
+    if (!window.__TM_SYNC) { refreshDataOld_(); return; }
+    var btn = $('#refreshDataBtn');
+    if (btn.disabled) return;
+    btn.disabled = true; btn.classList.add('is-busy');
+    var lb = btn.querySelector('.label'); if (lb) lb.textContent = 'Đang đồng bộ…';
+    var done = function () { btn.disabled = false; btn.classList.remove('is-busy'); if (lb) lb.textContent = 'Đồng bộ từ Google Sheet'; };
+    syncCard_('run', 'Đang đồng bộ từ Google Sheet…', 'Đọc các sheet và đẩy phần thay đổi lên app.');
+    google.script.run.withSuccessHandler(function (res) {
+      done(); reloadAfterData_();
+      var labels = (res && res.changedLabels) || [];
+      if (labels.length) syncCard_('ok', 'Đã cập nhật: ' + labels.join(', '), ((res.details || []).length ? res.details.join(' · ') + ' · ' : '') + 'lúc ' + nowVn_());
+      else syncCard_('none', 'Không có thay đổi', 'Google Sheet giống dữ liệu đang có trên app · kiểm tra lúc ' + nowVn_());
+    }).withFailureHandler(function (e) { done(); syncCard_('err', 'Đồng bộ thất bại', (e && e.message) || 'Thử lại sau ít phút.'); }).syncFromSheet();
+  }
+  try {
+    google.script.run.withSuccessHandler(function () {
+      if (!window.__TM_SYNC) return;
+      var b = $('#refreshDataBtn'), lb = b.querySelector('.label');
+      if (lb) lb.textContent = 'Đồng bộ từ Google Sheet';
+      b.title = 'Đọc Google Sheet và cập nhật dữ liệu mới lên app'; b.setAttribute('aria-label', 'Đồng bộ từ Google Sheet');
+      if (b.hasAttribute('data-tooltip')) b.setAttribute('data-tooltip', 'Đồng bộ từ Google Sheet');
+    }).withFailureHandler(function () {}).getDataFreshness();
+  } catch (e) {}
+  var lastNewCheck_ = 0, newShown_ = false;
+  function checkNewData_() {
+    if (!window.__TM_ROLE || document.hidden || $('#refreshDataBtn').disabled) return;
+    if (Date.now() - lastNewCheck_ < 60000) return;
+    lastNewCheck_ = Date.now();
+    google.script.run.withSuccessHandler(function (labels) {
+      if (!labels || !labels.length) return;
+      if (window.__TM_ROLE === 'admin') {
+        if (newShown_) return; newShown_ = true;
+        syncCard_('new', 'Có dữ liệu mới', labels.join(', ') + ' vừa được cập nhật.',
+          '<button type="button" class="sc-go" id="scLoadBtn">Tải về</button><button type="button" class="sc-later" id="scLaterBtn">Để sau</button>');
+        $('#scLoadBtn').onclick = function () {
+          syncCard_('run', 'Đang tải dữ liệu mới…', '');
+          google.script.run.withSuccessHandler(function () {
+            newShown_ = false; reloadAfterData_();
+            syncCard_('ok', 'Đã tải dữ liệu mới', labels.join(', ') + ' · lúc ' + nowVn_());
+          }).withFailureHandler(function () { newShown_ = false; syncCard_(); }).refreshCache();
+        };
+        $('#scLaterBtn').onclick = function () { newShown_ = false; syncCard_(); };
+      } else {
+        google.script.run.withSuccessHandler(function () { reloadAfterData_(); }).withFailureHandler(function () {}).refreshCache();
+      }
+    }).withFailureHandler(function () {}).checkNewData();
+  }
+  document.addEventListener('visibilitychange', checkNewData_);
+  setInterval(checkNewData_, 5 * 60000);
+
 
   /* ===================== TRA CỨU 1 MÃ ===================== */
   var codeInput = $('#codeInput');
@@ -2364,5 +2467,6 @@
   dashboardLoadedOnce = true;
   initDashboard();
 </script>
+<div class="sync-card" id="syncCard" role="status" aria-live="polite"></div>
 </body>
 </html>

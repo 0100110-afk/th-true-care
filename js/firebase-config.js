@@ -9,3 +9,7 @@ export const FIREBASE_CONFIG = {
   appId: '1:689058170024:web:f10719c9acd92b639f2e9d'
 };
 export const APP_TITLE = 'Quản lý thiết bị';
+
+/** Link Web app của Sync.gs (file GT) — Apps Script -> Triển khai -> Ứng dụng web. Để trống thì nút
+ *  "Đồng bộ từ Google Sheet" quay về chức năng cũ (chỉ tải lại dữ liệu đã có trên app). */
+export const SYNC_URL = '';

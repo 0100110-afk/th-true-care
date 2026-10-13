@@ -15,9 +15,12 @@ import {
   EmailAuthProvider, linkWithPopup, linkWithCredential, updatePassword, unlink, getAdditionalUserInfo
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
 import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
-import { FIREBASE_CONFIG, APP_TITLE } from './firebase-config.js';
+import { FIREBASE_CONFIG, APP_TITLE, SYNC_URL } from './firebase-config.js';
 
 const PREFIXES = ['listing_v4', 'chiphi_v3', 'thanhly_v1', 'gsbh_v1', 'dongia_bt_v1', 'dongia_xd_v1', 'dongia_snk_v1'];
+const PREFIX_LABELS = { listing_v4: 'LISTING', chiphi_v3: 'CHI PHI', thanhly_v1: 'THANH LY', gsbh_v1: 'GSBH',
+  dongia_bt_v1: 'Đơn giá BT', dongia_xd_v1: 'Đơn giá XD', dongia_snk_v1: 'Đơn giá SNK' };
+let loadedHashes = {};   // prefix -> chuỗi mã băm các mảnh của bản đang hiển thị
 
 const fbApp = initializeApp(FIREBASE_CONFIG);
 const auth = getAuth(fbApp);
@@ -258,7 +261,7 @@ async function loadAll(onProgress) {
       results[p] = [].concat(...parts.map((x) => x.rows));
     }));
     if (!missing) {
-      PREFIXES.forEach((p) => CareCore.setData(p, results[p]));
+      PREFIXES.forEach((p) => { CareCore.setData(p, results[p]); loadedHashes[p] = meta.sets[p] ? meta.sets[p].hashes.join(',') : ''; });
       CareCore.setUpdated(Date.parse(meta.updatedAt) || 0);
       if (!offline) cleanupChunks(meta);
       return { offline, fetched };
@@ -297,6 +300,26 @@ function buildApi() {
     } catch (e) {
       return { success: false, message: e.message || String(e) };
     }
+  };
+  /* Admin: bảo Sync.gs (Web app của file GT) đọc Google Sheet NGAY rồi tải phần đổi về. */
+  api.syncFromSheet = async () => {
+    if (!SYNC_URL) throw new Error('Chưa cấu hình link đồng bộ (SYNC_URL).');
+    const idToken = await currentUser.getIdToken();
+    let res;
+    try {
+      const r = await fetch(SYNC_URL, { method: 'POST', body: JSON.stringify({ action: 'sync', idToken }) });
+      res = await r.json();
+    } catch (e) { throw new Error('Không gọi được Google Sheet để đồng bộ. Kiểm tra mạng rồi thử lại.'); }
+    if (!res || !res.ok) throw new Error((res && res.error) || 'Đồng bộ thất bại.');
+    await loadAll();
+    return Object.assign(res, { changedLabels: (res.changed || []).map((p) => PREFIX_LABELS[p] || p) });
+  };
+  /* Firestore có bản mới hơn bản đang hiển thị? Chỉ đọc 1 tài liệu meta. */
+  api.checkNewData = async () => {
+    const meta = await readMeta();
+    if (!meta || !meta.sets) return [];
+    return PREFIXES.filter((p) => meta.sets[p] && loadedHashes[p] !== undefined && meta.sets[p].hashes.join(',') !== loadedHashes[p])
+      .map((p) => PREFIX_LABELS[p] || p);
   };
   return api;
 }
@@ -523,6 +546,10 @@ async function start(user) {
     return;
   }
   if (!currentRole) { showNoAccess(user.email); return; }
+  // Admin: nút "Đồng bộ từ Google Sheet" + thông báo dữ liệu mới. Người dùng: ẩn nút, tự tải lặng lẽ.
+  window.__TM_ROLE = currentRole === 'admin' ? 'admin' : 'viewer';
+  window.__TM_SYNC = currentRole === 'admin' && !!SYNC_URL;
+  document.body.classList.toggle('tm-viewer', currentRole !== 'admin');
 
   showLoading('Đang tải dữ liệu…');
   let r;

@@ -9,7 +9,7 @@
  * CHỈ MỘT CHIỀU Sheet -> App (app chỉ tra cứu, không ghi gì):
  *   LISTING, CHI PHI, THANH LY, GSBH  (file GT)
  *   DON GIA BT / XD / SNK              (file DG riêng — FS_DG_FILE_ID)
- * Quét 15 phút/lần + menu "App TH true care" -> "Đồng bộ ngay". Chỉ ghi những MẢNH dữ liệu thật
+ * Admin bấm "Đồng bộ từ Google Sheet" trên app (doPost); quét dự phòng 1 giờ/lần (7h–19h); menu "Đồng bộ ngay" vẫn giữ. Chỉ ghi những MẢNH dữ liệu thật
  * sự đổi (thêm dòng cuối CHI PHI thì chỉ mảnh cuối được ghi lại).
  *
  * Quyền vào app: cột "TH true care" trong sheet APP USERS của file TM (Sync.gs bên file TM lo).
@@ -23,7 +23,7 @@
 // ============================== CẤU HÌNH ==============================
 var CS_DG_FILE_ID = '1RFVctqPlPvLodhscIMxIMLrRgIEjSLLUlFUsqI2anSQ';   // file "DG"
 var CS_PROP_SA = 'FIREBASE_SA';
-var CS_TICK_MINUTES = 15;
+var CS_TICK_HOURS = [7, 19];   // quét dự phòng 1 giờ/lần, chỉ trong khung giờ này (giờ VN)
 var CS_CHUNK_BYTES = 650000;          // < 1 MiB/tài liệu Firestore, chừa biên
 var CS_CHUNK_ROWS = 4000;             // ranh giới mảnh cố định theo số bản ghi -> thêm dòng cuối chỉ đổi mảnh cuối
 
@@ -64,10 +64,11 @@ function caiDatDongBoTrueCare() {
   ScriptApp.getProjectTriggers().forEach(function (t) {
     if (t.getHandlerFunction() === 'csTick') ScriptApp.deleteTrigger(t);
   });
-  ScriptApp.newTrigger('csTick').timeBased().everyMinutes(CS_TICK_MINUTES).create();
+  ScriptApp.newTrigger('csTick').timeBased().everyHours(1).create();
   var r = csSyncAll_(true);
   var msg = 'Đã cài đồng bộ TH true care.\n' + r.lines.join('\n') +
-    '\n- Tự quét lại mỗi ' + CS_TICK_MINUTES + ' phút.';
+    '\n- Admin bấm "Đồng bộ từ Google Sheet" trên app sau khi cập nhật sheet.' +
+    '\n- Quét dự phòng 1 giờ/lần (' + CS_TICK_HOURS[0] + 'h–' + CS_TICK_HOURS[1] + 'h).';
   csAlert_(msg);
   return msg;
 }
@@ -88,15 +89,55 @@ function xemTinhTrangTrueCare() {
 }
 
 function csTick() {
+  var h = Number(Utilities.formatDate(new Date(), 'Asia/Ho_Chi_Minh', 'H'));
+  if (h < CS_TICK_HOURS[0] || h >= CS_TICK_HOURS[1]) return;   // ngoài giờ làm việc: không quét
   try { csSyncAll_(false); } catch (e) { console.error('csTick: ' + e.message); }
 }
 
+// ============================== WEB APP: NÚT "ĐỒNG BỘ TỪ GOOGLE SHEET" TRÊN APP ==============================
+/**
+ * App (admin) gọi POST { action:'sync', idToken }. Kiểm tra token đăng nhập Firebase -> email ->
+ * phải là admin TH true care (care_users/<email>.role = 'admin', do Sync.gs file TM ghi từ APP USERS).
+ * Triển khai: Apps Script -> Triển khai -> Tùy chọn triển khai mới -> Ứng dụng web
+ *   (Thực thi với tư cách: Tôi · Ai có quyền truy cập: Bất kỳ ai). Dán link vào js/firebase-config.js (SYNC_URL).
+ */
+function doPost(e) {
+  var out;
+  try {
+    var body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    var email = csVerifyIdToken_(body.idToken);
+    var u = csFetch_('get', csBaseUrl_() + '/care_users/' + encodeURIComponent(email));
+    var role = u && u.fields && u.fields.role ? u.fields.role.stringValue : '';
+    if (role !== 'admin') throw new Error('Tài khoản ' + email + ' không có quyền đồng bộ dữ liệu.');
+    var r = csSyncAll_(false, 120000);
+    if (r.busy) throw new Error('Đang có lượt đồng bộ khác chạy, thử lại sau ít phút.');
+    out = { ok: true, changed: r.changed, details: r.details, at: new Date().toISOString() };
+  } catch (err) {
+    out = { ok: false, error: err.message };
+  }
+  return ContentService.createTextOutput(JSON.stringify(out)).setMimeType(ContentService.MimeType.JSON);
+}
+
+function csVerifyIdToken_(idToken) {
+  if (!idToken) throw new Error('Chưa đăng nhập.');
+  var url = 'https://identitytoolkit.googleapis.com/v1/projects/' + csSa_().project_id + '/accounts:lookup';
+  var r;
+  try { r = csFetch_('post', url, { idToken: idToken }); }
+  catch (err) { throw new Error('Phiên đăng nhập hết hạn — tải lại trang rồi thử lại.'); }
+  var u = r && r.users && r.users[0];
+  if (!u || !u.email) throw new Error('Phiên đăng nhập không hợp lệ.');
+  return String(u.email).toLowerCase();
+}
+
+var CS_LABELS = { listing_v4: 'LISTING', chiphi_v3: 'CHI PHI', thanhly_v1: 'THANH LY', gsbh_v1: 'GSBH',
+  dongia_bt_v1: 'Đơn giá BT', dongia_xd_v1: 'Đơn giá XD', dongia_snk_v1: 'Đơn giá SNK' };
+
 // ============================== ĐỒNG BỘ ==============================
 
-function csSyncAll_(force) {
-  var lines = [];
+function csSyncAll_(force, waitMs) {
+  var lines = [], changedSets = [], details = [];
   var lock = LockService.getScriptLock();
-  if (!lock.tryLock(25000)) return { lines: ['Đồng bộ khác đang chạy, bỏ qua lần này.'] };
+  if (!lock.tryLock(waitMs || 25000)) return { lines: ['Đồng bộ khác đang chạy, bỏ qua lần này.'], busy: true, changed: [], details: [] };
   try {
     var meta = csReadMeta_();
     meta.sets = meta.sets || {};
@@ -119,6 +160,12 @@ function csSyncAll_(force) {
       for (var i = hashes.length; i < old.hashes.length; i++) {
         writes.push({ delete: csDocName_('care_chunks/' + s.prefix + '__' + i) });
       }
+      var sameHashes = old.hashes.length === hashes.length && hashes.every(function (h, i) { return old.hashes[i] === h; });
+      if (!sameHashes) {
+        changedSets.push(s.prefix);
+        var lb = CS_LABELS[s.prefix] || s.prefix, o = old.count, n = records.length;
+        details.push(o === undefined ? lb + ' ' + n + ' dòng' : (n !== o ? lb + ' ' + (n > o ? '+' : '−') + Math.abs(n - o) + ' dòng' : lb + ' sửa nội dung'));
+      }
       meta.sets[s.prefix] = { hashes: hashes, count: records.length };
       lines.push('- ' + s.prefix + ': ' + records.length + ' bản ghi, ghi ' + changed + '/' + hashes.length + ' mảnh');
     });
@@ -131,7 +178,7 @@ function csSyncAll_(force) {
   } finally {
     lock.releaseLock();
   }
-  return { lines: lines };
+  return { lines: lines, changed: changedSets, details: details };
 }
 
 /** Cắt bản ghi thành mảnh JSON: ranh giới theo SỐ BẢN GHI cố định (ổn định khi thêm dòng cuối),
@@ -169,13 +216,13 @@ function csSa_() {
 
 function csToken_() {
   var cache = CacheService.getScriptCache();
-  var hit = cache.get('cs_token');
+  var hit = cache.get('cs_token2');
   if (hit) return hit;
   var sa = csSa_();
   var now = Math.floor(Date.now() / 1000);
   var enc = function (o) { return Utilities.base64EncodeWebSafe(JSON.stringify(o)).replace(/=+$/, ''); };
   var unsigned = enc({ alg: 'RS256', typ: 'JWT' }) + '.' + enc({
-    iss: sa.client_email, scope: 'https://www.googleapis.com/auth/datastore',
+    iss: sa.client_email, scope: 'https://www.googleapis.com/auth/datastore https://www.googleapis.com/auth/identitytoolkit',
     aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600
   });
   var sig = Utilities.base64EncodeWebSafe(Utilities.computeRsaSha256Signature(unsigned, sa.private_key)).replace(/=+$/, '');
@@ -185,7 +232,7 @@ function csToken_() {
   });
   if (res.getResponseCode() !== 200) throw new Error('Không lấy được token Firebase: ' + res.getContentText());
   var tok = JSON.parse(res.getContentText()).access_token;
-  cache.put('cs_token', tok, 3000);
+  cache.put('cs_token2', tok, 3000);
   return tok;
 }
 

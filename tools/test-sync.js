@@ -36,6 +36,7 @@ let commits = 0, writtenChunks = 0;
 function resp(code, obj) { return { getResponseCode: () => code, getContentText: () => (obj === undefined ? '' : JSON.stringify(obj)) }; }
 const UrlFetchApp = { fetch(url, opt) {
   if (url.includes('oauth2')) return resp(200, { access_token: 't' });
+  if (url.includes('identitytoolkit')) return resp(200, { users: [{ email: JSON.parse(opt.payload).idToken.replace('tok:', '') }] });
   const m = url.match(/documents(.*)$/);
   if (url.endsWith(':commit')) {
     const body = JSON.parse(opt.payload);
@@ -55,7 +56,7 @@ const UrlFetchApp = { fetch(url, opt) {
     });
     return resp(200, {});
   }
-  const id = m[1].replace(/^\//, '');
+  const id = decodeURIComponent(m[1].replace(/^\//, ''));
   return store[id] ? resp(200, store[id]) : resp(404, {});
 } };
 const ctx = {
@@ -66,8 +67,9 @@ const ctx = {
   },
   PropertiesService: { getScriptProperties: () => ({ getProperty: (k) => (k === 'FIREBASE_SA' ? JSON.stringify({ client_email: 'x@y', private_key: 'k', project_id: 'p1' }) : null) }) },
   CacheService: { getScriptCache: () => ({ get: () => null, put: () => {} }) },
+  ContentService: { MimeType: { JSON: 'json' }, createTextOutput: (t) => ({ setMimeType() { return this; }, getContent: () => t }) },
   LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} }) },
-  ScriptApp: { getProjectTriggers: () => [], newTrigger: () => ({ timeBased: () => ({ everyMinutes: () => ({ create: () => {} }) }) }) },
+  ScriptApp: { getProjectTriggers: () => [], newTrigger: () => ({ timeBased: () => ({ everyMinutes: () => ({ create: () => {} }), everyHours: () => ({ create: () => {} }) }) }) },
   Utilities: {
     base64EncodeWebSafe: (s) => Buffer.from(s).toString('base64url'),
     computeRsaSha256Signature: () => [1, 2, 3],
@@ -99,6 +101,17 @@ gt['CHI PHI']._v.push(['TC001', new Date(2026, 5, 1), 'NCC mới', 'Dòng mới'
 writtenChunks = 0;
 ctx.dongBoTrueCareNgay();
 ok(writtenChunks === 1, 'Thêm 1 dòng cuối chỉ ghi lại 1 mảnh (' + writtenChunks + ')');
+
+// ---- Nút "Đồng bộ từ Google Sheet" trên app -> doPost ----
+store['care_users/ad@thmilk.vn'] = { fields: { role: { stringValue: 'admin' } } };
+store['care_users/kt@thmilk.vn'] = { fields: { role: { stringValue: 'user' } } };
+const call = (e) => JSON.parse(ctx.doPost({ postData: { contents: JSON.stringify({ action: 'sync', idToken: 'tok:' + e }) } }).getContent());
+const rU = call('kt@thmilk.vn');
+ok(!rU.ok && /không có quyền/.test(rU.error), 'người dùng thường gọi đồng bộ -> bị từ chối');
+gt['CHI PHI']._v.push(['TC002', new Date(2026, 5, 2), 'NCC mới', 'Dòng mới 2', 1000, 'Miền Bắc']);
+const rA = call('ad@thmilk.vn'); if (!rA.ok) console.log('rA', rA);
+ok(rA.ok && rA.changed.join() === 'chiphi_v3' && /CHI PHI \+1 dòng/.test(rA.details[0]), 'admin bấm đồng bộ -> CHI PHI +1 dòng: ' + JSON.stringify(rA.details));
+ok(call('ad@thmilk.vn').changed.length === 0, 'bấm lại -> Không có thay đổi');
 
 // ---- Nạp vào core.js như app.js ----
 const CareCore = require(R('js/core.js'));

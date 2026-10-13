@@ -185,3 +185,6 @@ html[data-ui="mobile"] .topbar-titles{gap:12px;}
 @keyframes tmWf{0%,45%{transform:translate(-30px,34px) rotate(-12deg);opacity:0}64%{opacity:.92}86%{transform:translate(2px,-2px) rotate(1.5deg)}100%{transform:none;opacity:.92}}
 @keyframes tmFoam{0%,64%{transform:translateY(16px)}96%,100%{transform:none}}
 @media (prefers-reduced-motion:reduce){.tm-loader-icon,.tm-loader-icon *{animation:none !important;} .tm-loader-ring{opacity:.9; animation-duration:3s;}}
+
+/* Người dùng (không phải quản trị): không có nút đồng bộ dữ liệu */
+body.tm-viewer #refreshDataBtn{display:none !important;}

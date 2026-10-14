@@ -131,13 +131,22 @@ function labelKey_(s) {
 }
 
 /**
+ * Ô loại tủ / nhãn hiệu chứa giá trị rác do định dạng ngày của Sheet: số 0 hiển thị thành
+ * "0/1/1900", "30/12/1899"... -> coi như ĐỂ TRỐNG (gộp vào "Khác"), không thành một loại riêng.
+ */
+function isJunkLabel_(v) {
+  var t = String(v === null || v === undefined ? '' : v).trim();
+  return t === '0' || /^\d{1,2}\/\d{1,2}\/(1899|1900)$/.test(t);
+}
+
+/**
  * Lọc theo loại / nhãn hiệu. Giá trị đặc biệt "__blank__" = thanh "Khác" trên biểu đồ Dashboard:
  * biểu đồ gom dòng ĐỂ TRỐNG loại/nhãn (và dòng ghi đúng chữ "Khác") vào một thanh, nên lọc cũng
  * phải ra đúng nhóm đó. Trước đây lọc theo chữ "Khác" -> danh sách ra 0 thiết bị.
  */
 function labelMatchesFilter_(raw, filterKey) {
   var k = labelKey_(raw);
-  if (filterKey === '__blank__') return !k || k === 'khac';
+  if (filterKey === '__blank__') return !k || k === 'khac' || isJunkLabel_(raw);
   return k === filterKey;
 }
 
@@ -1672,8 +1681,8 @@ function getDanhSachThietBiFilterOptions(filters) {
     listing.forEach(function (r, i) {
       if (mienFilter && regionKeyFromVung(r[LS.VUNG]) !== mienFilter) return;
       tallyLabel_(nppStore, resolveNppDisplay(r[LS.MANPP], nppMap), 1, i);
-      tallyLabel_(loaiStore, r[LS.LOAITU], 1, i);
-      tallyLabel_(nhanHieuStore, r[LS.NHANHIEU], 1, i);
+      if (!isJunkLabel_(r[LS.LOAITU])) tallyLabel_(loaiStore, r[LS.LOAITU], 1, i);
+      if (!isJunkLabel_(r[LS.NHANHIEU])) tallyLabel_(nhanHieuStore, r[LS.NHANHIEU], 1, i);
     });
 
     return {
@@ -1839,8 +1848,8 @@ function getDashboardData(filters) {
       var vKey = regionKeyFromVung(l[LS.VUNG]);
       if (!filters.mien || filters.mien === 'toanquoc' || vKey === filters.mien) {
         totalDevices++;
-        tallyLabel_(deviceTypeStore, l[LS.LOAITU] || 'Khác', 1, i);
-        tallyLabel_(deviceBrandStore, l[LS.NHANHIEU] || 'Khác', 1, i);
+        tallyLabel_(deviceTypeStore, (!isJunkLabel_(l[LS.LOAITU]) && l[LS.LOAITU]) || 'Khác', 1, i);
+        tallyLabel_(deviceBrandStore, (!isJunkLabel_(l[LS.NHANHIEU]) && l[LS.NHANHIEU]) || 'Khác', 1, i);
       }
     });
 

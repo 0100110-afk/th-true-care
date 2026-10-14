@@ -573,6 +573,10 @@
   .chart-hit:hover{ background:rgba(19,111,191,.06); }
   .chart-hit:focus-visible{ outline:2px solid var(--brand-500, #2E9BE0); outline-offset:-2px; }
   .chart-legend{ display:flex; justify-content:center; flex-wrap:wrap; gap:6px 16px; margin:0 0 8px; }
+  /* Biểu đồ xu hướng: chọn 12 tháng gần nhất / theo năm */
+  .trend-mode{ display:flex; gap:4px; background:var(--surface-alt); padding:3px; border-radius:10px; margin:0 0 10px; }
+  .trend-mode button{ flex:1; border:0; background:none; padding:6px 8px; border-radius:8px; font:inherit; font-size:12px; font-weight:600; color:var(--ink-muted); cursor:pointer; }
+  .trend-mode button.active{ background:#fff; color:var(--brand-900); box-shadow:0 1px 3px rgba(11,76,140,.15); }
   .chart-lg{ display:inline-flex; align-items:center; gap:6px; border:0; background:none; padding:2px 4px; font:inherit; font-size:10.5px; font-weight:600; color:var(--ink-muted); cursor:pointer; border-radius:6px; }
   .chart-lg .dot{ width:12px; height:12px; border-radius:3px; display:inline-block; }
   .chart-lg.off{ color:#A3B1B8; text-decoration:line-through; }
@@ -663,6 +667,10 @@
 
       <div class="section-label">Xu hướng chi phí theo tháng</div>
       <div class="card chart-card">
+        <div class="trend-mode" id="trendMode" role="group" aria-label="Khoảng thời gian">
+          <button type="button" class="active" data-m="12m" onclick="setTrendMode('12m')">12 tháng gần nhất</button>
+          <button type="button" data-m="year" onclick="setTrendMode('year')">Theo năm</button>
+        </div>
         <div class="chart-legend" id="trendLegend"></div>
             <div class="chart-wrap"><canvas id="trendChartCanvas"></canvas></div>
       </div>
@@ -2351,8 +2359,9 @@
   // Số đo biểu đồ thanh ngang — nhỏ hơn bản desktop cho vừa màn hình 360px
   var HBAR_ROW_H_ = 30;
   var HBAR_THICK_ = 8;
-  var HBAR_PAD_RIGHT_ = 46;
-  var HBAR_LABEL_W_ = 108;   // đủ chỗ cho tên loại/nhãn hiệu 12px (vd "Máy nóng lạnh")
+  var HBAR_PAD_RIGHT_ = 50;   // chỗ cho số 12px cuối thanh (tới 6 ký tự, vd 10.147)
+  var HBAR_LABEL_W_ = 108;
+  var CHART_HBAR_VALUE_FONT_ = '600 12px "Be Vietnam Pro", sans-serif';   // đủ chỗ cho tên loại/nhãn hiệu 12px (vd "Máy nóng lạnh")
 
   var chartDefaultsApplied_ = false;
   function applyChartDefaults_() {
@@ -2440,7 +2449,7 @@
       if (!a) return;
       ctx.save();
       ctx.fillStyle = CHART_INK_;
-      ctx.font = CHART_VALUE_FONT_;
+      ctx.font = CHART_HBAR_VALUE_FONT_;   // số cuối thanh: cùng cỡ 12px với tên loại / nhãn hiệu
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
       chart.getDatasetMeta(0).data.forEach(function (bar, i) {
@@ -2663,44 +2672,73 @@
     });
   }
 
+  /* Xu hướng chi phí: dữ liệu có thể trải hơn 10 năm (~140 tháng x 3 miền) -> vẽ hết trên màn điện
+     thoại là một mớ rối. Mặc định chỉ 12 THÁNG GẦN NHẤT; "Theo năm" gộp từng năm để xem dài hạn. */
+  var trendDataAll_ = [], trendMode_ = '12m';
+  function setTrendMode(mode) {
+    trendMode_ = mode;
+    $all('#trendMode button').forEach(function (b) { b.classList.toggle('active', b.dataset.m === mode); });
+    drawTrendChart_();
+  }
+  /** Trục tiền rút gọn: 250.000.000 -> "250 tr", 1.200.000.000 -> "1,2 tỷ". Ô thông tin vẫn hiện số đầy đủ. */
+  function axisMoney_(v) {
+    var n = Number(v) || 0, a = Math.abs(n);
+    if (a >= 1e9) return (n / 1e9).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + ' tỷ';
+    if (a >= 1e6) return (n / 1e6).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + ' tr';
+    return n.toLocaleString('vi-VN');
+  }
   function renderTrendChart(data) {
+    trendDataAll_ = data || [];
+    drawTrendChart_();
+  }
+  function drawTrendChart_() {
+    var data = trendDataAll_;
+    if (trendMode_ === 'year') {
+      var byYear = {}, years = [];
+      data.forEach(function (r) {
+        var y = String(r.thang).split('/')[1];
+        if (!byYear[y]) { byYear[y] = { thang: y, bac: 0, trung: 0, nam: 0 }; years.push(y); }
+        byYear[y].bac += r.bac || 0; byYear[y].trung += r.trung || 0; byYear[y].nam += r.nam || 0;
+      });
+      data = years.map(function (y) { return byYear[y]; });
+    } else {
+      data = data.slice(-12);
+    }
     var ctx = $('#trendChartCanvas').getContext('2d');
-    var labels = data.map(function (r) { return r.thang; });
+    // 12 tháng: nhãn "10/25" cho gọn, không phải xoay nghiêng
+    var labels = data.map(function (r) { return trendMode_ === 'year' ? r.thang : String(r.thang).replace(/\/(\d{2})(\d{2})$/, '/$2'); });
+    var full = data.map(function (r) { return r.thang; });
 
+    // Giữ trạng thái bật/tắt từng miền khi đổi 12 tháng <-> theo năm
+    var hidden = trendChartInstance ? [0, 1, 2].map(function (i) { return !trendChartInstance.isDatasetVisible(i); }) : [false, false, false];
     if (trendChartInstance) trendChartInstance.destroy();
+    var line = function (label, key, i) {
+      // Không vẽ chấm tròn cho gọn; chạm vào cột thời gian nào thì ô thông tin hiện cả 3 miền của mốc đó.
+      return { label: label, data: data.map(function (r) { return r[key]; }), borderColor: CHART_REGION_COLORS_[i],
+        backgroundColor: CHART_REGION_COLORS_[i], borderWidth: 2, fill: false, tension: 0.35, cubicInterpolationMode: 'monotone',   // không vẽ cong vọt xuống dưới 0
+        pointRadius: 0, pointHoverRadius: 4, pointHitRadius: 12, hidden: hidden[i] };
+    };
     trendChartInstance = new Chart(ctx, {
       type: 'line',
-      data: {
-        labels: labels,
-        // Ba đường ĐỒNG BỘ hoàn toàn: cùng độ dày, cùng độ cong, cùng cỡ điểm, đều LIỀN NÉT.
-        // Chỉ phân biệt bằng màu -> chú giải phía trên cũng là 3 ô màu đặc như nhau.
-        datasets: [
-          { label: 'Miền Bắc', data: data.map(function (r) { return r.bac; }), borderColor: CHART_REGION_COLORS_[0], backgroundColor: 'rgba(46,144,250,0.08)', borderWidth: 2, fill: false, tension: 0.35, pointRadius: 2 },
-          { label: 'Miền Trung', data: data.map(function (r) { return r.trung; }), borderColor: CHART_REGION_COLORS_[1], backgroundColor: 'rgba(247,144,9,0.08)', borderWidth: 2, fill: false, tension: 0.35, pointRadius: 2 },
-          { label: 'Miền Nam', data: data.map(function (r) { return r.nam; }), borderColor: CHART_REGION_COLORS_[2], backgroundColor: 'rgba(18,183,106,0.08)', borderWidth: 2, fill: false, tension: 0.35, pointRadius: 2 }
-        ]
-      },
+      data: { labels: labels, datasets: [line('Miền Bắc', 'bac', 0), line('Miền Trung', 'trung', 1), line('Miền Nam', 'nam', 2)] },
       options: {
         responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
         plugins: {
-          // Ô màu trong tooltip mặc định lấy backgroundColor của dataset — với biểu đồ đường
-          // đó là màu tô nền mờ 8% (nhìn ra màu TRẮNG). Ép nó dùng màu đường kẻ cho khớp
-          // với chú giải phía trên.
           tooltip: {
             callbacks: {
-              labelColor: function (ctx) {
-                return { borderColor: ctx.dataset.borderColor, backgroundColor: ctx.dataset.borderColor };
-              }
+              title: function (items) { return items.length ? (trendMode_ === 'year' ? 'Năm ' : 'Tháng ') + full[items[0].dataIndex] : ''; },
+              label: function (c) { return ' ' + c.dataset.label + ': ' + formatCurrency(c.parsed.y); },
+              labelColor: function (c) { return { borderColor: c.dataset.borderColor, backgroundColor: c.dataset.borderColor }; }
             }
           },
-          legend: {
-            display: false, position: 'top', align: 'center',
-            labels: { boxWidth: 11, boxHeight: 11, padding: 8, color: CHART_AXIS_INK_, font: { size: 10.5 } }
-          }
+          legend: { display: false }
         },
         scales: {
-          x: { grid: { display: false }, border: { display: false }, ticks: { color: CHART_AXIS_INK_, font: { size: 10.5 } } },
-          y: { grid: { color: CHART_GRID_ }, border: { display: false }, ticks: { color: CHART_AXIS_INK_, font: { size: 10.5 }, callback: function (v) { return Number(v).toLocaleString('vi-VN'); } } }
+          x: { grid: { display: false }, border: { display: false },
+               ticks: { color: CHART_AXIS_INK_, font: { size: 10.5 }, maxRotation: 0, autoSkip: true, autoSkipPadding: 6 } },
+          y: { beginAtZero: true, grid: { color: CHART_GRID_ }, border: { display: false },
+               ticks: { color: CHART_AXIS_INK_, font: { size: 10.5 }, maxTicksLimit: 6, callback: axisMoney_ } }
         }
       },
       plugins: [legendMarginPlugin]

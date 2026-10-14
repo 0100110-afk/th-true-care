@@ -419,7 +419,7 @@
   }
   .info-card-header h2{ margin:0; font-size:20px; font-weight:700; color:var(--brand-900); }
   .info-card-header .code-badge{
-    background:var(--sky-100); color:var(--brand-900); padding:5px 14px; border-radius:20px;
+    background:var(--sky-100); color:var(--brand-700); padding:5px 14px; border-radius:20px;   /* cùng màu mã ở các danh sách */
     font-size:12px; font-weight:700; white-space:nowrap;
   }
   .info-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:14px; }
@@ -518,6 +518,12 @@
      thay vi xam mac dinh cua trinh duyet. */
   .filter-item input::placeholder{ color:var(--ink-300); }
   .filter-bar .btn{ height:var(--ctrl-h); padding:0 16px; font-size:12.5px; }
+  /* Ô chọn độ rộng CỐ ĐỊNH, không giãn theo tên đang chọn: chọn NPP / NCC tên dài thì ô không phình ra
+     đẩy "Lọc" / "Xóa lọc" xuống hàng. Tên dài hiện "…", rê chuột vào ô vẫn xem được đủ. */
+  .filter-item:has(> select){ flex:1 1 130px; min-width:110px; }
+  .filter-item:has(> #filterNcc), .filter-item:has(> #rawFilterNcc), .filter-item:has(> #deviceFilterNpp){ flex-grow:1.8; }
+  .filter-item > select{ width:100%; min-width:0; text-overflow:ellipsis; white-space:nowrap; overflow:hidden; }
+  .filter-item input[type="date"]{ width:150px; }
   .filter-item input:focus, .filter-item select:focus{ border-color:var(--brand-700); background:#fff; }
 
   .region-tabs{ display:flex; gap:8px; flex-wrap:wrap; }
@@ -652,7 +658,12 @@
   .sync-card .sc-spin{width:16px; height:16px; border-radius:50%; border:2.5px solid rgba(255,255,255,.35); border-top-color:#fff; animation:scspin .7s linear infinite; flex-shrink:0; margin-top:1px;}
   @keyframes scspin{to{transform:rotate(360deg);}}
   #refreshDataBtn.is-busy svg{animation:scspin 1s linear infinite;} #refreshDataBtn.is-busy{opacity:.75;}
-  </style>
+  
+  /* SĐT bấm để gọi */
+  .tel-link{ display:inline-flex; align-items:center; gap:6px; color:var(--brand-700); font-weight:600; text-decoration:none; white-space:nowrap; }
+  .tel-link svg{ width:14px; height:14px; flex-shrink:0; }
+  .tel-link:hover{ text-decoration:underline; }
+</style>
 </head>
 <body>
 
@@ -775,7 +786,7 @@
               <button class="btn" type="button" onclick="applyFilters()">Áp dụng</button>
             </div>
             <div class="filter-item btn-slot">
-              <button class="btn secondary" type="button" onclick="resetFilters()">Xóa lọc</button>
+              <button class="btn secondary" type="button" id="dashClearBtn" onclick="resetFilters()">Xóa lọc</button>
             </div>
           </div>
         </div>
@@ -999,7 +1010,7 @@
               <button class="btn" type="button" onclick="applyDeviceFilters()">Lọc</button>
             </div>
             <div class="filter-item btn-slot">
-              <button class="btn secondary" type="button" onclick="resetDeviceFilters()">Xóa lọc</button>
+              <button class="btn secondary" type="button" id="deviceClearBtn" onclick="resetDeviceFilters()">Xóa lọc</button>
             </div>
           </div>
         </div>
@@ -1068,7 +1079,7 @@
               <button class="btn" type="button" onclick="applyRawFilters()">Lọc</button>
             </div>
             <div class="filter-item btn-slot">
-              <button class="btn secondary" type="button" onclick="resetRawFilters()">Xóa lọc</button>
+              <button class="btn secondary" type="button" id="rawClearBtn" onclick="resetRawFilters()">Xóa lọc</button>
             </div>
           </div>
         </div>
@@ -1155,6 +1166,37 @@
 <script>
   /* ===================== HELPERS ===================== */
   function $(sel, root) { return (root || document).querySelector(sel); }
+  /* Số điện thoại bấm để GỌI (tel:). Ô có nhiều số (cách nhau bởi / , ; hoặc dấu cách) thì mỗi số 1
+     link riêng; chữ không phải số giữ nguyên. Ô trống hiện "—", không bấm được. */
+  var TEL_ICON_ = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>';
+  function setPhone_(el, text) {
+    el.innerHTML = '';
+    var s = String(text == null ? '' : text).trim();
+    if (!s) { el.textContent = '\u2014'; return; }
+    var re = /\+?\d[\d .\-]{6,}\d/g, last = 0, m, found = false;
+    function addLink(num) {
+      var a = document.createElement('a');
+      a.className = 'tel-link';
+      a.href = 'tel:' + num.replace(/[^\d+]/g, '');
+      a.title = 'Gọi ' + num;
+      a.innerHTML = TEL_ICON_;
+      a.appendChild(document.createTextNode(num));
+      el.appendChild(a);
+    }
+    while ((m = re.exec(s))) {
+      found = true;
+      if (m.index > last) el.appendChild(document.createTextNode(s.slice(last, m.index)));
+      var num = m[0].trim();
+      // Hai số dính nhau chỉ cách 1 dấu cách ("0374649681 0912345678") -> tách thành 2 link
+      if (num.replace(/\D/g, '').length > 12) {
+        num.split(/\s+/).forEach(function (part, k) { if (k) el.appendChild(document.createTextNode(' ')); addLink(part); });
+      } else addLink(num);
+      last = m.index + m[0].length;
+    }
+    if (!found) { el.textContent = s; return; }
+    if (last < s.length) el.appendChild(document.createTextNode(s.slice(last)));
+  }
+
   function $all(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
 
   function formatCurrency(num) { return Number(num || 0).toLocaleString('vi-VN') + ' đ'; }
@@ -1515,7 +1557,7 @@
     $('#tenCuaHang').textContent = d.ten_cua_hang || '(Không có tên)';
     $('#codeBadge').textContent = d.code_tu;
     $('#diaChi').textContent = d.dia_chi || '—';
-    $('#soDienThoai').textContent = d.so_dien_thoai || '—';
+    setPhone_($('#soDienThoai'), d.so_dien_thoai);
     setDateText($('#ngayLapDat'), d.ngay_lap_dat, d.ngay_lap_dat_loi);
     $('#loaiTu').textContent = d.loai_tu || '—';
     $('#nhanHieu').textContent = d.nhan_hieu || '—';
@@ -1573,7 +1615,7 @@
         }
         var phoneEl = document.createElement('span');
         phoneEl.className = 'gsbh-phone';
-        phoneEl.textContent = g.soDienThoai || '—';
+        setPhone_(phoneEl, g.soDienThoai);
         row.appendChild(nameEl);
         row.appendChild(phoneEl);
         gsbhEl.appendChild(row);
@@ -1913,6 +1955,33 @@
   }
 
   function applyDeviceFilters() { loadDeviceList(1); }
+
+
+  /* ===== "Xóa lọc" chỉ hiện khi đang lọc khác mặc định (đồng bộ cách làm của TH truemart) =====
+     Đọc thẳng trạng thái trên giao diện: thẻ khu vực khác "Toàn quốc", ô chọn khác "Tất cả", ô ngày /
+     ô mã có chữ. Mọi thao tác trong trang (chọn, gõ, bấm thẻ, Xóa lọc) đều cập nhật lại nút. */
+  var CLEAR_GROUPS_ = [
+    { btn: 'dashClearBtn', region: 'regionTabs', fields: ['filterNcc', 'filterTuNgay', 'filterDenNgay'] },
+    { btn: 'deviceClearBtn', region: 'deviceRegionTabs', fields: ['deviceFilterNpp', 'deviceFilterLoai', 'deviceFilterNhanHieu', 'deviceFilterBaoHanh', 'deviceSearchInput'] },
+    { btn: 'rawClearBtn', region: 'rawRegionTabs', fields: ['rawFilterNcc', 'rawFilterTuNgay', 'rawFilterDenNgay', 'rawCodeInput'] }
+  ];
+  function refreshClearBtns_() {
+    CLEAR_GROUPS_.forEach(function (g) {
+      var b = document.getElementById(g.btn); if (!b) return;
+      var reg = document.getElementById(g.region), act = reg ? reg.querySelector('.active') : null;
+      var on = !!(act && act.getAttribute('data-region') && act.getAttribute('data-region') !== 'toanquoc');
+      g.fields.forEach(function (id) { var el = document.getElementById(id); if (el && String(el.value || '').trim()) on = true; });
+      (b.closest('.filter-item') || b).style.display = on ? '' : 'none';
+    });
+    // Ô chọn có độ rộng cố định: rê chuột vào là thấy đủ tên đang chọn
+    Array.prototype.forEach.call(document.querySelectorAll('.filter-item select'), function (sel) {
+      var o = sel.options[sel.selectedIndex]; sel.title = o ? o.text : '';
+    });
+  }
+  ['change', 'input', 'click'].forEach(function (ev) {
+    document.addEventListener(ev, function () { setTimeout(refreshClearBtns_, 0); }, true);
+  });
+  setTimeout(refreshClearBtns_, 0);
 
   function resetDeviceFilters() {
     $('#deviceSearchInput').value = '';

@@ -536,6 +536,8 @@
      đẩy "Lọc" / "Xóa lọc" xuống hàng. Tên dài hiện "…", rê chuột vào ô vẫn xem được đủ. */
   /* ===================== GSBH ===================== */
   .gs-table td{ vertical-align:top; }
+  /* Không còn dữ liệu P&C (đã bỏ cột trong Sheet) -> ẩn cả cột P&C của bảng */
+  .gs-table.no-pc .gs-pc{ display:none; }
   .gs-table tr.gs-group td{ background:#F3F8FC; border-top:1px solid var(--border); padding:10px 12px; }
   .gs-group-head{ display:flex; align-items:center; flex-wrap:wrap; gap:6px 18px; }
   .gs-group-title{ display:inline-flex; align-items:center; gap:8px; font-weight:800; color:var(--brand-900); font-size:13.5px; }
@@ -1214,7 +1216,7 @@
               <label>Miền</label>
               <select id="gsbhMien" onchange="renderGsbh()"><option value="">Tất cả</option></select>
             </div>
-            <div class="filter-item">
+            <div class="filter-item" id="gsbhPcItem">
               <label>P&amp;C phụ trách</label>
               <select id="gsbhPc" onchange="renderGsbh()"><option value="">Tất cả</option></select>
             </div>
@@ -1238,7 +1240,7 @@
           </div>
           <div class="table-wrap">
             <table class="gs-table">
-              <thead><tr><th>Mã NPP</th><th>Nhà phân phối</th><th>Tỉnh/TP</th><th id="gsbhPeopleHead">GSBH / KAE / KASUP</th><th>Số điện thoại</th><th>Email</th><th>P&amp;C phụ trách</th></tr></thead>
+              <thead><tr><th>Mã NPP</th><th>Nhà phân phối</th><th>Tỉnh/TP</th><th id="gsbhPeopleHead">GSBH / KAE / KASUP</th><th>Số điện thoại</th><th>Email</th><th class="gs-pc">P&amp;C phụ trách</th></tr></thead>
               <tbody id="gsbhBody"></tbody>
             </table>
           </div>
@@ -1689,10 +1691,10 @@
     // P&C phụ trách
     var pcEl = $('#pcPhuTrach');
     pcEl.innerHTML = '';
+    // Không có P&C (cột "P&C phụ trách" đã bỏ khỏi Sheet hoặc NPP này để trống) -> ẩn hẳn cả mục
+    pcEl.parentNode.style.display = (res.pc_list && res.pc_list.length) ? '' : 'none';
     if (!res.pc_list || res.pc_list.length === 0) {
-      var p0 = document.createElement('span');
-      p0.className = 'muted-text'; p0.textContent = 'Chưa có thông tin';
-      pcEl.appendChild(p0);
+      // để trống: mục đã ẩn
     } else {
       res.pc_list.forEach(function (pc) {
         var span = document.createElement('span');
@@ -2067,6 +2069,11 @@
           el.value = list.indexOf(cur) > -1 ? cur : '';
         };
         fill('#gsbhMien', gsbhData.mienList || []); fill('#gsbhPc', gsbhData.pcList || []);
+        // Không còn P&C nào trong dữ liệu -> ẩn ô lọc + cột P&C (thêm lại cột vào Sheet thì tự hiện lại)
+        var hasPc = (gsbhData.pcList || []).length > 0;
+        $('#gsbhPcItem').style.display = hasPc ? '' : 'none';
+        if (!hasPc) $('#gsbhPc').value = '';
+        document.querySelector('.gs-table').classList.toggle('no-pc', !hasPc);
         renderGsbh();
       })
       .withFailureHandler(function (err) { $('#gsbhBody').innerHTML = ''; showToast('Lỗi: ' + err.message, 'error'); })
@@ -2128,7 +2135,7 @@
           }).join('') + '</div></td>' +
           '<td><div class="gs-lines ph">' + n.nguoi.map(function (p) { return '<div>' + gsEsc_(p.sdt || '—') + '</div>'; }).join('') + '</div></td>' +
           '<td><div class="gs-lines mail">' + n.nguoi.map(function (p) { return '<div>' + gsEsc_(p.email || '—') + '</div>'; }).join('') + '</div></td>' +
-          '<td>' + n.pc.map(function (v) { return '<span class="pc-badge">' + gsEsc_(v) + '</span>'; }).join('') + '</td></tr>');
+          '<td class="gs-pc">' + n.pc.map(function (v) { return '<span class="pc-badge">' + gsEsc_(v) + '</span>'; }).join('') + '</td></tr>');
       });
     });
     $('#gsbhBody').innerHTML = html.join('');
@@ -2146,18 +2153,19 @@
     loadXlsxLib_(function () {
       try {
         var XL = window.XLSX, join = function (arr, k) { return arr.map(function (p) { return p[k]; }).join('\n'); };
-        var aoa = [['Kênh', 'Miền', 'Khu vực', 'Mã NPP', 'Nhà phân phối', 'Tên đầy đủ', 'Địa chỉ kho NPP', 'Tỉnh/TP', 'Vị trí', 'GSBH / KAE / KASUP', 'SĐT', 'Email', 'ASM / KAM', 'SĐT ASM / KAM', 'SM / NKAM', 'SĐT SM / NKAM', 'P&C phụ trách']];
+        var hasPc = (gsbhData.pcList || []).length > 0;   // không còn P&C -> bỏ cột này khỏi file Excel
+        var aoa = [['Kênh', 'Miền', 'Khu vực', 'Mã NPP', 'Nhà phân phối', 'Tên đầy đủ', 'Địa chỉ kho NPP', 'Tỉnh/TP', 'Vị trí', 'GSBH / KAE / KASUP', 'SĐT', 'Email', 'ASM / KAM', 'SĐT ASM / KAM', 'SM / NKAM', 'SĐT SM / NKAM'].concat(hasPc ? ['P&C phụ trách'] : [])];
         list.forEach(function (x) {
           var g = x.g;
           var lv1 = g.quanLy.filter(function (p) { return p.role === 'ASM' || p.role === 'KAM'; });
           var lv2 = g.quanLy.filter(function (p) { return p.role === 'SM' || p.role === 'NKAM'; });
           x.npps.forEach(function (n) {
             aoa.push([g.kenh, g.mien, g.khuVuc, n.maNpp, n.tenNpp, n.tenDayDu || '', n.kho || '', n.tinh, join(n.nguoi, 'role'), join(n.nguoi, 'ten'), join(n.nguoi, 'sdt'), join(n.nguoi, 'email'),
-              join(lv1, 'ten'), join(lv1, 'sdt'), join(lv2, 'ten'), join(lv2, 'sdt'), n.pc.join('\n')]);
+              join(lv1, 'ten'), join(lv1, 'sdt'), join(lv2, 'ten'), join(lv2, 'sdt')].concat(hasPc ? [n.pc.join('\n')] : []));
           });
         });
         var ws = XL.utils.aoa_to_sheet(aoa);
-        ws['!cols'] = [6, 7, 9, 12, 22, 40, 44, 14, 8, 24, 13, 26, 22, 13, 22, 13, 18].map(function (w) { return { wch: w }; });
+        ws['!cols'] = [6, 7, 9, 12, 22, 40, 44, 14, 8, 24, 13, 26, 22, 13, 22, 13].concat(hasPc ? [18] : []).map(function (w) { return { wch: w }; });
         var wb = XL.utils.book_new(); XL.utils.book_append_sheet(wb, ws, 'GSBH');
         downloadXlsx_(XL, wb, 'GSBH_' + todayStamp_() + '.xlsx');
       } catch (e) { showToast('Không xuất được file Excel: ' + e.message, 'error'); }

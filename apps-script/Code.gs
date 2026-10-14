@@ -131,6 +131,17 @@ function labelKey_(s) {
 }
 
 /**
+ * Lọc theo loại / nhãn hiệu. Giá trị đặc biệt "__blank__" = thanh "Khác" trên biểu đồ Dashboard:
+ * biểu đồ gom dòng ĐỂ TRỐNG loại/nhãn (và dòng ghi đúng chữ "Khác") vào một thanh, nên lọc cũng
+ * phải ra đúng nhóm đó. Trước đây lọc theo chữ "Khác" -> danh sách ra 0 thiết bị.
+ */
+function labelMatchesFilter_(raw, filterKey) {
+  var k = labelKey_(raw);
+  if (filterKey === '__blank__') return !k || k === 'khac';
+  return k === filterKey;
+}
+
+/**
  * Cộng dồn một giá trị vào nhóm nhãn tương ứng trong "store".
  *
  * store[key] = {
@@ -1711,8 +1722,8 @@ function getDanhSachThietBiPageData(params) {
 
       if (mienFilter && regionKeyFromVung(r[LS.VUNG]) !== mienFilter) continue;
       if (nppFilterKey && labelKey_(npp) !== nppFilterKey) continue;
-      if (loaiFilterKey && labelKey_(r[LS.LOAITU]) !== loaiFilterKey) continue;
-      if (nhanHieuFilterKey && labelKey_(r[LS.NHANHIEU]) !== nhanHieuFilterKey) continue;
+      if (loaiFilterKey && !labelMatchesFilter_(r[LS.LOAITU], loaiFilterKey)) continue;
+      if (nhanHieuFilterKey && !labelMatchesFilter_(r[LS.NHANHIEU], nhanHieuFilterKey)) continue;
 
       var tinhTrangBaoHanh = 'Không xác định';
       var dLapDat = parseDateSafe(r[LS.NGAYLAP]);

@@ -1993,7 +1993,11 @@
     reloadDeviceFilterOptions(function () { loadDeviceList(1); });
   }
 
+  /* Bấm nhanh nhiều lần thì kết quả của lần cũ có thể về SAU lần mới và đè lên -> mỗi lần gọi
+     đánh số, kết quả nào không phải của lần gọi mới nhất thì bỏ. */
+  var deviceOptReqId_ = 0, deviceListReqId_ = 0;
   function reloadDeviceFilterOptions(callback) {
+    var reqId = ++deviceOptReqId_;
     var nppSelect = $('#deviceFilterNpp');
     var loaiSelect = $('#deviceFilterLoai');
     var nhSelect = $('#deviceFilterNhanHieu');
@@ -2001,6 +2005,7 @@
 
     google.script.run
       .withSuccessHandler(function (res) {
+        if (reqId !== deviceOptReqId_) return;
         nppSelect.innerHTML = '<option value="">Tất cả</option>';
         loaiSelect.innerHTML = '<option value="">Tất cả</option>';
         nhSelect.innerHTML = '<option value="">Tất cả</option>';
@@ -2012,9 +2017,12 @@
         nppSelect.value = (res.nppList || []).indexOf(prevNpp) !== -1 ? prevNpp : '';
         loaiSelect.value = (res.loaiList || []).indexOf(prevLoai) !== -1 ? prevLoai : '';
         nhSelect.value = (res.nhanHieuList || []).indexOf(prevNh) !== -1 ? prevNh : '';
+        // Đang lọc "Khác (để trống)" thì giữ lại sau khi nạp lại danh sách
+        if (prevLoai === DEVICE_BLANK_FILTER_) { ensureBlankFilterOption_(loaiSelect); loaiSelect.value = prevLoai; }
+        if (prevNh === DEVICE_BLANK_FILTER_) { ensureBlankFilterOption_(nhSelect); nhSelect.value = prevNh; }
         if (callback) callback();
       })
-      .withFailureHandler(function (err) { console.error(err); if (callback) callback(); })
+      .withFailureHandler(function (err) { if (reqId !== deviceOptReqId_) return; console.error(err); if (callback) callback(); })
       .getDanhSachThietBiFilterOptions({ mien: deviceCurrentRegion });
   }
 
@@ -2199,6 +2207,7 @@
   }
 
   function loadDeviceList(page) {
+    var reqId = ++deviceListReqId_;
     deviceCurrentPage = page || 1;
     $('#deviceListBody').innerHTML = skelTableRows(10, 6);
     $('#deviceListEmptyNote').style.display = 'none';
@@ -2209,10 +2218,11 @@
 
     google.script.run
       .withSuccessHandler(function (res) {
+        if (reqId !== deviceListReqId_) return;
         if (!res.success) { $('#deviceListBody').innerHTML = ''; showToast(res.message, 'error'); return; }
         renderDeviceList(res);
       })
-      .withFailureHandler(function (err) { $('#deviceListBody').innerHTML = ''; showToast('Lỗi: ' + err.message, 'error'); })
+      .withFailureHandler(function (err) { if (reqId !== deviceListReqId_) return; $('#deviceListBody').innerHTML = ''; showToast('Lỗi: ' + err.message, 'error'); })
       .getDanhSachThietBiPageData(filters);
   }
 
@@ -2257,12 +2267,23 @@
     $('#devicePaginationBottom').innerHTML = html;
   }
 
-  /** Từ Dashboard: bấm 1 loại thiết bị trên biểu đồ -> mở Danh sách thiết bị đã lọc theo loại đó */
-  function goToDeviceListByType(loaiTu) {
+  /** Từ Dashboard: bấm 1 loại / 1 nhãn hiệu trên biểu đồ -> mở Danh sách thiết bị CHỈ lọc theo đúng mục đó.
+   *  Xoá sạch bộ lọc cũ trước: trước đây chỉ đặt 1 ô và giữ nguyên các ô khác, nên bấm "loại" rồi bấm
+   *  "nhãn hiệu" là lọc cả hai cùng lúc -> danh sách thường ra 0 thiết bị.
+   *  Thanh "Khác" = thiết bị để trống loại/nhãn hiệu -> lọc bằng giá trị đặc biệt DEVICE_BLANK_FILTER_. */
+  var DEVICE_BLANK_FILTER_ = '__blank__';
+  function ensureBlankFilterOption_(sel) {
+    if (sel.querySelector('option[value="' + DEVICE_BLANK_FILTER_ + '"]')) return;
+    var o = document.createElement('option');
+    o.value = DEVICE_BLANK_FILTER_; o.textContent = 'Khác (để trống)';
+    sel.appendChild(o);
+  }
+  function goToDeviceListByChart_(selectId, label) {
     deviceListLoadedOnce = true;
     var dashFilters = getCurrentFilters();
 
-    $('#deviceSearchInput').value = '';
+    ['#deviceSearchInput', '#deviceFilterNpp', '#deviceFilterLoai', '#deviceFilterNhanHieu', '#deviceFilterBaoHanh']
+      .forEach(function (id) { $(id).value = ''; });
     deviceCurrentRegion = dashFilters.mien || 'toanquoc';
     $all('#deviceRegionTabs .region-tab').forEach(function (t) { t.classList.remove('active'); });
     $('#deviceRegionTabs .region-tab[data-region="' + deviceCurrentRegion + '"]').classList.add('active');
@@ -2270,28 +2291,14 @@
     switchPage('devicelist');
 
     reloadDeviceFilterOptions(function () {
-      $('#deviceFilterLoai').value = loaiTu || '';
+      var sel = $(selectId);
+      if (label === 'Khác') { ensureBlankFilterOption_(sel); sel.value = DEVICE_BLANK_FILTER_; }
+      else sel.value = label || '';
       loadDeviceList(1);
     });
   }
-
-  /** Từ Dashboard: bấm 1 nhãn hiệu trên biểu đồ -> mở Danh sách thiết bị đã lọc theo nhãn hiệu đó */
-  function goToDeviceListByBrand(nhanHieu) {
-    deviceListLoadedOnce = true;
-    var dashFilters = getCurrentFilters();
-
-    $('#deviceSearchInput').value = '';
-    deviceCurrentRegion = dashFilters.mien || 'toanquoc';
-    $all('#deviceRegionTabs .region-tab').forEach(function (t) { t.classList.remove('active'); });
-    $('#deviceRegionTabs .region-tab[data-region="' + deviceCurrentRegion + '"]').classList.add('active');
-
-    switchPage('devicelist');
-
-    reloadDeviceFilterOptions(function () {
-      $('#deviceFilterNhanHieu').value = nhanHieu || '';
-      loadDeviceList(1);
-    });
-  }
+  function goToDeviceListByType(loaiTu) { goToDeviceListByChart_('#deviceFilterLoai', loaiTu); }
+  function goToDeviceListByBrand(nhanHieu) { goToDeviceListByChart_('#deviceFilterNhanHieu', nhanHieu); }
 
   /* ===================== ĐƠN GIÁ (Bảo trì / Xây dựng / Sanaky) ===================== */
   // "cls" tái dùng class màu cho cả tiêu đề cột (th) và dữ liệu (td).

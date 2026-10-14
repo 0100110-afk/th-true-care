@@ -94,7 +94,7 @@ var CareCore = (function () {
   var TL = { CODE: 0, THANHLY: 1, DIENGIAI: 2, ROW: 3 };
   // 7 trường đầu GIỮ ĐÚNG VỊ TRÍ như bản ghi sheet GSBH cũ (bản app cũ đọc dữ liệu mới vẫn đúng);
   // các trường mới nối thêm phía sau. Dòng quản lý (ASM/SM/KAM/NKAM) có MANPP rỗng.
-  var GS = { MANPP: 0, TENNPP: 1, HOTEN: 2, EMAIL: 3, SDT: 4, PC: 5, ROW: 6, KENH: 7, MIEN: 8, KV: 9, VITRI: 10, TINH: 11 };
+  var GS = { MANPP: 0, TENNPP: 1, HOTEN: 2, EMAIL: 3, SDT: 4, PC: 5, ROW: 6, KENH: 7, MIEN: 8, KV: 9, VITRI: 10, TINH: 11, TENDAYDU: 12, KHO: 13 };
   var GS_MANAGER_ROLES = { ASM: true, SM: true, KAM: true, NKAM: true };
 
 
@@ -723,9 +723,9 @@ var CareCore = (function () {
   function getGsbhDirectory() {
     var records = getGsbhRecords();
     function people(r) {
-      var names = splitMultiLine(r[GS.HOTEN]), phones = splitMultiLine(r[GS.SDT]), out = [];
+      var names = splitMultiLine(r[GS.HOTEN]), phones = splitMultiLine(r[GS.SDT]), mails = splitMultiLine(r[GS.EMAIL]), out = [];
       for (var i = 0; i < Math.max(names.length, phones.length); i++) {
-        out.push({ role: r[GS.VITRI] || 'GSBH', ten: names[i] || '', sdt: phones[i] ? formatPhone(phones[i]) : '' });
+        out.push({ role: r[GS.VITRI] || 'GSBH', ten: names[i] || '', sdt: phones[i] ? formatPhone(phones[i]) : '', email: mails[i] || '' });
       }
       return out;
     }
@@ -753,7 +753,8 @@ var CareCore = (function () {
       }
       var n = g._n[r[GS.MANPP]];
       if (!n) {
-        n = g._n[r[GS.MANPP]] = { maNpp: r[GS.MANPP], tenNpp: r[GS.TENNPP], tinh: r[GS.TINH] || '', nguoi: [], pc: [], _p: {} };
+        n = g._n[r[GS.MANPP]] = { maNpp: r[GS.MANPP], tenNpp: r[GS.TENNPP], tenDayDu: r[GS.TENDAYDU] || '', kho: r[GS.KHO] || '',
+          tinh: r[GS.TINH] || '', nguoi: [], pc: [], _p: {} };
         g.npps.push(n);
       }
       people(r).forEach(function (p) {

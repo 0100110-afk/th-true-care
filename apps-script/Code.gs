@@ -84,7 +84,7 @@ var LS = { CODE: 0, TEN: 1, DIACHI: 2, SDT: 3, LOAITU: 4, NGAYLAP: 5, NHANHIEU: 
 var TL = { CODE: 0, THANHLY: 1, DIENGIAI: 2, ROW: 3 };
 // 7 trường đầu GIỮ ĐÚNG VỊ TRÍ như bản ghi sheet GSBH cũ (bản app cũ đọc dữ liệu mới vẫn đúng);
 // các trường mới nối thêm phía sau. Dòng quản lý (ASM/SM/KAM/NKAM) có MANPP rỗng.
-var GS = { MANPP: 0, TENNPP: 1, HOTEN: 2, EMAIL: 3, SDT: 4, PC: 5, ROW: 6, KENH: 7, MIEN: 8, KV: 9, VITRI: 10, TINH: 11 };
+var GS = { MANPP: 0, TENNPP: 1, HOTEN: 2, EMAIL: 3, SDT: 4, PC: 5, ROW: 6, KENH: 7, MIEN: 8, KV: 9, VITRI: 10, TINH: 11, TENDAYDU: 12, KHO: 13 };
 var GS_MANAGER_ROLES = { ASM: true, SM: true, KAM: true, NKAM: true };
 
 function doGet(e) {
@@ -937,21 +937,46 @@ function rebuildGsbhRecords() {
     return function (row, names) {
       for (var n = 0; n < names.length; n++) {
         var i = map[names[n]];
-        if (i !== undefined) { var v = row[i]; return (v === null || v === undefined) ? '' : String(v).trim(); }
+        if (i !== undefined) {
+          var v = row[i];
+          v = (v === null || v === undefined) ? '' : String(v).trim();
+          // Ô công thức lỗi (#REF!, #N/A, #VALUE!...) coi như trống, không đưa lên app
+          return /^#(REF!|N\/A|VALUE!|NAME\?|DIV\/0!|NULL!|NUM!|ERROR!)/i.test(v) ? '' : v;
+        }
       }
       return '';
     };
   }
 
+  /* Tìm tab theo tên chuẩn; không có thì theo MẪU tên (bỏ dấu/khoảng trắng): "ASMSM GT", "ASM GT",
+     "ASM-SM GT"... đều nhận. isGsbh: tab bắt đầu bằng "gsbh"; ngược lại tab bắt đầu bằng "asm". */
+  function findSheet(name, kenh, isGsbh) {
+    var sh = ss.getSheetByName(name);
+    if (sh) return sh;
+    var want = kenh.toLowerCase(), all = ss.getSheets();
+    for (var k = 0; k < all.length; k++) {
+      var n = removeDiacritics(all[k].getName()).toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (n.slice(-2) !== want) continue;
+      if (isGsbh ? /^gsbh/.test(n) : /^asm/.test(n)) return all[k];
+    }
+    return null;
+  }
+
   /* kenh: 'GT' | 'KA'. isGsbh: sheet GSBH (có fill-down NPP cho dòng để trống Mã NPP). */
   function readSheet(name, kenh, isGsbh) {
-    var sheet = ss.getSheetByName(name);
+    var sheet = findSheet(name, kenh, isGsbh);
     if (!sheet) return;
     var data = sheet.getDataRange().getValues();
     if (data.length < 2) return;
-    var col = headerFinder(data[0]);
+    // Dòng tiêu đề = dòng đầu tiên (trong 5 dòng đầu) có cả "Vị trí" và "Họ & Tên" -> chịu được dòng tiêu đề phụ phía trên
+    var h = 0;
+    for (var t = 0; t < Math.min(5, data.length); t++) {
+      var keys = data[t].map(function (x) { return removeDiacritics(String(x || '')).toLowerCase().replace(/[^a-z0-9&]/g, ''); });
+      if (keys.indexOf('vitri') > -1 && (keys.indexOf('ho&ten') > -1 || keys.indexOf('hoten') > -1)) { h = t; break; }
+    }
+    var col = headerFinder(data[h]);
     var cur = null;   // NPP đang mở (chỉ dùng cho sheet GSBH)
-    for (var i = 1; i < data.length; i++) {
+    for (var i = h + 1; i < data.length; i++) {
       var row = data[i];
       var ten = col(row, ['ho&ten', 'hoten', 'hotengsbh']);
       var ma = normalizeCode(col(row, ['manpp']));
@@ -961,17 +986,19 @@ function rebuildGsbhRecords() {
       if (isGsbh) {
         if (ma) {
           cur = { ma: ma, ten: col(row, ['tenrutgon']) || col(row, ['tennpp']), tinh: col(row, ['tinhtp', 'tinh']),
-                  mien: mien, kv: kv, pc: col(row, ['p&cphutrach', 'p&c']) };
+                  mien: mien, kv: kv, pc: col(row, ['p&cphutrach', 'p&c']),
+                  tenDayDu: col(row, ['tennpp']), kho: col(row, ['diachikhonpp', 'diachikho']) };
         } else if (!cur) {
           continue;   // dòng người mà chưa có NPP nào phía trên -> bỏ
         }
         records.push([cur.ma, cur.ten, ten, col(row, ['diachimail', 'email']), col(row, ['sodienthoai']),
           ma ? cur.pc : (col(row, ['p&cphutrach', 'p&c']) || cur.pc), i + 1,
-          kenh, ma ? cur.mien : (mien || cur.mien), ma ? cur.kv : (kv || cur.kv), viTri || (kenh === 'GT' ? 'GSBH' : 'KAE'), cur.tinh]);
+          kenh, ma ? cur.mien : (mien || cur.mien), ma ? cur.kv : (kv || cur.kv), viTri || (kenh === 'GT' ? 'GSBH' : 'KAE'), cur.tinh,
+          cur.tenDayDu, cur.kho]);
       } else {
         if (!ten) continue;
         records.push(['', '', ten, col(row, ['diachimail', 'email']), col(row, ['sodienthoai']), '', i + 1,
-          kenh, mien, kv, viTri, '']);
+          kenh, mien, kv, viTri, '', '', '']);
       }
     }
   }
@@ -1382,9 +1409,9 @@ function findGsbhByMaNpp(maNpp) {
 function getGsbhDirectory() {
   var records = getGsbhRecords();
   function people(r) {
-    var names = splitMultiLine(r[GS.HOTEN]), phones = splitMultiLine(r[GS.SDT]), out = [];
+    var names = splitMultiLine(r[GS.HOTEN]), phones = splitMultiLine(r[GS.SDT]), mails = splitMultiLine(r[GS.EMAIL]), out = [];
     for (var i = 0; i < Math.max(names.length, phones.length); i++) {
-      out.push({ role: r[GS.VITRI] || 'GSBH', ten: names[i] || '', sdt: phones[i] ? formatPhone(phones[i]) : '' });
+      out.push({ role: r[GS.VITRI] || 'GSBH', ten: names[i] || '', sdt: phones[i] ? formatPhone(phones[i]) : '', email: mails[i] || '' });
     }
     return out;
   }
@@ -1412,7 +1439,8 @@ function getGsbhDirectory() {
     }
     var n = g._n[r[GS.MANPP]];
     if (!n) {
-      n = g._n[r[GS.MANPP]] = { maNpp: r[GS.MANPP], tenNpp: r[GS.TENNPP], tinh: r[GS.TINH] || '', nguoi: [], pc: [], _p: {} };
+      n = g._n[r[GS.MANPP]] = { maNpp: r[GS.MANPP], tenNpp: r[GS.TENNPP], tenDayDu: r[GS.TENDAYDU] || '', kho: r[GS.KHO] || '',
+        tinh: r[GS.TINH] || '', nguoi: [], pc: [], _p: {} };
       g.npps.push(n);
     }
     people(r).forEach(function (p) {

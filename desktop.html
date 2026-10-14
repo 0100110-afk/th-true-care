@@ -553,7 +553,9 @@
   .gs-tag.SM, .gs-tag.NKAM{ background:#F2ECFB; color:#6B3FA0; }
   .gs-lines > div{ min-height:22px; display:flex; align-items:center; gap:6px; white-space:nowrap; }
   .gs-lines.ph > div{ font-variant-numeric:tabular-nums; color:var(--ink-700, #3A4B57); }
-  .gs-npp-name{ font-weight:700; color:var(--brand-900); }
+  .gs-npp-name{ font-weight:700; color:var(--brand-900); cursor:help; }
+  .gs-npp-kho{ font-size:11.5px; color:var(--ink-500); margin-top:3px; line-height:1.4; max-width:320px; white-space:normal; }
+  .gs-lines.mail > div{ color:var(--ink-500); font-size:12.5px; }
   .gs-sum{ display:inline-flex; gap:8px; margin-right:6px; }
   .gs-sum span{ background:#F3F7FB; border:1px solid var(--border); border-radius:999px; padding:4px 11px; font-size:12px; color:var(--ink-500); }
   .gs-sum b{ color:var(--brand-900); }
@@ -563,8 +565,13 @@
   .gs-dev-row{ display:flex; align-items:center; gap:10px; padding:4px 0; font-size:13.5px; }
   .gs-dev-row .nm{ font-weight:600; min-width:170px; }
   .gs-dev-row .ph{ color:var(--ink-500); font-variant-numeric:tabular-nums; }
-  .filter-item:has(> select){ flex:1 1 130px; min-width:110px; }
-  .filter-item:has(> #filterNcc), .filter-item:has(> #rawFilterNcc), .filter-item:has(> #deviceFilterNpp){ flex-grow:1.8; }
+  /* Không còn nút Lọc/Áp dụng: các ô có độ rộng CỐ ĐỊNH (không giãn hết dòng, không phình theo tên dài),
+     khoảng cách rộng hơn; phần cuối dòng để trống. Ô NCC (Tổng quan, Dữ liệu chi phí) = ô NPP. */
+  .filter-bar{ gap:12px 16px; }
+  /* Màn đủ rộng: giữ 1 hàng, các ô tự co lại (flex-shrink) thay vì rớt xuống hàng 2 */
+  @media (min-width:1100px){ #page-devicelist .filter-bar, #page-rawdata .filter-bar{ flex-wrap:nowrap; } }
+  .filter-item:has(> select){ flex:0 1 170px; min-width:120px; }
+  .filter-item:has(> #filterNcc), .filter-item:has(> #rawFilterNcc), .filter-item:has(> #deviceFilterNpp){ flex-basis:250px; min-width:170px; }
   .filter-item > select{ width:100%; min-width:0; text-overflow:ellipsis; white-space:nowrap; overflow:hidden; }
   .filter-item input[type="date"]{ width:150px; }
   .filter-item input:focus, .filter-item select:focus{ border-color:var(--brand-700); background:#fff; }
@@ -755,13 +762,13 @@
         <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg></span>
         <span class="label">Dữ liệu chi phí</span>
       </button>
-      <button class="nav-item" type="button" data-page="dongia" data-tooltip="Đơn giá">
-        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.24L4 3a1 1 0 0 0-1 1l.24 5.59a2 2 0 0 0 .59 1.41l9.58 9.58a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.82z"></path><line x1="7.5" y1="7.5" x2="7.51" y2="7.5"></line></svg></span>
-        <span class="label">Đơn giá</span>
-      </button>
       <button class="nav-item" type="button" data-page="gsbh" data-tooltip="GSBH">
         <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
         <span class="label">GSBH</span>
+      </button>
+      <button class="nav-item" type="button" data-page="dongia" data-tooltip="Đơn giá">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.24L4 3a1 1 0 0 0-1 1l.24 5.59a2 2 0 0 0 .59 1.41l9.58 9.58a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.82z"></path><line x1="7.5" y1="7.5" x2="7.51" y2="7.5"></line></svg></span>
+        <span class="label">Đơn giá</span>
       </button>
     </nav>
 
@@ -825,9 +832,6 @@
             <div class="filter-item">
               <label>Đến ngày</label>
               <input type="date" id="filterDenNgay">
-            </div>
-            <div class="filter-item btn-slot">
-              <button class="btn" type="button" onclick="applyFilters()">Áp dụng</button>
             </div>
             <div class="filter-item btn-slot">
               <button class="btn secondary" type="button" id="dashClearBtn" onclick="resetFilters()">Xóa lọc</button>
@@ -1051,9 +1055,6 @@
               </select>
             </div>
             <div class="filter-item btn-slot">
-              <button class="btn" type="button" onclick="applyDeviceFilters()">Lọc</button>
-            </div>
-            <div class="filter-item btn-slot">
               <button class="btn secondary" type="button" id="deviceClearBtn" onclick="resetDeviceFilters()">Xóa lọc</button>
             </div>
           </div>
@@ -1118,9 +1119,6 @@
             <div class="filter-item">
               <label>Đến ngày</label>
               <input type="date" id="rawFilterDenNgay">
-            </div>
-            <div class="filter-item btn-slot">
-              <button class="btn" type="button" onclick="applyRawFilters()">Lọc</button>
             </div>
             <div class="filter-item btn-slot">
               <button class="btn secondary" type="button" id="rawClearBtn" onclick="resetRawFilters()">Xóa lọc</button>
@@ -1208,9 +1206,9 @@
               <label>P&amp;C phụ trách</label>
               <select id="gsbhPc" onchange="renderGsbh()"><option value="">Tất cả</option></select>
             </div>
-            <div class="filter-item" style="flex:2 1 260px;">
+            <div class="filter-item">
               <label>Tìm kiếm</label>
-              <input type="text" id="gsbhSearch" placeholder="Mã NPP, tên NPP, tỉnh, tên GSBH / ASM, số điện thoại..." oninput="renderGsbhDebounced()" style="width:100%;">
+              <input type="text" id="gsbhSearch" placeholder="Mã NPP, tên NPP, tên người, SĐT, email..." oninput="renderGsbhDebounced()" style="width:320px;">
             </div>
             <div class="filter-item btn-slot">
               <button class="btn secondary" type="button" id="gsbhClearBtn" onclick="resetGsbhFilters()">Xóa lọc</button>
@@ -1228,11 +1226,11 @@
           </div>
           <div class="table-wrap">
             <table class="gs-table">
-              <thead><tr><th>Mã NPP</th><th>Nhà phân phối</th><th>Tỉnh/TP</th><th>GSBH / KAE</th><th>Số điện thoại</th><th>P&amp;C phụ trách</th></tr></thead>
+              <thead><tr><th>Mã NPP</th><th>Nhà phân phối</th><th>Tỉnh/TP</th><th id="gsbhPeopleHead">GSBH / KAE / KASUP</th><th>Số điện thoại</th><th>Email</th><th>P&amp;C phụ trách</th></tr></thead>
               <tbody id="gsbhBody"></tbody>
             </table>
           </div>
-          <div class="empty-note" id="gsbhEmptyNote" style="display:none;">Không có GSBH phù hợp.</div>
+          <div class="empty-note" id="gsbhEmptyNote" style="display:none;">Không có dữ liệu phù hợp.</div>
         </div>
       </div>
 
@@ -1316,7 +1314,7 @@
     devicelist: ['Danh sách thiết bị', 'Toàn bộ danh sách thiết bị đã lắp đặt'],
     rawdata:    ['Dữ liệu chi phí', 'Toàn bộ dữ liệu chi phí sửa chữa'],
     dongia:     ['Đơn giá', 'Tra cứu đơn giá vật tư, nhân công theo mã IMC hoặc nội dung sửa chữa'],
-    gsbh:       ['GSBH', 'Danh bạ giám sát bán hàng theo nhà phân phối — GT: GSBH · ASM · SM, KA: KAE · KAM']
+    gsbh:       ['GSBH', 'Danh sách giám sát bán hàng theo nhà phân phối']
   };
 
   function switchPage(page) {
@@ -2010,6 +2008,15 @@
 
   function applyDeviceFilters() { loadDeviceList(1); }
 
+  /* Bỏ nút "Lọc" / "Áp dụng": chọn bộ lọc là lọc ngay. */
+  (function () {
+    var on = function (ids, fn) { ids.forEach(function (id) { var el = document.getElementById(id); if (el) el.addEventListener('change', function () { fn(); }); }); };
+    on(['filterNcc'], function () { applyFilters(); });
+    on(['deviceFilterNpp', 'deviceFilterLoai', 'deviceFilterNhanHieu', 'deviceFilterBaoHanh'], function () { applyDeviceFilters(); });
+    on(['rawFilterNcc', 'rawFilterTuNgay', 'rawFilterDenNgay'], function () { applyRawFilters(); });
+  })();
+
+
 
 
   /* ===================== GSBH =====================
@@ -2060,7 +2067,7 @@
     var qDigits = q.replace(/\D/g, '');
     var hit = function (txt) { return q && gsNorm_(txt).indexOf(q) > -1; };
     var hitPeople = function (list) {
-      return list.some(function (p) { return hit(p.ten) || (qDigits.length >= 3 && String(p.sdt).indexOf(qDigits) > -1); });
+      return list.some(function (p) { return hit(p.ten) || hit(p.email) || (qDigits.length >= 3 && String(p.sdt).indexOf(qDigits) > -1); });
     };
     var out = [];
     gsbhData.groups.forEach(function (g) {
@@ -2069,7 +2076,7 @@
       var npps = g.npps.filter(function (n) { return !pc || n.pc.indexOf(pc) > -1; });
       if (q) {
         var groupHit = hit(g.khuVuc) || hit(g.mien) || hitPeople(g.quanLy);
-        if (!groupHit) npps = npps.filter(function (n) { return hit(n.maNpp) || hit(n.tenNpp) || hit(n.tinh) || hitPeople(n.nguoi); });
+        if (!groupHit) npps = npps.filter(function (n) { return hit(n.maNpp) || hit(n.tenNpp) || hit(n.tenDayDu) || hit(n.tinh) || hitPeople(n.nguoi); });
       }
       if (npps.length) out.push({ g: g, npps: npps });
     });
@@ -2083,7 +2090,7 @@
       var g = x.g;
       nNpp += x.npps.length; if (g.kenh === 'KA') nKa += x.npps.length; else nGt += x.npps.length;
       var title = [g.mien, g.khuVuc].filter(Boolean).join(' · ');
-      html.push('<tr class="gs-group"><td colspan="6"><div class="gs-group-head">' +
+      html.push('<tr class="gs-group"><td colspan="7"><div class="gs-group-head">' +
         '<span class="gs-group-title"><span class="gs-kenh ' + g.kenh + '">' + g.kenh + '</span>' + gsEsc_(title) + '</span>' +
         g.quanLy.map(function (p) {
           return '<span class="gs-mgr"><span class="gs-tag ' + gsEsc_(p.role) + '">' + gsEsc_(p.role) + '</span><b>' + gsEsc_(p.ten) + '</b>' +
@@ -2091,18 +2098,21 @@
         }).join('') +
         '<span class="gs-group-count">' + x.npps.length + ' NPP</span></div></td></tr>');
       x.npps.forEach(function (n) {
-        var showTag = g.kenh === 'KA';   // GT toàn GSBH -> khỏi lặp nhãn
-        html.push('<tr><td><span class="code-link" style="cursor:default;">' + gsEsc_(n.maNpp) + '</span></td>' +
-          '<td><span class="gs-npp-name">' + gsEsc_(n.tenNpp) + '</span></td>' +
+        var full = gsEsc_(n.tenDayDu || n.tenNpp);   // rê chuột vào tên / mã NPP -> tên công ty đầy đủ
+        html.push('<tr><td><span class="code-link" style="cursor:help;" title="' + full + '">' + gsEsc_(n.maNpp) + '</span></td>' +
+          '<td><span class="gs-npp-name" title="' + full + '">' + gsEsc_(n.tenNpp) + '</span>' +
+          (n.kho ? '<div class="gs-npp-kho">' + gsEsc_(n.kho).replace(/\n/g, '<br>') + '</div>' : '') + '</td>' +
           '<td>' + gsEsc_(n.tinh || '—') + '</td>' +
           '<td><div class="gs-lines">' + n.nguoi.map(function (p) {
-            return '<div>' + (showTag ? '<span class="gs-tag ' + gsEsc_(p.role) + '">' + gsEsc_(p.role) + '</span>' : '') + gsEsc_(p.ten) + '</div>';
+            return '<div><span class="gs-tag ' + gsEsc_(p.role) + '">' + gsEsc_(p.role) + '</span>' + gsEsc_(p.ten) + '</div>';
           }).join('') + '</div></td>' +
           '<td><div class="gs-lines ph">' + n.nguoi.map(function (p) { return '<div>' + gsEsc_(p.sdt || '—') + '</div>'; }).join('') + '</div></td>' +
+          '<td><div class="gs-lines mail">' + n.nguoi.map(function (p) { return '<div>' + gsEsc_(p.email || '—') + '</div>'; }).join('') + '</div></td>' +
           '<td>' + n.pc.map(function (v) { return '<span class="pc-badge">' + gsEsc_(v) + '</span>'; }).join('') + '</td></tr>');
       });
     });
     $('#gsbhBody').innerHTML = html.join('');
+    $('#gsbhPeopleHead').textContent = gsbhKenh === 'GT' ? 'GSBH' : gsbhKenh === 'KA' ? 'KAE / KASUP' : 'GSBH / KAE / KASUP';
     $('#gsbhNppCount').textContent = formatInt(nNpp);
     $('#gsbhSummary').innerHTML = '<span>GT <b>' + nGt + '</b></span><span>KA <b>' + nKa + '</b></span>';
     $('#gsbhEmptyNote').style.display = nNpp ? 'none' : '';
@@ -2116,18 +2126,18 @@
     loadXlsxLib_(function () {
       try {
         var XL = window.XLSX, join = function (arr, k) { return arr.map(function (p) { return p[k]; }).join('\n'); };
-        var aoa = [['Kênh', 'Miền', 'Khu vực', 'Mã NPP', 'Nhà phân phối', 'Tỉnh/TP', 'GSBH / KAE', 'SĐT GSBH / KAE', 'ASM / KAM', 'SĐT ASM / KAM', 'SM / NKAM', 'SĐT SM / NKAM', 'P&C phụ trách']];
+        var aoa = [['Kênh', 'Miền', 'Khu vực', 'Mã NPP', 'Nhà phân phối', 'Tên đầy đủ', 'Địa chỉ kho NPP', 'Tỉnh/TP', 'Vị trí', 'GSBH / KAE / KASUP', 'SĐT', 'Email', 'ASM / KAM', 'SĐT ASM / KAM', 'SM / NKAM', 'SĐT SM / NKAM', 'P&C phụ trách']];
         list.forEach(function (x) {
           var g = x.g;
           var lv1 = g.quanLy.filter(function (p) { return p.role === 'ASM' || p.role === 'KAM'; });
           var lv2 = g.quanLy.filter(function (p) { return p.role === 'SM' || p.role === 'NKAM'; });
           x.npps.forEach(function (n) {
-            aoa.push([g.kenh, g.mien, g.khuVuc, n.maNpp, n.tenNpp, n.tinh, join(n.nguoi, 'ten'), join(n.nguoi, 'sdt'),
+            aoa.push([g.kenh, g.mien, g.khuVuc, n.maNpp, n.tenNpp, n.tenDayDu || '', n.kho || '', n.tinh, join(n.nguoi, 'role'), join(n.nguoi, 'ten'), join(n.nguoi, 'sdt'), join(n.nguoi, 'email'),
               join(lv1, 'ten'), join(lv1, 'sdt'), join(lv2, 'ten'), join(lv2, 'sdt'), n.pc.join('\n')]);
           });
         });
         var ws = XL.utils.aoa_to_sheet(aoa);
-        ws['!cols'] = [6, 7, 9, 12, 24, 14, 24, 14, 22, 14, 22, 14, 18].map(function (w) { return { wch: w }; });
+        ws['!cols'] = [6, 7, 9, 12, 22, 40, 44, 14, 8, 24, 13, 26, 22, 13, 22, 13, 18].map(function (w) { return { wch: w }; });
         var wb = XL.utils.book_new(); XL.utils.book_append_sheet(wb, ws, 'GSBH');
         downloadXlsx_(XL, wb, 'GSBH_' + todayStamp_() + '.xlsx');
       } catch (e) { showToast('Không xuất được file Excel: ' + e.message, 'error'); }

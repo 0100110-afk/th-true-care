@@ -75,12 +75,23 @@ function caiDatDongBoTrueCare() {
 
 function dongBoTrueCareNgay() {
   var r = csSyncAll_(false);
-  csAlert_('Đã đồng bộ.\n' + r.lines.join('\n'));
+  csAlert_('Đã đồng bộ.\n' + r.lines.join('\n') + '\n' + csGsbhSummary_());
+}
+
+/** "GSBH: 224 NPP · GSBH 190 · KAE 70 · ASM 26 · SM 6 · KAM 5 · NKAM 1" — thiếu vai trò nào là biết ngay
+ *  tab / cột nào đọc không được (tên tab, dòng tiêu đề, cột "Vị trí"). */
+function csGsbhSummary_() {
+  try {
+    var recs = csRebuildGsbhRecords(), roles = {}, npp = {};
+    recs.forEach(function (r) { roles[r[10] || '?'] = (roles[r[10] || '?'] || 0) + 1; if (r[0]) npp[r[7] + '|' + r[8] + '|' + r[0]] = 1; });
+    return 'GSBH: ' + Object.keys(npp).length + ' NPP · ' +
+      ['GSBH', 'KAE', 'KASUP', 'ASM', 'SM', 'KAM', 'NKAM'].map(function (k) { return k + ' ' + (roles[k] || 0); }).join(' · ');
+  } catch (e) { return 'GSBH: lỗi đọc sheet — ' + e.message; }
 }
 
 function xemTinhTrangTrueCare() {
   var meta = csReadMeta_();
-  var lines = ['Cập nhật lần cuối: ' + (meta.updatedAt || '(chưa có)')];
+  var lines = ['Cập nhật lần cuối: ' + (meta.updatedAt || '(chưa có)'), csGsbhSummary_()];
   Object.keys(meta.sets || {}).forEach(function (p) {
     var m = meta.sets[p];
     lines.push('- ' + p + ': ' + m.count + ' bản ghi, ' + m.hashes.length + ' mảnh');
@@ -494,21 +505,46 @@ function csRebuildGsbhRecords() {
     return function (row, names) {
       for (var n = 0; n < names.length; n++) {
         var i = map[names[n]];
-        if (i !== undefined) { var v = row[i]; return (v === null || v === undefined) ? '' : String(v).trim(); }
+        if (i !== undefined) {
+          var v = row[i];
+          v = (v === null || v === undefined) ? '' : String(v).trim();
+          // Ô công thức lỗi (#REF!, #N/A, #VALUE!...) coi như trống, không đưa lên app
+          return /^#(REF!|N\/A|VALUE!|NAME\?|DIV\/0!|NULL!|NUM!|ERROR!)/i.test(v) ? '' : v;
+        }
       }
       return '';
     };
   }
 
+  /* Tìm tab theo tên chuẩn; không có thì theo MẪU tên (bỏ dấu/khoảng trắng): "ASMSM GT", "ASM GT",
+     "ASM-SM GT"... đều nhận. isGsbh: tab bắt đầu bằng "gsbh"; ngược lại tab bắt đầu bằng "asm". */
+  function findSheet(name, kenh, isGsbh) {
+    var sh = ss.getSheetByName(name);
+    if (sh) return sh;
+    var want = kenh.toLowerCase(), all = ss.getSheets();
+    for (var k = 0; k < all.length; k++) {
+      var n = csRemoveDiacritics(all[k].getName()).toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (n.slice(-2) !== want) continue;
+      if (isGsbh ? /^gsbh/.test(n) : /^asm/.test(n)) return all[k];
+    }
+    return null;
+  }
+
   /* kenh: 'GT' | 'KA'. isGsbh: sheet GSBH (có fill-down NPP cho dòng để trống Mã NPP). */
   function readSheet(name, kenh, isGsbh) {
-    var sheet = ss.getSheetByName(name);
+    var sheet = findSheet(name, kenh, isGsbh);
     if (!sheet) return;
     var data = sheet.getDataRange().getValues();
     if (data.length < 2) return;
-    var col = headerFinder(data[0]);
+    // Dòng tiêu đề = dòng đầu tiên (trong 5 dòng đầu) có cả "Vị trí" và "Họ & Tên" -> chịu được dòng tiêu đề phụ phía trên
+    var h = 0;
+    for (var t = 0; t < Math.min(5, data.length); t++) {
+      var keys = data[t].map(function (x) { return csRemoveDiacritics(String(x || '')).toLowerCase().replace(/[^a-z0-9&]/g, ''); });
+      if (keys.indexOf('vitri') > -1 && (keys.indexOf('ho&ten') > -1 || keys.indexOf('hoten') > -1)) { h = t; break; }
+    }
+    var col = headerFinder(data[h]);
     var cur = null;   // NPP đang mở (chỉ dùng cho sheet GSBH)
-    for (var i = 1; i < data.length; i++) {
+    for (var i = h + 1; i < data.length; i++) {
       var row = data[i];
       var ten = col(row, ['ho&ten', 'hoten', 'hotengsbh']);
       var ma = csNormalizeCode(col(row, ['manpp']));
@@ -518,17 +554,19 @@ function csRebuildGsbhRecords() {
       if (isGsbh) {
         if (ma) {
           cur = { ma: ma, ten: col(row, ['tenrutgon']) || col(row, ['tennpp']), tinh: col(row, ['tinhtp', 'tinh']),
-                  mien: mien, kv: kv, pc: col(row, ['p&cphutrach', 'p&c']) };
+                  mien: mien, kv: kv, pc: col(row, ['p&cphutrach', 'p&c']),
+                  tenDayDu: col(row, ['tennpp']), kho: col(row, ['diachikhonpp', 'diachikho']) };
         } else if (!cur) {
           continue;   // dòng người mà chưa có NPP nào phía trên -> bỏ
         }
         records.push([cur.ma, cur.ten, ten, col(row, ['diachimail', 'email']), col(row, ['sodienthoai']),
           ma ? cur.pc : (col(row, ['p&cphutrach', 'p&c']) || cur.pc), i + 1,
-          kenh, ma ? cur.mien : (mien || cur.mien), ma ? cur.kv : (kv || cur.kv), viTri || (kenh === 'GT' ? 'GSBH' : 'KAE'), cur.tinh]);
+          kenh, ma ? cur.mien : (mien || cur.mien), ma ? cur.kv : (kv || cur.kv), viTri || (kenh === 'GT' ? 'GSBH' : 'KAE'), cur.tinh,
+          cur.tenDayDu, cur.kho]);
       } else {
         if (!ten) continue;
         records.push(['', '', ten, col(row, ['diachimail', 'email']), col(row, ['sodienthoai']), '', i + 1,
-          kenh, mien, kv, viTri, '']);
+          kenh, mien, kv, viTri, '', '', '']);
       }
     }
   }

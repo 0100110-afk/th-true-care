@@ -75,12 +75,23 @@ function caiDatDongBoTrueCare() {
 
 function dongBoTrueCareNgay() {
   var r = csSyncAll_(false);
-  csAlert_('Đã đồng bộ.\n' + r.lines.join('\n'));
+  csAlert_('Đã đồng bộ.\n' + r.lines.join('\n') + '\n' + csGsbhSummary_());
+}
+
+/** "GSBH: 224 NPP · GSBH 190 · KAE 70 · ASM 26 · SM 6 · KAM 5 · NKAM 1" — thiếu vai trò nào là biết ngay
+ *  tab / cột nào đọc không được (tên tab, dòng tiêu đề, cột "Vị trí"). */
+function csGsbhSummary_() {
+  try {
+    var recs = csRebuildGsbhRecords(), roles = {}, npp = {};
+    recs.forEach(function (r) { roles[r[10] || '?'] = (roles[r[10] || '?'] || 0) + 1; if (r[0]) npp[r[7] + '|' + r[8] + '|' + r[0]] = 1; });
+    return 'GSBH: ' + Object.keys(npp).length + ' NPP · ' +
+      ['GSBH', 'KAE', 'KASUP', 'ASM', 'SM', 'KAM', 'NKAM'].map(function (k) { return k + ' ' + (roles[k] || 0); }).join(' · ');
+  } catch (e) { return 'GSBH: lỗi đọc sheet — ' + e.message; }
 }
 
 function xemTinhTrangTrueCare() {
   var meta = csReadMeta_();
-  var lines = ['Cập nhật lần cuối: ' + (meta.updatedAt || '(chưa có)')];
+  var lines = ['Cập nhật lần cuối: ' + (meta.updatedAt || '(chưa có)'), csGsbhSummary_()];
   Object.keys(meta.sets || {}).forEach(function (p) {
     var m = meta.sets[p];
     lines.push('- ' + p + ': ' + m.count + ' bản ghi, ' + m.hashes.length + ' mảnh');

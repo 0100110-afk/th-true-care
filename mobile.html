@@ -47,6 +47,9 @@
       --ink: #33424B;
       --ink-muted: #71828B;
       --ink-faint: #A3B1B8;
+      /* Tên biến dùng chung với bản máy tính (thẻ thông báo đồng bộ dùng 2 biến này — thiếu là chữ trắng trên nền trắng) */
+      --ink-900: #33424B;
+      --ink-500: #71828B;
       --border: #E1E9F2;
 
       --primary: #0B4C8C;
@@ -57,6 +60,7 @@
       --success: #2C7A55;
       --success-soft: #E1F0E6;
       --danger: #C1443A;
+      --ok: #2C7A55;
       --danger-soft: #F7E1DE;
       --warning: #D99A2B;
       --warning-soft: #FBF0DC;
@@ -524,6 +528,7 @@
     /* SĐT bấm để gọi */
     .tel-link { display: inline-flex; align-items: center; gap: 6px; color: var(--brand-700); font-weight: 700; text-decoration: none; white-space: nowrap; }
     .tel-link svg { width: 15px; height: 15px; flex-shrink: 0; }
+    .tel-link .num { font-variant-numeric: tabular-nums; min-width: 10.6ch; text-align: right; }
     .tel-link:active { opacity: .6; }
 
     /* ===================== THÊM (bảng chọn) ===================== */
@@ -565,7 +570,9 @@
     .gs-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 8px; }
     .gs-card .t { font-weight: 800; color: var(--brand-900); font-size: 14.5px; }
     .gs-card .s { font-size: 12px; color: var(--ink-muted); margin: 2px 0 6px; }
-    .gs-card .pcs { margin-top: 6px; }
+    .gs-card .pcs { margin: 0 0 6px; }
+    .gs-card .kho { font-size: 11.5px; color: var(--ink-muted); line-height: 1.4; margin: -2px 0 6px; }
+    .gs-person .nm small { display: block; font-size: 11.5px; font-weight: 500; color: var(--ink-muted); }
 
     /* Tra cứu thiết bị — khối GSBH */
     .gs-dev-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; margin-bottom: 8px; font-size: 13px; color: var(--ink-muted); }
@@ -833,11 +840,11 @@
         <button type="button" class="gs-chip-clear" id="gsbhClearBtn" style="display:none;" onclick="resetGsbhFilters()">Xóa lọc</button>
       </div>
       <div class="search-row" style="margin-bottom:12px;">
-        <input type="text" id="gsbhSearch" placeholder="Mã NPP, tên NPP, tên GSBH, SĐT..." oninput="renderGsbhDebounced()" enterkeyhint="search">
+        <input type="text" id="gsbhSearch" placeholder="Mã NPP, tên NPP, tên người, SĐT, email..." oninput="renderGsbhDebounced()" enterkeyhint="search">
       </div>
       <div class="result-count"><h3>Danh sách GSBH</h3><span class="count-pill" id="gsbhNppCount">0</span></div>
       <div id="gsbhList"></div>
-      <div class="empty-state" id="gsbhEmptyNote" style="display:none;"><p>Không có GSBH phù hợp.</p></div>
+      <div class="empty-state" id="gsbhEmptyNote" style="display:none;"><p>Không có dữ liệu phù hợp.</p></div>
     </section>
 
     <!-- ========== PAGE: DỮ LIỆU CHI PHÍ ========== -->
@@ -889,6 +896,10 @@
 <div class="sheet" id="moreSheet" role="dialog" aria-modal="true" aria-label="Danh mục khác">
   <div class="sheet-handle"></div>
   <div class="sheet-title">Danh mục khác</div>
+  <button type="button" class="more-item" onclick="closeAllSheets(); switchPage('gsbh')">
+    <span class="more-ic purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
+    <span class="more-main"><span class="more-title">GSBH</span><span class="more-sub">Danh sách giám sát bán hàng theo nhà phân phối</span></span><svg class="more-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg>
+  </button>
   <button type="button" class="more-item" onclick="closeAllSheets(); switchPage('dongia')">
     <span class="more-ic sky"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.24L4 3a1 1 0 0 0-1 1l.24 5.59a2 2 0 0 0 .59 1.41l9.58 9.58a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.82z"></path><line x1="7.5" y1="7.5" x2="7.51" y2="7.5"></line></svg></span>
     <span class="more-main"><span class="more-title">Đơn giá</span><span class="more-sub">Đơn giá bảo trì, xây dựng, Sanaky</span></span><svg class="more-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg>
@@ -896,10 +907,6 @@
   <button type="button" class="more-item" onclick="closeAllSheets(); switchPage('rawdata')">
     <span class="more-ic gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg></span>
     <span class="more-main"><span class="more-title">Dữ liệu chi phí</span><span class="more-sub">Toàn bộ dữ liệu chi phí sửa chữa</span></span><svg class="more-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg>
-  </button>
-  <button type="button" class="more-item" onclick="closeAllSheets(); switchPage('gsbh')">
-    <span class="more-ic purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
-    <span class="more-main"><span class="more-title">GSBH</span><span class="more-sub">Danh bạ GSBH, ASM, SM, KAE, KAM theo NPP</span></span><svg class="more-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg>
   </button>
 </div>
 
@@ -916,7 +923,7 @@
   </div>
   <div class="sheet-actions">
     <button class="btn secondary" type="button" id="dashClearBtn" onclick="resetFilters()">Xóa lọc</button>
-    <button class="btn" type="button" onclick="applyFilters(); closeAllSheets();">Áp dụng</button>
+    <button class="btn" type="button" onclick="closeAllSheets();">Xong</button>
   </div>
 </div>
 
@@ -946,7 +953,7 @@
   </div>
   <div class="sheet-actions">
     <button class="btn secondary" type="button" id="rawClearBtn" onclick="resetRawFilters()">Xóa lọc</button>
-    <button class="btn" type="button" onclick="applyRawFilters(); closeAllSheets();">Áp dụng</button>
+    <button class="btn" type="button" onclick="closeAllSheets();">Xong</button>
   </div>
 </div>
 
@@ -980,7 +987,7 @@
   </div>
   <div class="sheet-actions">
     <button class="btn secondary" type="button" id="deviceClearBtn" onclick="resetDeviceFilters()">Xóa lọc</button>
-    <button class="btn" type="button" onclick="applyDeviceFilters(); closeAllSheets();">Áp dụng</button>
+    <button class="btn" type="button" onclick="closeAllSheets();">Xong</button>
   </div>
 </div>
 
@@ -1013,8 +1020,8 @@
       a.className = 'tel-link';
       a.href = 'tel:' + num.replace(/[^\d+]/g, '');
       a.title = 'Gọi ' + num;
-      a.innerHTML = TEL_ICON_;
-      a.appendChild(document.createTextNode(num));
+      // Số trước, icon sau; số dùng chữ số đều nhau + bề rộng cố định -> icon các dòng thẳng một cột
+      a.innerHTML = '<span class="num">' + num.replace(/[&<>]/g, '') + '</span>' + TEL_ICON_;
       el.appendChild(a);
     }
     while ((m = re.exec(s))) {
@@ -1655,6 +1662,18 @@
 
   function applyDeviceFilters() { loadDeviceList(1); }
 
+  /* Bỏ nút "Lọc" / "Áp dụng": chọn bộ lọc là lọc ngay. */
+  (function () {
+    var on = function (ids, fn) { ids.forEach(function (id) { var el = document.getElementById(id); if (el) el.addEventListener('change', function () { fn(); }); }); };
+    on(['filterNcc'], function () { applyFilters(); });
+    on(['deviceFilterNpp', 'deviceFilterLoai', 'deviceFilterNhanHieu', 'deviceFilterBaoHanh'], function () { applyDeviceFilters(); });
+    on(['rawFilterNcc', 'rawFilterTuNgay', 'rawFilterDenNgay'], function () { applyRawFilters(); });
+    on(['filterTuNgay', 'filterDenNgay'], function () { applyFilters(); });
+    var t = null, rc = document.getElementById('rawCodeInput');
+    if (rc) rc.addEventListener('input', function () { clearTimeout(t); t = setTimeout(applyRawFilters, 450); });
+  })();
+
+
 
 
   /* ===================== GSBH =====================
@@ -1665,9 +1684,10 @@
   function gsNorm_(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase(); }
   function gsPerson_(p) {
     var ph = p.sdt ? (/^\+?\d{8,}$/.test(p.sdt)
-      ? '<a class="tel-link" href="tel:' + gsEsc_(p.sdt) + '">' + TEL_ICON_ + gsEsc_(p.sdt) + '</a>'
+      ? '<a class="tel-link" href="tel:' + gsEsc_(p.sdt) + '"><span class="num">' + gsEsc_(p.sdt) + '</span>' + TEL_ICON_ + '</a>'
       : '<span>' + gsEsc_(p.sdt) + '</span>') : '';
-    return '<div class="gs-person"><span class="gs-tag ' + gsEsc_(p.role) + '">' + gsEsc_(p.role) + '</span><span class="nm">' + gsEsc_(p.ten) + '</span>' + ph + '</div>';
+    return '<div class="gs-person"><span class="gs-tag ' + gsEsc_(p.role) + '">' + gsEsc_(p.role) + '</span><span class="nm">' + gsEsc_(p.ten) +
+      (p.email ? '<small>' + gsEsc_(p.email) + '</small>' : '') + '</span>' + ph + '</div>';
   }
   /* Dòng đầu khối GSBH: [GT] Tên NPP · Mã NPP … · MB1 · HN2 (dữ liệu cũ không có kênh thì bỏ nhãn) */
   function gsbhDevHead_(n) {
@@ -1705,14 +1725,14 @@
     var mien = $('#gsbhMien').value, pc = $('#gsbhPc').value, q = gsNorm_($('#gsbhSearch').value.trim());
     var qDigits = q.replace(/\D/g, '');
     var hit = function (t) { return q && gsNorm_(t).indexOf(q) > -1; };
-    var hitPeople = function (list) { return list.some(function (p) { return hit(p.ten) || (qDigits.length >= 3 && String(p.sdt).indexOf(qDigits) > -1); }); };
+    var hitPeople = function (list) { return list.some(function (p) { return hit(p.ten) || hit(p.email) || (qDigits.length >= 3 && String(p.sdt).indexOf(qDigits) > -1); }); };
     var html = [], n = 0;
     gsbhData.groups.forEach(function (g) {
       if (gsbhKenh && g.kenh !== gsbhKenh) return;
       if (mien && g.mien !== mien) return;
       var npps = g.npps.filter(function (x) { return !pc || x.pc.indexOf(pc) > -1; });
       if (q && !(hit(g.khuVuc) || hit(g.mien) || hitPeople(g.quanLy))) {
-        npps = npps.filter(function (x) { return hit(x.maNpp) || hit(x.tenNpp) || hit(x.tinh) || hitPeople(x.nguoi); });
+        npps = npps.filter(function (x) { return hit(x.maNpp) || hit(x.tenNpp) || hit(x.tenDayDu) || hit(x.tinh) || hitPeople(x.nguoi); });
       }
       if (!npps.length) return;
       n += npps.length;
@@ -1720,10 +1740,11 @@
         gsEsc_([g.mien, g.khuVuc].filter(Boolean).join(' · ')) + '<span class="n">' + npps.length + ' NPP</span></div>' +
         g.quanLy.map(gsPerson_).join('') + '</div>');
       npps.forEach(function (x) {
-        html.push('<div class="gs-card"><div class="t">' + gsEsc_(x.tenNpp) + '</div>' +
+        html.push('<div class="gs-card"><div class="t" title="' + gsEsc_(x.tenDayDu || x.tenNpp) + '">' + gsEsc_(x.tenNpp) + '</div>' +
           '<div class="s">Mã NPP ' + gsEsc_(x.maNpp) + (x.tinh ? ' · ' + gsEsc_(x.tinh) : '') + '</div>' +
+          (x.kho ? '<div class="kho">' + gsEsc_(x.kho).replace(/\n/g, '<br>') + '</div>' : '') +
+          (x.pc.length ? '<div class="pcs">' + x.pc.map(function (v) { return '<span class="pc-badge">P&amp;C phụ trách: ' + gsEsc_(v) + '</span>'; }).join('') + '</div>' : '') +
           x.nguoi.map(gsPerson_).join('') +
-          (x.pc.length ? '<div class="pcs">' + x.pc.map(function (v) { return '<span class="pc-badge">P&amp;C: ' + gsEsc_(v) + '</span>'; }).join('') + '</div>' : '') +
           '</div>');
       });
     });

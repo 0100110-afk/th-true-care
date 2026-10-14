@@ -2365,7 +2365,7 @@
   var HBAR_ROW_H_ = 30;
   var HBAR_THICK_ = 8;
   var HBAR_PAD_RIGHT_ = 46;
-  var HBAR_LABEL_W_ = 96;
+  var HBAR_LABEL_W_ = 108;   // đủ chỗ cho tên loại/nhãn hiệu 12px (vd "Máy nóng lạnh")
 
   var chartDefaultsApplied_ = false;
   function applyChartDefaults_() {
@@ -2507,7 +2507,7 @@
         x: { display: false, grid: { display: false } },
         y: {
           grid: { display: false }, border: { display: false },
-          ticks: { color: CHART_AXIS_INK_, padding: 6, crossAlign: 'far', font: { size: 10.5 } },
+          ticks: { color: CHART_AXIS_INK_, padding: 6, crossAlign: 'far', font: { size: 12 } },   // tên loại / nhãn hiệu: 12px cho dễ đọc
           // Khoá bề ngang cột nhãn: tên dài mấy cũng không đẩy vùng vẽ hẹp lại
           afterFit: function (scale) { scale.width = HBAR_LABEL_W_; }
         }

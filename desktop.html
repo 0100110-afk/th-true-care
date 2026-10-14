@@ -489,6 +489,9 @@
   }
   tbody td{ padding:12px; border-bottom:1px solid var(--border); vertical-align:top; }
   tbody tr:hover{ background:rgba(46,155,224,.07); }
+  /* Lịch sử sửa chữa: rê vào 1 dòng -> tô nền cả nhóm cùng lần sửa (các ô gộp ngày/NCC/tình trạng) */
+  #historyBody tr:hover{ background:transparent; }
+  #historyBody tr.grp-hover{ background:rgba(46,155,224,.08); }
   tbody tr:last-child td{ border-bottom:none; }
   .cost{ font-weight:600; white-space:nowrap; font-variant-numeric:tabular-nums; }
 
@@ -1615,11 +1618,12 @@
       $('#emptyNote').style.display = 'block';
     } else {
       $('#emptyNote').style.display = 'none';
-      res.lich_su.forEach(function (group) {
+      res.lich_su.forEach(function (group, gi) {
         var items = group.items && group.items.length ? group.items : [{ noiDung: '', chiPhi: 0 }];
         var rowspan = items.length;
         items.forEach(function (item, i) {
           var tr = document.createElement('tr');
+          tr.dataset.g = gi;   // cùng 1 lần sửa (gộp ô) -> rê chuột tô nền cả nhóm
 
           if (i === 0) {
             var tdDate = mkDateTd(group.ngaySuaChua, group.ngayLoi);
@@ -1646,6 +1650,11 @@
 
           body.appendChild(tr);
         });
+      });
+      var setHover = function (g, on) { $all('#historyBody tr[data-g="' + g + '"]').forEach(function (r) { r.classList.toggle('grp-hover', on); }); };
+      $all('#historyBody tr').forEach(function (tr) {
+        tr.addEventListener('mouseenter', function () { setHover(tr.dataset.g, true); });
+        tr.addEventListener('mouseleave', function () { setHover(tr.dataset.g, false); });
       });
     }
 

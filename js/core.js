@@ -655,6 +655,7 @@ var CareCore = (function () {
         tinh_trang_bao_hanh_thiet_bi: tinhTrangBaoHanhThietBi,
         tinh_trang_thanh_ly: thanhLyInfo,
         gsbh_list: gsbhInfo.gsbhList,
+        gsbh_npp: gsbhInfo.npp || null,
         pc_list: gsbhInfo.pcList
       };
     } catch (err) {
@@ -687,8 +688,12 @@ var CareCore = (function () {
     var pcSet = {};
 
     var seen = {};
+    var npp = null;   // dòng tiêu đề khối GSBH: kênh · tên NPP · mã · miền · khu vực
     records.forEach(function (r) {
       if (r[GS.MANPP] !== maNpp || GS_MANAGER_ROLES[r[GS.VITRI]]) return;
+      if (!npp) npp = { kenh: r[GS.KENH] || '', maNpp: r[GS.MANPP], tenNpp: r[GS.TENNPP] || '', mien: [], khuVuc: [] };
+      if (r[GS.MIEN] && npp.mien.indexOf(r[GS.MIEN]) === -1) npp.mien.push(r[GS.MIEN]);
+      if (r[GS.KV] && npp.khuVuc.indexOf(r[GS.KV]) === -1) npp.khuVuc.push(r[GS.KV]);
 
       var names = splitMultiLine(r[GS.HOTEN]);
       var phones = splitMultiLine(r[GS.SDT]);
@@ -705,7 +710,7 @@ var CareCore = (function () {
       splitMultiLine(r[GS.PC]).forEach(function (pc) { pcSet[pc] = true; });
     });
 
-    return { gsbhList: gsbhList, pcList: Object.keys(pcSet) };
+    return { gsbhList: gsbhList, pcList: Object.keys(pcSet), npp: npp };
   }
 
   /**

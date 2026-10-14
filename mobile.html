@@ -566,6 +566,10 @@
     .gs-card .t { font-weight: 800; color: var(--brand-900); font-size: 14.5px; }
     .gs-card .s { font-size: 12px; color: var(--ink-muted); margin: 2px 0 6px; }
     .gs-card .pcs { margin-top: 6px; }
+
+    /* Tra cứu thiết bị — khối GSBH */
+    .gs-dev-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; margin-bottom: 8px; font-size: 13px; color: var(--ink-muted); }
+    .gs-dev-head b { color: var(--brand-900); font-weight: 800; }
 </style>
 </head>
 <body>
@@ -1386,31 +1390,9 @@
       g0.className = 'muted-text'; g0.textContent = 'Chưa có thông tin';
       gsbhEl.appendChild(g0);
     } else {
-      var gsbhList = document.createElement('div');
-      gsbhList.className = 'gsbh-list';
-      res.gsbh_list.forEach(function (g) {
-        var row = document.createElement('div');
-        row.className = 'gsbh-entry';
-
-        var nameWrap = document.createElement('div');
-        nameWrap.className = 'gsbh-name';
-        nameWrap.textContent = g.hoTen || '—';
-        if (g.tenNpp) {
-          var npp = document.createElement('span');
-          npp.className = 'gsbh-npp';
-          npp.textContent = '(' + g.tenNpp + ')';
-          nameWrap.appendChild(npp);
-        }
-
-        var phone = document.createElement('div');
-        phone.className = 'gsbh-phone';
-        setPhone_(phone, g.soDienThoai);
-
-        row.appendChild(nameWrap);
-        row.appendChild(phone);
-        gsbhList.appendChild(row);
-      });
-      gsbhEl.appendChild(gsbhList);
+      gsbhEl.innerHTML = gsbhDevHead_(res.gsbh_npp) + res.gsbh_list.map(function (g) {
+        return gsPerson_({ role: g.viTri || 'GSBH', ten: g.hoTen || '—', sdt: g.soDienThoai || '' });
+      }).join('');
     }
 
     var pcEl = $('#pcPhuTrach');
@@ -1687,6 +1669,14 @@
       : '<span>' + gsEsc_(p.sdt) + '</span>') : '';
     return '<div class="gs-person"><span class="gs-tag ' + gsEsc_(p.role) + '">' + gsEsc_(p.role) + '</span><span class="nm">' + gsEsc_(p.ten) + '</span>' + ph + '</div>';
   }
+  /* Dòng đầu khối GSBH: [GT] Tên NPP · Mã NPP … · MB1 · HN2 (dữ liệu cũ không có kênh thì bỏ nhãn) */
+  function gsbhDevHead_(n) {
+    if (!n) return '';
+    var meta = ['Mã NPP ' + n.maNpp].concat(n.mien || [], n.khuVuc || []).join(' · ');
+    return '<div class="gs-dev-head">' + (n.kenh ? '<span class="gs-kenh ' + gsEsc_(n.kenh) + '">' + gsEsc_(n.kenh) + '</span>' : '') +
+      '<b>' + gsEsc_(n.tenNpp) + '</b><span class="muted-text">· ' + gsEsc_(meta) + '</span></div>';
+  }
+
   function loadGsbh() {
     $('#gsbhList').innerHTML = '<div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div>';
     google.script.run

@@ -557,6 +557,12 @@
   .gs-sum{ display:inline-flex; gap:8px; margin-right:6px; }
   .gs-sum span{ background:#F3F7FB; border:1px solid var(--border); border-radius:999px; padding:4px 11px; font-size:12px; color:var(--ink-500); }
   .gs-sum b{ color:var(--brand-900); }
+  /* Tra cứu thiết bị — khối GSBH: dòng NPP + từng GSBH/KAE (nhãn vai trò · tên · SĐT) */
+  .gs-dev-head{ display:flex; align-items:center; flex-wrap:wrap; gap:6px 8px; margin-bottom:6px; font-size:13px; }
+  .gs-dev-head b{ color:var(--brand-900); font-weight:700; }
+  .gs-dev-row{ display:flex; align-items:center; gap:10px; padding:4px 0; font-size:13.5px; }
+  .gs-dev-row .nm{ font-weight:600; min-width:170px; }
+  .gs-dev-row .ph{ color:var(--ink-500); font-variant-numeric:tabular-nums; }
   .filter-item:has(> select){ flex:1 1 130px; min-width:110px; }
   .filter-item:has(> #filterNcc), .filter-item:has(> #rawFilterNcc), .filter-item:has(> #deviceFilterNpp){ flex-grow:1.8; }
   .filter-item > select{ width:100%; min-width:0; text-overflow:ellipsis; white-space:nowrap; overflow:hidden; }
@@ -1664,25 +1670,10 @@
       g0.className = 'muted-text'; g0.textContent = 'Chưa có thông tin';
       gsbhEl.appendChild(g0);
     } else {
-      res.gsbh_list.forEach(function (g) {
-        var row = document.createElement('div');
-        row.className = 'gsbh-entry';
-        var nameEl = document.createElement('span');
-        nameEl.className = 'gsbh-name';
-        nameEl.textContent = g.hoTen || '—';
-        if (g.tenNpp) {
-          var npp = document.createElement('span');
-          npp.className = 'muted-text';
-          npp.textContent = ' (' + g.tenNpp + ')';
-          nameEl.appendChild(npp);
-        }
-        var phoneEl = document.createElement('span');
-        phoneEl.className = 'gsbh-phone';
-        phoneEl.textContent = g.soDienThoai || '—';
-        row.appendChild(nameEl);
-        row.appendChild(phoneEl);
-        gsbhEl.appendChild(row);
-      });
+      gsbhEl.innerHTML = gsbhDevHead_(res.gsbh_npp) + res.gsbh_list.map(function (g) {
+        return '<div class="gs-dev-row"><span class="gs-tag ' + gsEsc_(g.viTri || 'GSBH') + '">' + gsEsc_(g.viTri || 'GSBH') + '</span>' +
+          '<span class="nm">' + gsEsc_(g.hoTen || '—') + '</span><span class="ph">' + gsEsc_(g.soDienThoai || '—') + '</span></div>';
+      }).join('');
     }
 
     // P&C phụ trách
@@ -2029,6 +2020,14 @@
   function gsEsc_(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function gsNorm_(s) { return removeDiacriticsJs_(String(s || '')).toLowerCase(); }
   function removeDiacriticsJs_(s) { return s.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D'); }
+
+  /* Dòng đầu khối GSBH: [GT] Tên NPP · Mã NPP … · MB1 · HN2 (dữ liệu cũ không có kênh thì bỏ nhãn) */
+  function gsbhDevHead_(n) {
+    if (!n) return '';
+    var meta = ['Mã NPP ' + n.maNpp].concat(n.mien || [], n.khuVuc || []).join(' · ');
+    return '<div class="gs-dev-head">' + (n.kenh ? '<span class="gs-kenh ' + gsEsc_(n.kenh) + '">' + gsEsc_(n.kenh) + '</span>' : '') +
+      '<b>' + gsEsc_(n.tenNpp) + '</b><span class="muted-text">· ' + gsEsc_(meta) + '</span></div>';
+  }
 
   function loadGsbh() {
     $('#gsbhBody').innerHTML = skelTableRows(6, 6);

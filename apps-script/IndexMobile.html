@@ -518,6 +518,9 @@
     .tel-link { display: inline-flex; align-items: center; gap: 6px; color: var(--brand-700); font-weight: 700; text-decoration: none; white-space: nowrap; }
     .tel-link svg { width: 15px; height: 15px; flex-shrink: 0; }
     .tel-link .num { font-variant-numeric: tabular-nums; min-width: 10.6ch; text-align: right; }
+    /* Tra cứu thiết bị: SĐT nằm cột TRÁI, thẳng mép với nhãn phía trên -> canh trái (giữ bề rộng
+       cố định để nhiều số thì icon vẫn thẳng cột). Canh phải chỉ hợp với cột SĐT bên phải (GSBH). */
+    .info-value .tel-link .num { text-align: left; }
     .tel-link:active { opacity: .6; }
 
     /* ===================== THÊM (bảng chọn) ===================== */

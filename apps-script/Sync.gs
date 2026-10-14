@@ -7,7 +7,7 @@
  * định dạng bản ghi mà app cũ dùng — app web chỉ việc tra cứu trên đó.
  *
  * CHỈ MỘT CHIỀU Sheet -> App (app chỉ tra cứu, không ghi gì):
- *   LISTING, CHI PHI, THANH LY, GSBH  (file GT)
+ *   LISTING, CHI PHI, THANH LY, GSBH GT + ASMSM GT + GSBH KA + ASMSM KA  (file GT)
  *   DON GIA BT / XD / SNK              (file DG riêng — FS_DG_FILE_ID)
  * Admin bấm "Đồng bộ từ Google Sheet" trên app (doPost); quét dự phòng 1 giờ/lần (7h–19h); menu "Đồng bộ ngay" vẫn giữ. Chỉ ghi những MẢNH dữ liệu thật
  * sự đổi (thêm dòng cuối CHI PHI thì chỉ mảnh cuối được ghi lại).
@@ -284,7 +284,10 @@ function csAlert_(msg) {
 var csSHEET_LISTING = 'LISTING';
 var csSHEET_CHIPHI = 'CHI PHI';
 var csSHEET_THANHLY = 'THANH LY';
-var csSHEET_GSBH = 'GSBH';
+var csSHEET_GSBH_GT = 'GSBH GT';
+var csSHEET_ASM_GT = 'ASMSM GT';
+var csSHEET_GSBH_KA = 'GSBH KA';
+var csSHEET_ASM_KA = 'ASMSM KA';
 var csSHEET_DONGIA_BT = 'DON GIA BT';
 var csSHEET_DONGIA_XD = 'DON GIA XD';
 var csSHEET_DONGIA_SNK = 'DON GIA SNK';
@@ -478,29 +481,62 @@ function csRebuildThanhLyRecords() {
 }
 
 function csRebuildGsbhRecords() {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(csSHEET_GSBH);
-  if (!sheet) return [];
-  var data = sheet.getDataRange().getValues();
-  if (data.length < 2) return [];
-
-  var idx = csBuildHeaderIndex(data[0]);
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
   var records = [];
 
-  for (var i = 1; i < data.length; i++) {
-    var row = data[i];
-    var maNpp = csNormalizeCode(row[idx['ma_npp']]);
-    if (!maNpp) continue;
-
-    records.push([
-      maNpp,
-      csCellStr(row, idx, 'ten_npp'),
-      csCellStr(row, idx, 'ho_ten_gsbh'),
-      csCellStr(row, idx, 'dia_chi_mail'),
-      csCellStr(row, idx, 'so_dien_thoai'),
-      csCellStr(row, idx, 'P&C'),
-      i + 1
-    ]);
+  /* Tra cột theo tên tiêu đề, không phân biệt hoa thường / dấu / khoảng trắng. */
+  function headerFinder(headers) {
+    var map = {};
+    headers.forEach(function (h, i) {
+      var k = csRemoveDiacritics(String(h || '')).toLowerCase().replace(/[^a-z0-9&]/g, '');
+      if (k && map[k] === undefined) map[k] = i;
+    });
+    return function (row, names) {
+      for (var n = 0; n < names.length; n++) {
+        var i = map[names[n]];
+        if (i !== undefined) { var v = row[i]; return (v === null || v === undefined) ? '' : String(v).trim(); }
+      }
+      return '';
+    };
   }
+
+  /* kenh: 'GT' | 'KA'. isGsbh: sheet GSBH (có fill-down NPP cho dòng để trống Mã NPP). */
+  function readSheet(name, kenh, isGsbh) {
+    var sheet = ss.getSheetByName(name);
+    if (!sheet) return;
+    var data = sheet.getDataRange().getValues();
+    if (data.length < 2) return;
+    var col = headerFinder(data[0]);
+    var cur = null;   // NPP đang mở (chỉ dùng cho sheet GSBH)
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      var ten = col(row, ['ho&ten', 'hoten', 'hotengsbh']);
+      var ma = csNormalizeCode(col(row, ['manpp']));
+      var viTri = col(row, ['vitri']).toUpperCase();
+      if (!ten && !ma) continue;
+      var mien = col(row, ['mien']), kv = col(row, ['khuvuc']);
+      if (isGsbh) {
+        if (ma) {
+          cur = { ma: ma, ten: col(row, ['tenrutgon']) || col(row, ['tennpp']), tinh: col(row, ['tinhtp', 'tinh']),
+                  mien: mien, kv: kv, pc: col(row, ['p&cphutrach', 'p&c']) };
+        } else if (!cur) {
+          continue;   // dòng người mà chưa có NPP nào phía trên -> bỏ
+        }
+        records.push([cur.ma, cur.ten, ten, col(row, ['diachimail', 'email']), col(row, ['sodienthoai']),
+          ma ? cur.pc : (col(row, ['p&cphutrach', 'p&c']) || cur.pc), i + 1,
+          kenh, ma ? cur.mien : (mien || cur.mien), ma ? cur.kv : (kv || cur.kv), viTri || (kenh === 'GT' ? 'GSBH' : 'KAE'), cur.tinh]);
+      } else {
+        if (!ten) continue;
+        records.push(['', '', ten, col(row, ['diachimail', 'email']), col(row, ['sodienthoai']), '', i + 1,
+          kenh, mien, kv, viTri, '']);
+      }
+    }
+  }
+
+  readSheet(csSHEET_GSBH_GT, 'GT', true);
+  readSheet(csSHEET_ASM_GT, 'GT', false);
+  readSheet(csSHEET_GSBH_KA, 'KA', true);
+  readSheet(csSHEET_ASM_KA, 'KA', false);
   return records;
 }
 

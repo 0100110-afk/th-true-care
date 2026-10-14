@@ -93,7 +93,7 @@ with sync_playwright() as p:
     pg.wait_for_timeout(1500)
     pg.screenshot(path=f'{shots}/care-desktop-dashboard.png')
     print('mốc dữ liệu:', pg.inner_text('#dataFreshnessText'))
-    for v in ['search', 'batch', 'devicelist', 'rawdata', 'dongia', 'dashboard']:
+    for v in ['search', 'batch', 'devicelist', 'rawdata', 'dongia', 'gsbh', 'dashboard']:
         pg.click(f'.nav-item[data-page="{v}"]'); pg.wait_for_timeout(600)
     pg.click('.nav-item[data-page="search"]'); pg.fill('#codeInput', 'TC001'); pg.keyboard.press('Enter'); pg.wait_for_timeout(800)
     pg.screenshot(path=f'{shots}/care-desktop-search.png')
@@ -119,8 +119,13 @@ with sync_playwright() as p:
     m.goto('http://127.0.0.1:8766/mobile.html')
     m.wait_for_selector('#tmAuth.hidden', state='attached', timeout=8000); m.wait_for_timeout(1500)
     m.screenshot(path=f'{shots}/care-mobile-dashboard.png')
-    for t in ['search', 'batch', 'devicelist', 'dongia', 'rawdata', 'dashboard']:
-        m.click(f'.nav-btn[data-page="{t}"]'); m.wait_for_timeout(500)
+    for t in ['search', 'batch', 'devicelist', 'dongia', 'rawdata', 'gsbh', 'dashboard']:
+        if t in ('dongia', 'rawdata', 'gsbh'):   # 3 trang này nằm trong nút "Thêm"
+            m.click('.nav-btn[data-page="more"]'); m.wait_for_timeout(300)
+            m.click(f'#moreSheet .more-item[onclick*="{t}"]')
+        else:
+            m.click(f'.nav-btn[data-page="{t}"]')
+        m.wait_for_timeout(500)
     m.click('#tcAccIconBtn'); m.wait_for_timeout(500)
     m.screenshot(path=f'{shots}/care-mobile-account.png')
     m.click('#sheetBackdrop', position={'x': 200, 'y': 100}); m.wait_for_timeout(300)

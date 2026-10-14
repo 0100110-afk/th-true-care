@@ -513,6 +513,47 @@
     .tel-link { display: inline-flex; align-items: center; gap: 6px; color: var(--brand-700); font-weight: 700; text-decoration: none; white-space: nowrap; }
     .tel-link svg { width: 15px; height: 15px; flex-shrink: 0; }
     .tel-link:active { opacity: .6; }
+
+    /* ===================== THÊM (bảng chọn) ===================== */
+    .more-item { width: 100%; display: flex; align-items: center; gap: 14px; padding: 13px 4px; border: none; border-bottom: 1px solid var(--border); background: none; font-family: inherit; text-align: left; cursor: pointer; }
+    .more-item:last-child { border-bottom: none; }
+    .more-item:active { background: var(--surface-alt); }
+    .more-ic { width: 40px; height: 40px; border-radius: 13px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .more-ic svg { width: 19px; height: 19px; }
+    .more-ic.sky { background: var(--primary-soft); color: var(--brand-700); }
+    .more-ic.gold { background: #FFF4DE; color: #B7791F; }
+    .more-ic.purple { background: #F2ECFB; color: #6B3FA0; }
+    .more-main { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+    .more-title { font-size: 14px; font-weight: 700; color: var(--ink); }
+    .more-sub { font-size: 11.5px; color: var(--ink-muted); }
+    .more-chev { width: 18px; height: 18px; color: var(--ink-faint); flex-shrink: 0; }
+
+    /* ===================== GSBH ===================== */
+    .gs-chips { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 12px; scrollbar-width: none; }
+    .gs-chips::-webkit-scrollbar { display: none; }
+    .gs-chip, .gs-chip-select, .gs-chip-clear { flex-shrink: 0; border: 1px solid var(--border); background: #fff; border-radius: 999px; padding: 8px 14px; font-family: inherit; font-weight: 700; font-size: 12.5px; color: var(--ink-muted); }
+    .gs-chip.active { background: var(--brand-900); border-color: var(--brand-900); color: #fff; }
+    .gs-chip-select { appearance: none; -webkit-appearance: none; padding-right: 28px; max-width: 180px; text-overflow: ellipsis;
+      background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235C6C78' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 12px center; }
+    .gs-chip-clear { color: #C1443A; border-color: #F1C9C5; }
+    .gs-group { margin: 16px 0 8px; padding: 12px 14px; border-radius: var(--radius-md); background: #EAF3FB; border: 1px solid #D6E6F5; }
+    .gs-group:first-child { margin-top: 2px; }
+    .gs-group-title { display: flex; align-items: center; gap: 8px; font-weight: 800; color: var(--brand-900); font-size: 14px; margin-bottom: 6px; }
+    .gs-group-title .n { margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--ink-muted); }
+    .gs-kenh { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 800; }
+    .gs-kenh.GT { background: var(--brand-900); color: #fff; }
+    .gs-kenh.KA { background: #E8A33D; color: #fff; }
+    .gs-tag { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; padding: 2px 6px; border-radius: 6px; font-size: 10.5px; font-weight: 800; flex-shrink: 0; }
+    .gs-tag.GSBH, .gs-tag.KAE { background: var(--primary-soft); color: var(--brand-900); }
+    .gs-tag.KASUP { background: #EAF7F0; color: #1E7A4E; }
+    .gs-tag.ASM, .gs-tag.KAM { background: #FFF4DE; color: #9A6200; }
+    .gs-tag.SM, .gs-tag.NKAM { background: #F2ECFB; color: #6B3FA0; }
+    .gs-person { display: flex; align-items: center; gap: 8px; padding: 4px 0; font-size: 13.5px; }
+    .gs-person .nm { flex: 1; min-width: 0; font-weight: 600; color: var(--ink); }
+    .gs-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 8px; }
+    .gs-card .t { font-weight: 800; color: var(--brand-900); font-size: 14.5px; }
+    .gs-card .s { font-size: 12px; color: var(--ink-muted); margin: 2px 0 6px; }
+    .gs-card .pcs { margin-top: 6px; }
 </style>
 </head>
 <body>
@@ -764,6 +805,24 @@
       </div>
     </section>
 
+    <!-- ========== PAGE: GSBH ========== -->
+    <section class="page" id="page-gsbh">
+      <div class="gs-chips">
+        <button type="button" class="gs-chip active" data-kenh="" onclick="setGsbhKenh('')">Tất cả</button>
+        <button type="button" class="gs-chip" data-kenh="GT" onclick="setGsbhKenh('GT')">GT</button>
+        <button type="button" class="gs-chip" data-kenh="KA" onclick="setGsbhKenh('KA')">KA</button>
+        <select class="gs-chip-select" id="gsbhMien" onchange="renderGsbh()"><option value="">Tất cả miền</option></select>
+        <select class="gs-chip-select" id="gsbhPc" onchange="renderGsbh()"><option value="">Tất cả P&amp;C</option></select>
+        <button type="button" class="gs-chip-clear" id="gsbhClearBtn" style="display:none;" onclick="resetGsbhFilters()">Xóa lọc</button>
+      </div>
+      <div class="search-row" style="margin-bottom:12px;">
+        <input type="text" id="gsbhSearch" placeholder="Mã NPP, tên NPP, tên GSBH, SĐT..." oninput="renderGsbhDebounced()" enterkeyhint="search">
+      </div>
+      <div class="result-count"><h3>Danh sách GSBH</h3><span class="count-pill" id="gsbhNppCount">0</span></div>
+      <div id="gsbhList"></div>
+      <div class="empty-state" id="gsbhEmptyNote" style="display:none;"><p>Không có GSBH phù hợp.</p></div>
+    </section>
+
     <!-- ========== PAGE: DỮ LIỆU CHI PHÍ ========== -->
     <section class="page" id="page-rawdata">
       <div class="result-count">
@@ -798,13 +857,10 @@
       <span class="icon nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg></span>
       <span class="nav-label">Thiết bị</span>
     </button>
-    <button class="nav-btn" type="button" data-page="dongia" onclick="switchPage('dongia')">
-      <span class="icon nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.24L4 3a1 1 0 0 0-1 1l.24 5.59a2 2 0 0 0 .59 1.41l9.58 9.58a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.82z"></path><line x1="7.5" y1="7.5" x2="7.51" y2="7.5"></line></svg></span>
-      <span class="nav-label">Đơn giá</span>
-    </button>
-    <button class="nav-btn" type="button" data-page="rawdata" onclick="switchPage('rawdata')">
-      <span class="icon nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg></span>
-      <span class="nav-label">Dữ liệu</span>
+    <!-- Đơn giá / Dữ liệu / GSBH gom vào nút "Thêm" (giống TH truemart) -->
+    <button class="nav-btn" type="button" data-page="more" onclick="openSheet('moreSheet')">
+      <span class="icon nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="5" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.7" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.7" fill="currentColor" stroke="none"/></svg></span>
+      <span class="nav-label">Thêm</span>
     </button>
   </nav>
 
@@ -812,6 +868,23 @@
 
 <!-- ===================== FILTER SHEETS ===================== -->
 <div class="sheet-backdrop" id="sheetBackdrop" onclick="closeAllSheets()"></div>
+
+<div class="sheet" id="moreSheet" role="dialog" aria-modal="true" aria-label="Danh mục khác">
+  <div class="sheet-handle"></div>
+  <div class="sheet-title">Danh mục khác</div>
+  <button type="button" class="more-item" onclick="closeAllSheets(); switchPage('dongia')">
+    <span class="more-ic sky"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.24L4 3a1 1 0 0 0-1 1l.24 5.59a2 2 0 0 0 .59 1.41l9.58 9.58a2 2 0 0 0 2.83 0l4.35-4.35a2 2 0 0 0 0-2.82z"></path><line x1="7.5" y1="7.5" x2="7.51" y2="7.5"></line></svg></span>
+    <span class="more-main"><span class="more-title">Đơn giá</span><span class="more-sub">Đơn giá bảo trì, xây dựng, Sanaky</span></span><svg class="more-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg>
+  </button>
+  <button type="button" class="more-item" onclick="closeAllSheets(); switchPage('rawdata')">
+    <span class="more-ic gold"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg></span>
+    <span class="more-main"><span class="more-title">Dữ liệu chi phí</span><span class="more-sub">Toàn bộ dữ liệu chi phí sửa chữa</span></span><svg class="more-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg>
+  </button>
+  <button type="button" class="more-item" onclick="closeAllSheets(); switchPage('gsbh')">
+    <span class="more-ic purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg></span>
+    <span class="more-main"><span class="more-title">GSBH</span><span class="more-sub">Danh bạ GSBH, ASM, SM, KAE, KAM theo NPP</span></span><svg class="more-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 6 6 6-6 6"/></svg>
+  </button>
+</div>
 
 <div class="sheet" id="dashFilterSheet" role="dialog" aria-modal="true" aria-label="Bộ lọc báo cáo">
   <div class="sheet-handle"></div>
@@ -973,15 +1046,19 @@
     batch:      { title: 'Tra cứu danh sách', filter: false },
     devicelist: { title: 'Danh sách thiết bị', filter: true, filterFn: 'openDeviceFilterSheet' },
     dongia:     { title: 'Đơn giá', filter: false },
+    gsbh:       { title: 'GSBH', filter: false },
     rawdata:    { title: 'Dữ liệu chi phí', filter: true, filterFn: 'openRawFilterSheet' }
   };
 
+  var currentPage = 'dashboard';
   function switchPage(page) {
     if (!PAGE_META[page]) return;   // trang lạ -> bỏ qua, tránh ném lỗi làm dừng cả hàm
     $all('.page').forEach(function (p) { p.classList.remove('active'); });
     $all('.nav-btn').forEach(function (n) { n.classList.remove('active'); });
     $('#page-' + page).classList.add('active');
-    $('.nav-btn[data-page="' + page + '"]').classList.add('active');
+    // Trang nằm trong "Thêm" (Đơn giá / Dữ liệu / GSBH) -> sáng nút "Thêm"
+    ($('.nav-btn[data-page="' + page + '"]') || $('.nav-btn[data-page="more"]')).classList.add('active');
+    currentPage = page;
 
     var meta = PAGE_META[page];
     $('#topbarTitle').textContent = meta.title;
@@ -997,14 +1074,13 @@
     if (page === 'dongia' && !donGiaLoadedOnce) { donGiaLoadedOnce = true; loadDonGiaCategory(currentDonGiaCategory); }
     if (page === 'rawdata' && !rawDataLoadedOnce) { rawDataLoadedOnce = true; initRawData(); }
     if (page === 'devicelist' && !deviceListLoadedOnce) { deviceListLoadedOnce = true; initDeviceList(); }
+    if (page === 'gsbh' && !gsbhLoadedOnce) { gsbhLoadedOnce = true; loadGsbh(); }
 
     window.scrollTo(0, 0);   // đang cuộn giữa danh sách mà đổi trang thì trang mới phải bắt đầu từ đầu
   }
 
   function openActiveFilterSheet() {
-    var activeNav = $('.nav-btn.active');
-    var page = activeNav ? activeNav.dataset.page : 'dashboard';
-    var meta = PAGE_META[page];
+    var meta = PAGE_META[currentPage];
     if (meta && meta.filterFn) window[meta.filterFn]();
   }
 
@@ -1084,15 +1160,16 @@
         donGiaLoadedOnce = false;
         rawDataLoadedOnce = false;
         deviceListLoadedOnce = false;
+        gsbhLoadedOnce = false;
         donGiaDataCache = { bt: null, xd: null, snk: null };
 
         // Trang ĐANG MỞ được tải lại ngay tại đây, nên đánh dấu lại cờ của riêng nó để lúc rời
         // đi rồi quay lại không phải gọi server thêm một lần thừa.
-        var activeNav = $('.nav-btn.active');
-        var activePage = activeNav ? activeNav.dataset.page : 'dashboard';
+        var activePage = currentPage;
         if (activePage === 'dashboard') { dashboardLoadedOnce = true; loadDashboard(); }
         if (activePage === 'dongia') { donGiaLoadedOnce = true; loadDonGiaCategory(currentDonGiaCategory); }
         if (activePage === 'rawdata') { rawDataLoadedOnce = true; loadRawData(1); }
+        if (activePage === 'gsbh') { gsbhLoadedOnce = true; loadGsbh(); }
         if (activePage === 'devicelist') {
           deviceListLoadedOnce = true;
           reloadDeviceFilterOptions(function () { loadDeviceList(1); });
@@ -1106,15 +1183,16 @@
     donGiaLoadedOnce = false;
     rawDataLoadedOnce = false;
     deviceListLoadedOnce = false;
+    gsbhLoadedOnce = false;
     donGiaDataCache = { bt: null, xd: null, snk: null };
 
     // Trang ĐANG MỞ được tải lại ngay tại đây, nên đánh dấu lại cờ của riêng nó để lúc rời
     // đi rồi quay lại không phải gọi server thêm một lần thừa.
-    var activeNav = $('.nav-btn.active');
-    var activePage = activeNav ? activeNav.dataset.page : 'dashboard';
+    var activePage = currentPage;
     if (activePage === 'dashboard') { dashboardLoadedOnce = true; loadDashboard(); }
     if (activePage === 'dongia') { donGiaLoadedOnce = true; loadDonGiaCategory(currentDonGiaCategory); }
     if (activePage === 'rawdata') { rawDataLoadedOnce = true; loadRawData(1); }
+    if (activePage === 'gsbh') { gsbhLoadedOnce = true; loadGsbh(); }
     if (activePage === 'devicelist') {
       deviceListLoadedOnce = true;
       reloadDeviceFilterOptions(function () { loadDeviceList(1); });
@@ -1582,6 +1660,75 @@
 
   function applyDeviceFilters() { loadDeviceList(1); }
 
+
+
+  /* ===================== GSBH =====================
+     Nhóm theo Khu vực (GT) / Miền (KA): ASM·SM (KAM·NKAM) hiện 1 lần ở đầu nhóm, bên dưới từng NPP.
+     Bản điện thoại: số điện thoại bấm để gọi. */
+  var gsbhLoadedOnce = false, gsbhData = null, gsbhKenh = '', gsbhTimer_ = null;
+  function gsEsc_(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function gsNorm_(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase(); }
+  function gsPerson_(p) {
+    var ph = p.sdt ? (/^\+?\d{8,}$/.test(p.sdt)
+      ? '<a class="tel-link" href="tel:' + gsEsc_(p.sdt) + '">' + TEL_ICON_ + gsEsc_(p.sdt) + '</a>'
+      : '<span>' + gsEsc_(p.sdt) + '</span>') : '';
+    return '<div class="gs-person"><span class="gs-tag ' + gsEsc_(p.role) + '">' + gsEsc_(p.role) + '</span><span class="nm">' + gsEsc_(p.ten) + '</span>' + ph + '</div>';
+  }
+  function loadGsbh() {
+    $('#gsbhList').innerHTML = '<div class="skel skel-card"></div><div class="skel skel-card"></div><div class="skel skel-card"></div>';
+    google.script.run
+      .withSuccessHandler(function (d) {
+        gsbhData = d || { groups: [], mienList: [], pcList: [] };
+        var fill = function (sel, all, list) {
+          var el = $(sel), cur = el.value;
+          el.innerHTML = '<option value="">' + all + '</option>' + list.map(function (v) { return '<option value="' + gsEsc_(v) + '">' + gsEsc_(v) + '</option>'; }).join('');
+          el.value = list.indexOf(cur) > -1 ? cur : '';
+        };
+        fill('#gsbhMien', 'Tất cả miền', gsbhData.mienList || []); fill('#gsbhPc', 'Tất cả P&amp;C', gsbhData.pcList || []);
+        renderGsbh();
+      })
+      .withFailureHandler(function (err) { $('#gsbhList').innerHTML = ''; showToast('Lỗi: ' + err.message, 'error'); })
+      .getGsbhDirectory();
+  }
+  function setGsbhKenh(k) {
+    gsbhKenh = k;
+    $all('#page-gsbh .gs-chip').forEach(function (b) { b.classList.toggle('active', b.dataset.kenh === k); });
+    renderGsbh();
+  }
+  function renderGsbhDebounced() { clearTimeout(gsbhTimer_); gsbhTimer_ = setTimeout(renderGsbh, 250); }
+  function resetGsbhFilters() { $('#gsbhMien').value = ''; $('#gsbhPc').value = ''; $('#gsbhSearch').value = ''; setGsbhKenh(''); }
+  function renderGsbh() {
+    if (!gsbhData) return;
+    var mien = $('#gsbhMien').value, pc = $('#gsbhPc').value, q = gsNorm_($('#gsbhSearch').value.trim());
+    var qDigits = q.replace(/\D/g, '');
+    var hit = function (t) { return q && gsNorm_(t).indexOf(q) > -1; };
+    var hitPeople = function (list) { return list.some(function (p) { return hit(p.ten) || (qDigits.length >= 3 && String(p.sdt).indexOf(qDigits) > -1); }); };
+    var html = [], n = 0;
+    gsbhData.groups.forEach(function (g) {
+      if (gsbhKenh && g.kenh !== gsbhKenh) return;
+      if (mien && g.mien !== mien) return;
+      var npps = g.npps.filter(function (x) { return !pc || x.pc.indexOf(pc) > -1; });
+      if (q && !(hit(g.khuVuc) || hit(g.mien) || hitPeople(g.quanLy))) {
+        npps = npps.filter(function (x) { return hit(x.maNpp) || hit(x.tenNpp) || hit(x.tinh) || hitPeople(x.nguoi); });
+      }
+      if (!npps.length) return;
+      n += npps.length;
+      html.push('<div class="gs-group"><div class="gs-group-title"><span class="gs-kenh ' + g.kenh + '">' + g.kenh + '</span>' +
+        gsEsc_([g.mien, g.khuVuc].filter(Boolean).join(' · ')) + '<span class="n">' + npps.length + ' NPP</span></div>' +
+        g.quanLy.map(gsPerson_).join('') + '</div>');
+      npps.forEach(function (x) {
+        html.push('<div class="gs-card"><div class="t">' + gsEsc_(x.tenNpp) + '</div>' +
+          '<div class="s">Mã NPP ' + gsEsc_(x.maNpp) + (x.tinh ? ' · ' + gsEsc_(x.tinh) : '') + '</div>' +
+          x.nguoi.map(gsPerson_).join('') +
+          (x.pc.length ? '<div class="pcs">' + x.pc.map(function (v) { return '<span class="pc-badge">P&amp;C: ' + gsEsc_(v) + '</span>'; }).join('') + '</div>' : '') +
+          '</div>');
+      });
+    });
+    $('#gsbhList').innerHTML = html.join('');
+    $('#gsbhNppCount').textContent = formatInt(n);
+    $('#gsbhEmptyNote').style.display = n ? 'none' : '';
+    $('#gsbhClearBtn').style.display = (gsbhKenh || mien || pc || q) ? '' : 'none';
+  }
 
   /* ===== "Xóa lọc" chỉ hiện khi đang lọc khác mặc định (đồng bộ cách làm của TH truemart) =====
      Đọc thẳng trạng thái trên giao diện: thẻ khu vực khác "Toàn quốc", ô chọn khác "Tất cả", ô ngày /

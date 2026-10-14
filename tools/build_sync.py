@@ -18,7 +18,7 @@ FUNCS = ['normalizeCode', 'removeDiacritics', 'buildHeaderIndex', 'cellStr', 'ce
          'buildDateStrict_', 'parseDateSafe', 'isBadDate_', 'rawDateText_', 'formatDateDisplay', 'dateToIso',
          'rebuildListingRecords', 'rebuildChiPhiRecords', 'rebuildThanhLyRecords', 'rebuildGsbhRecords',
          'rebuildDonGiaBtRecords', 'rebuildDonGiaXdRecords', 'rebuildDonGiaSnkRecords']
-VARS = ['SHEET_LISTING', 'SHEET_CHIPHI', 'SHEET_THANHLY', 'SHEET_GSBH', 'SHEET_DONGIA_BT', 'SHEET_DONGIA_XD', 'SHEET_DONGIA_SNK']
+VARS = ['SHEET_LISTING', 'SHEET_CHIPHI', 'SHEET_THANHLY', 'SHEET_GSBH_GT', 'SHEET_ASM_GT', 'SHEET_GSBH_KA', 'SHEET_ASM_KA', 'SHEET_DONGIA_BT', 'SHEET_DONGIA_XD', 'SHEET_DONGIA_SNK']
 
 
 def grab(name):

@@ -3,7 +3,8 @@
 Bản web/PWA của Apps Script **TH true care**. Giao diện giữ nguyên, dữ liệu vẫn sửa trên Google Sheet.
 
 ```
-Google Sheet "GT" (LISTING, CHI PHI, THANH LY, GSBH)  ┐
+Google Sheet "GT" (LISTING, CHI PHI, THANH LY,       ┐
+                   GSBH GT, ASMSM GT, GSBH KA, ASMSM KA)
 Google Sheet "DG" (DON GIA BT / XD / SNK)             ┘ ── Sync.gs (15 phút/lần + menu) ──► Firestore th-truemart-info
                                                                                               │  care_meta, care_chunks
 Google Sheet "TM" → APP USERS, cột "TH true care" ── Sync.gs bên TM ──► care_users ──────────┤

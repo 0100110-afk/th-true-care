@@ -7,7 +7,7 @@
  * định dạng bản ghi mà app cũ dùng — app web chỉ việc tra cứu trên đó.
  *
  * CHỈ MỘT CHIỀU Sheet -> App (app chỉ tra cứu, không ghi gì):
- *   LISTING, CHI PHI, THANH LY, GSBH  (file GT)
+ *   LISTING, CHI PHI, THANH LY, GSBH GT + ASMSM GT + GSBH KA + ASMSM KA  (file GT)
  *   DON GIA BT / XD / SNK              (file DG riêng — FS_DG_FILE_ID)
  * Admin bấm "Đồng bộ từ Google Sheet" trên app (doPost); quét dự phòng 1 giờ/lần (7h–19h); menu "Đồng bộ ngay" vẫn giữ. Chỉ ghi những MẢNH dữ liệu thật
  * sự đổi (thêm dòng cuối CHI PHI thì chỉ mảnh cuối được ghi lại).

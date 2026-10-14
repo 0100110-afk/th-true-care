@@ -86,7 +86,7 @@ if re.search(r'\brebuild\w+Records\b', body):
 body = re.sub(r'\nvar CACHE_LIMIT_BYTES[^\n]*\nvar CACHE_WARN_BYTES[^\n]*\nvar CACHE_KEY_LIMIT[^\n]*\nvar CACHE_KEY_WARN[^\n]*', '\n', body)
 
 API = ['searchDevice', 'batchSearchDevices', 'getChiPhiPageData', 'getDonGiaData', 'getFilterOptions',
-       'getDashboardData', 'getDanhSachThietBiFilterOptions', 'getDanhSachThietBiPageData']
+       'getDashboardData', 'getDanhSachThietBiFilterOptions', 'getDanhSachThietBiPageData', 'getGsbhDirectory']
 for n in API:
     if not re.search(r'^function ' + n + r'\(', body, re.M):
         sys.exit('Thiếu hàm API ' + n)

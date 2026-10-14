@@ -5,9 +5,15 @@
  *                  | so_dien_thoai_cua_hang | loai_tu | ngay_lap_dat | nhan_hieu
  * Sheet "CHI PHI": code_tu | ngay_thuc_hien | ncc | dien_giai | thanh_tien | mien
  * Sheet "THANH LY": code_tu | thanh_ly | dien_giai
- * Sheet "GSBH": ma_npp | ten_npp | ho_ten_gsbh | dia_chi_mail | so_dien_thoai | P&C
- *   - 3 cột ho_ten_gsbh / dia_chi_mail / so_dien_thoai có thể chứa NHIỀU dòng trong 1 ô khi NPP
- *     có 2 GSBH -> tách theo dòng rồi ghép cặp tên/mail/số điện thoại.
+ * Sheet "GSBH GT" / "GSBH KA" / "ASMSM GT" / "ASMSM KA" (cùng bộ cột):
+ *   Miền | Khu vực | Mã NPP | Tên NPP | Tên rút gọn | Tỉnh/TP | Địa chỉ kho NPP | Vị trí | Họ & Tên
+ *   | Địa chỉ mail | Số Điện thoại | P&C phụ trách
+ *   - GSBH GT: mỗi dòng 1 NPP + GSBH. ASM lấy theo Khu vực, SM theo Miền (sheet ASMSM GT).
+ *   - GSBH KA: dòng có Mã NPP mở 1 NPP; các dòng ngay dưới để trống Mã NPP là KAE/KASUP thêm của
+ *     chính NPP đó. 1 NPP có thể nằm ở 2 Miền (người phụ trách khác nhau) -> coi là 2 mục riêng.
+ *     KAM lấy theo Miền, NKAM (Miền "TQ") là toàn quốc (sheet ASMSM KA).
+ *   - Ô Họ & Tên / mail / SĐT có thể chứa NHIỀU dòng khi NPP có 2 người -> tách theo dòng rồi ghép cặp.
+ *   (Sheet "GSBH" cũ không còn dùng.)
  * Sheet "DON GIA BT": ma_imc | noi_dung | dvt | vat_tu | nhan_cong | tong_cong
  * Sheet "DON GIA SNK": imc | noi_dung | dvt | vat_tu | gas_+_phin_loc | nhan_cong
  *                      | phu_phi_(van_chuyen/_di_lai) | don_gia
@@ -35,7 +41,10 @@
 var SHEET_LISTING = 'LISTING';
 var SHEET_CHIPHI = 'CHI PHI';
 var SHEET_THANHLY = 'THANH LY';
-var SHEET_GSBH = 'GSBH';
+var SHEET_GSBH_GT = 'GSBH GT';
+var SHEET_ASM_GT = 'ASMSM GT';
+var SHEET_GSBH_KA = 'GSBH KA';
+var SHEET_ASM_KA = 'ASMSM KA';
 var SHEET_DONGIA_BT = 'DON GIA BT';
 var SHEET_DONGIA_XD = 'DON GIA XD';
 var SHEET_DONGIA_SNK = 'DON GIA SNK';
@@ -73,7 +82,10 @@ var CACHE_CHUNK_SIZE = 30000;
 var CP = { CODE: 0, NGAY: 1, NCC: 2, NOIDUNG: 3, TIEN: 4, MIEN: 5, ROW: 6, NGAYRAW: 7 };
 var LS = { CODE: 0, TEN: 1, DIACHI: 2, SDT: 3, LOAITU: 4, NGAYLAP: 5, NHANHIEU: 6, VUNG: 7, MANPP: 8, ROW: 9, NGAYLAPRAW: 10 };
 var TL = { CODE: 0, THANHLY: 1, DIENGIAI: 2, ROW: 3 };
-var GS = { MANPP: 0, TENNPP: 1, HOTEN: 2, EMAIL: 3, SDT: 4, PC: 5, ROW: 6 };
+// 7 trường đầu GIỮ ĐÚNG VỊ TRÍ như bản ghi sheet GSBH cũ (bản app cũ đọc dữ liệu mới vẫn đúng);
+// các trường mới nối thêm phía sau. Dòng quản lý (ASM/SM/KAM/NKAM) có MANPP rỗng.
+var GS = { MANPP: 0, TENNPP: 1, HOTEN: 2, EMAIL: 3, SDT: 4, PC: 5, ROW: 6, KENH: 7, MIEN: 8, KV: 9, VITRI: 10, TINH: 11 };
+var GS_MANAGER_ROLES = { ASM: true, SM: true, KAM: true, NKAM: true };
 
 function doGet(e) {
   var isMobile = e && e.parameter && e.parameter.view === 'mobile';
@@ -912,29 +924,62 @@ function rebuildThanhLyRecords() {
 }
 
 function rebuildGsbhRecords() {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_GSBH);
-  if (!sheet) return [];
-  var data = sheet.getDataRange().getValues();
-  if (data.length < 2) return [];
-
-  var idx = buildHeaderIndex(data[0]);
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
   var records = [];
 
-  for (var i = 1; i < data.length; i++) {
-    var row = data[i];
-    var maNpp = normalizeCode(row[idx['ma_npp']]);
-    if (!maNpp) continue;
-
-    records.push([
-      maNpp,
-      cellStr(row, idx, 'ten_npp'),
-      cellStr(row, idx, 'ho_ten_gsbh'),
-      cellStr(row, idx, 'dia_chi_mail'),
-      cellStr(row, idx, 'so_dien_thoai'),
-      cellStr(row, idx, 'P&C'),
-      i + 1
-    ]);
+  /* Tra cột theo tên tiêu đề, không phân biệt hoa thường / dấu / khoảng trắng. */
+  function headerFinder(headers) {
+    var map = {};
+    headers.forEach(function (h, i) {
+      var k = removeDiacritics(String(h || '')).toLowerCase().replace(/[^a-z0-9&]/g, '');
+      if (k && map[k] === undefined) map[k] = i;
+    });
+    return function (row, names) {
+      for (var n = 0; n < names.length; n++) {
+        var i = map[names[n]];
+        if (i !== undefined) { var v = row[i]; return (v === null || v === undefined) ? '' : String(v).trim(); }
+      }
+      return '';
+    };
   }
+
+  /* kenh: 'GT' | 'KA'. isGsbh: sheet GSBH (có fill-down NPP cho dòng để trống Mã NPP). */
+  function readSheet(name, kenh, isGsbh) {
+    var sheet = ss.getSheetByName(name);
+    if (!sheet) return;
+    var data = sheet.getDataRange().getValues();
+    if (data.length < 2) return;
+    var col = headerFinder(data[0]);
+    var cur = null;   // NPP đang mở (chỉ dùng cho sheet GSBH)
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      var ten = col(row, ['ho&ten', 'hoten', 'hotengsbh']);
+      var ma = normalizeCode(col(row, ['manpp']));
+      var viTri = col(row, ['vitri']).toUpperCase();
+      if (!ten && !ma) continue;
+      var mien = col(row, ['mien']), kv = col(row, ['khuvuc']);
+      if (isGsbh) {
+        if (ma) {
+          cur = { ma: ma, ten: col(row, ['tenrutgon']) || col(row, ['tennpp']), tinh: col(row, ['tinhtp', 'tinh']),
+                  mien: mien, kv: kv, pc: col(row, ['p&cphutrach', 'p&c']) };
+        } else if (!cur) {
+          continue;   // dòng người mà chưa có NPP nào phía trên -> bỏ
+        }
+        records.push([cur.ma, cur.ten, ten, col(row, ['diachimail', 'email']), col(row, ['sodienthoai']),
+          ma ? cur.pc : (col(row, ['p&cphutrach', 'p&c']) || cur.pc), i + 1,
+          kenh, ma ? cur.mien : (mien || cur.mien), ma ? cur.kv : (kv || cur.kv), viTri || (kenh === 'GT' ? 'GSBH' : 'KAE'), cur.tinh]);
+      } else {
+        if (!ten) continue;
+        records.push(['', '', ten, col(row, ['diachimail', 'email']), col(row, ['sodienthoai']), '', i + 1,
+          kenh, mien, kv, viTri, '']);
+      }
+    }
+  }
+
+  readSheet(SHEET_GSBH_GT, 'GT', true);
+  readSheet(SHEET_ASM_GT, 'GT', false);
+  readSheet(SHEET_GSBH_KA, 'KA', true);
+  readSheet(SHEET_ASM_KA, 'KA', false);
 
   writeCacheRecords('gsbh_v1', records, CACHE_TTL_SECONDS);
   return records;
@@ -1300,25 +1345,83 @@ function findGsbhByMaNpp(maNpp) {
   var gsbhList = [];
   var pcSet = {};
 
+  var seen = {};
   records.forEach(function (r) {
-    if (r[GS.MANPP] !== maNpp) return;
+    if (r[GS.MANPP] !== maNpp || GS_MANAGER_ROLES[r[GS.VITRI]]) return;
 
     var names = splitMultiLine(r[GS.HOTEN]);
     var phones = splitMultiLine(r[GS.SDT]);
     var maxLen = Math.max(names.length, phones.length);
 
     for (var i = 0; i < maxLen; i++) {
-      gsbhList.push({
-        tenNpp: r[GS.TENNPP],
-        hoTen: names[i] || '',
-        soDienThoai: phones[i] ? formatPhone(phones[i]) : ''
-      });
+      var p = { tenNpp: r[GS.TENNPP], hoTen: names[i] || '', soDienThoai: phones[i] ? formatPhone(phones[i]) : '', viTri: r[GS.VITRI] || '' };
+      var k = p.hoTen + '|' + p.soDienThoai;
+      if (seen[k]) continue;   // KA: cùng 1 KAE phụ trách NPP ở 2 miền -> chỉ hiện 1 lần
+      seen[k] = true;
+      gsbhList.push(p);
     }
 
     splitMultiLine(r[GS.PC]).forEach(function (pc) { pcSet[pc] = true; });
   });
 
   return { gsbhList: gsbhList, pcList: Object.keys(pcSet) };
+}
+
+/**
+ * Danh bạ GSBH cho tab "GSBH": nhóm theo KHU VỰC (GT) / MIỀN (KA) để ASM·SM (KAM·NKAM) chỉ hiện
+ * MỘT lần ở đầu nhóm, bên dưới là các NPP với GSBH/KAE của từng NPP.
+ *  - GT: nhóm = Khu vực; quản lý = ASM cùng Khu vực + SM cùng Miền.
+ *  - KA: nhóm = Miền;   quản lý = KAM cùng Miền + NKAM toàn quốc. NPP ở 2 miền nằm ở cả 2 nhóm.
+ * Thứ tự nhóm / NPP giữ đúng thứ tự trên sheet. Lọc + tìm kiếm làm ở giao diện (dữ liệu nhỏ).
+ */
+function getGsbhDirectory() {
+  var records = getGsbhRecords();
+  function people(r) {
+    var names = splitMultiLine(r[GS.HOTEN]), phones = splitMultiLine(r[GS.SDT]), out = [];
+    for (var i = 0; i < Math.max(names.length, phones.length); i++) {
+      out.push({ role: r[GS.VITRI] || 'GSBH', ten: names[i] || '', sdt: phones[i] ? formatPhone(phones[i]) : '' });
+    }
+    return out;
+  }
+  var managers = { GT: { ASM: {}, SM: {} }, KA: { KAM: {}, NKAM: [] } };
+  records.forEach(function (r) {
+    var role = r[GS.VITRI], k = r[GS.KENH];
+    if (!GS_MANAGER_ROLES[role]) return;
+    if (k === 'GT' && role === 'ASM') (managers.GT.ASM[r[GS.KV]] = managers.GT.ASM[r[GS.KV]] || []).push.apply(managers.GT.ASM[r[GS.KV]], people(r));
+    else if (k === 'GT' && role === 'SM') (managers.GT.SM[r[GS.MIEN]] = managers.GT.SM[r[GS.MIEN]] || []).push.apply(managers.GT.SM[r[GS.MIEN]], people(r));
+    else if (k === 'KA' && role === 'NKAM') managers.KA.NKAM.push.apply(managers.KA.NKAM, people(r));
+    else if (k === 'KA') (managers.KA.KAM[r[GS.MIEN]] = managers.KA.KAM[r[GS.MIEN]] || []).push.apply(managers.KA.KAM[r[GS.MIEN]], people(r));
+  });
+
+  var groups = [], gIndex = {}, mienSet = {}, pcSet = {};
+  records.forEach(function (r) {
+    if (!r[GS.MANPP] || GS_MANAGER_ROLES[r[GS.VITRI]]) return;
+    var kenh = r[GS.KENH] || 'GT', mien = r[GS.MIEN] || '', kv = r[GS.KV] || '';
+    var gk = kenh === 'KA' ? 'KA|' + mien : 'GT|' + kv + '|' + mien;
+    var g = gIndex[gk];
+    if (!g) {
+      g = gIndex[gk] = { kenh: kenh, mien: mien, khuVuc: kenh === 'KA' ? '' : kv, npps: [], _n: {},
+        quanLy: kenh === 'KA' ? (managers.KA.KAM[mien] || []).concat(managers.KA.NKAM)
+                              : (managers.GT.ASM[kv] || []).concat(managers.GT.SM[mien] || []) };
+      groups.push(g);
+    }
+    var n = g._n[r[GS.MANPP]];
+    if (!n) {
+      n = g._n[r[GS.MANPP]] = { maNpp: r[GS.MANPP], tenNpp: r[GS.TENNPP], tinh: r[GS.TINH] || '', nguoi: [], pc: [], _p: {} };
+      g.npps.push(n);
+    }
+    people(r).forEach(function (p) {
+      var key = p.role + '|' + p.ten + '|' + p.sdt;
+      if (!n._p[key]) { n._p[key] = true; n.nguoi.push(p); }
+    });
+    splitMultiLine(r[GS.PC]).forEach(function (pc) { if (n.pc.indexOf(pc) === -1) n.pc.push(pc); pcSet[pc] = true; });
+    if (mien) mienSet[mien] = true;
+  });
+  groups.forEach(function (g) { delete g._n; g.npps.forEach(function (n) { delete n._p; }); });
+  // Miền xếp theo địa lý Bắc -> Trung -> Nam (MB1, MB2, MTR1, MTR2, MN1...), không theo bảng chữ cái
+  var rank = function (m) { return /^MB/.test(m) ? 0 : /^MTR|^MT/.test(m) ? 1 : /^MN/.test(m) ? 2 : 3; };
+  var mienList = Object.keys(mienSet).sort(function (a, b) { return rank(a) - rank(b) || (a < b ? -1 : a > b ? 1 : 0); });
+  return { groups: groups, mienList: mienList, pcList: Object.keys(pcSet).sort() };
 }
 
 /**

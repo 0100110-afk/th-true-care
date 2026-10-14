@@ -188,3 +188,6 @@ html[data-ui="mobile"] .topbar-titles{gap:12px;}
 
 /* Người dùng (không phải quản trị): không có nút đồng bộ dữ liệu */
 body.tm-viewer #refreshDataBtn{display:none !important;}
+
+/* Android Chrome tự phóng to chữ (font boosting / cỡ chữ hệ thống) làm giao diện to hơn iPhone -> giữ đúng cỡ thiết kế */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}

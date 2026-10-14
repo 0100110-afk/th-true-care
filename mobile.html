@@ -577,6 +577,17 @@
     /* Tra cứu thiết bị — khối GSBH */
     .gs-dev-head { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; margin-bottom: 8px; font-size: 13px; color: var(--ink-muted); }
     .gs-dev-head b { color: var(--brand-900); font-weight: 800; }
+
+  /* Vùng bấm phủ lên biểu đồ (xem chartHitPlugin_) */
+  .chart-hits{ position:absolute; inset:0; pointer-events:none; }
+  .chart-hit{ position:absolute; pointer-events:auto; border:0; padding:0; margin:0; background:transparent; cursor:pointer; border-radius:6px; }
+  .chart-hit:hover{ background:rgba(19,111,191,.06); }
+  .chart-hit:focus-visible{ outline:2px solid var(--brand-500, #2E9BE0); outline-offset:-2px; }
+  .chart-legend{ display:flex; justify-content:center; flex-wrap:wrap; gap:6px 16px; margin:0 0 8px; }
+  .chart-lg{ display:inline-flex; align-items:center; gap:6px; border:0; background:none; padding:2px 4px; font:inherit; font-size:11px; font-weight:600; color:#475467; cursor:pointer; border-radius:6px; }
+  .chart-lg .dot{ width:12px; height:12px; border-radius:3px; display:inline-block; }
+  .chart-lg.off{ color:#A3B1B8; text-decoration:line-through; }
+  .chart-lg.off .dot{ opacity:.35; }
 </style>
 </head>
 <body>
@@ -657,14 +668,15 @@
         </button>
       </div>
 
-      <div class="section-label">Theo khu vực</div>
+      <div class="section-label">Số lượt sửa chữa theo khu vực</div>
       <div class="card chart-card">
         <div class="chart-wrap"><canvas id="regionChartCanvas"></canvas></div>
       </div>
 
       <div class="section-label">Xu hướng chi phí theo tháng</div>
       <div class="card chart-card">
-        <div class="chart-wrap"><canvas id="trendChartCanvas"></canvas></div>
+        <div class="chart-legend" id="trendLegend"></div>
+            <div class="chart-wrap"><canvas id="trendChartCanvas"></canvas></div>
       </div>
 
       <div class="section-label">Số lượng thiết bị theo loại</div>
@@ -837,7 +849,7 @@
         <button type="button" class="gs-chip" data-kenh="KA" onclick="setGsbhKenh('KA')">KA</button>
         <select class="gs-chip-select" id="gsbhMien" onchange="renderGsbh()"><option value="">Tất cả miền</option></select>
         <select class="gs-chip-select" id="gsbhPc" onchange="renderGsbh()"><option value="">Tất cả P&amp;C</option></select>
-        <button type="button" class="gs-chip-clear" id="gsbhClearBtn" style="display:none;" onclick="resetGsbhFilters()">Xóa lọc</button>
+        <button type="button" class="gs-chip-clear" id="gsbhClearBtn" style="visibility:hidden;" onclick="resetGsbhFilters()">Xóa lọc</button>
       </div>
       <div class="search-row" style="margin-bottom:12px;">
         <input type="text" id="gsbhSearch" placeholder="Mã NPP, tên NPP, tên người, SĐT, email..." oninput="renderGsbhDebounced()" enterkeyhint="search">
@@ -1751,7 +1763,7 @@
     $('#gsbhList').innerHTML = html.join('');
     $('#gsbhNppCount').textContent = formatInt(n);
     $('#gsbhEmptyNote').style.display = n ? 'none' : '';
-    $('#gsbhClearBtn').style.display = (gsbhKenh || mien || pc || q) ? '' : 'none';
+    $('#gsbhClearBtn').style.display = ''; $('#gsbhClearBtn').style.visibility = (gsbhKenh || mien || pc || q) ? 'visible' : 'hidden';
   }
 
   /* ===== "Xóa lọc" chỉ hiện khi đang lọc khác mặc định (đồng bộ cách làm của TH truemart) =====
@@ -1768,7 +1780,8 @@
       var reg = document.getElementById(g.region), act = reg ? reg.querySelector('.active') : null;
       var on = !!(act && act.getAttribute('data-region') && act.getAttribute('data-region') !== 'toanquoc');
       g.fields.forEach(function (id) { var el = document.getElementById(id); if (el && String(el.value || '').trim()) on = true; });
-      (b.closest('.filter-item') || b).style.display = on ? '' : 'none';
+      /* Nút Xoá lọc GIỮ CHỖ cố định (visibility) — hiện/ẩn không làm các ô lọc bên cạnh nhảy vị trí */
+      (b.closest('.filter-item') || b).style.visibility = on ? 'visible' : 'hidden';
     });
   }
   ['change', 'input', 'click'].forEach(function (ev) {
@@ -2555,6 +2568,53 @@
     renderTopNcc(d.topNcc);
   }
 
+  /* ===== Vùng bấm bằng HTML phủ lên biểu đồ =====
+     Bản máy tính tự thu nhỏ giao diện (ui-scale, CSS zoom) nên Chart.js tính sai toạ độ chuột: bấm
+     lệch sang mục bên cạnh, thanh nhỏ gần như không bấm trúng. Phủ lên mỗi hạng mục 1 dải <button>
+     trong suốt — với thanh ngang là CẢ DÒNG (tên → thanh → số), với cột đứng là cả cột — bấm luôn
+     đúng, không phụ thuộc zoom. Dựng lại sau mỗi lần biểu đồ vẽ xong (đổi cỡ cửa sổ cũng đúng). */
+  var chartHitPlugin_ = {
+    id: 'chartHitPlugin_',
+    afterRender: function (chart) {
+      // Cấu hình gắn lên chính <canvas> (KHÔNG để trong options: Chart.js coi hàm trong options là tuỳ chọn động và tự gọi)
+      var o = chart.canvas._chartHit;
+      if (!o) return;
+      var wrap = chart.canvas.parentNode, layer = wrap.querySelector('.chart-hits');
+      if (!layer) { layer = document.createElement('div'); layer.className = 'chart-hits'; wrap.appendChild(layer); }
+      var meta = chart.getDatasetMeta(0), a = chart.chartArea, horiz = chart.options.indexAxis === 'y';
+      var n = meta.data.length, key = n + '|' + Math.round(a.left) + '|' + Math.round(a.right) + '|' + Math.round(a.top) + '|' + Math.round(a.bottom);
+      if (layer.dataset.key === key) return;
+      layer.dataset.key = key;
+      layer.innerHTML = '';
+      var step = n > 1 ? Math.abs((horiz ? meta.data[1].y - meta.data[0].y : meta.data[1].x - meta.data[0].x)) : (horiz ? a.bottom - a.top : a.right - a.left);
+      meta.data.forEach(function (el, i) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'chart-hit';
+        b.title = o.title ? o.title(i) : '';
+        if (horiz) { b.style.left = '0'; b.style.right = '0'; b.style.top = (el.y - step / 2) + 'px'; b.style.height = step + 'px'; }
+        else { b.style.top = '0'; b.style.bottom = '0'; b.style.left = (el.x - step / 2) + 'px'; b.style.width = step + 'px'; }
+        b.addEventListener('click', function () { o.onPick(i); });
+        layer.appendChild(b);
+      });
+    }
+  };
+
+  /* Chú giải HTML cho biểu đồ đường: bấm đúng ô nào tắt/bật đúng đường đó (chú giải vẽ trong canvas
+     bị lệch toạ độ khi trang thu nhỏ). */
+  function htmlLegend_(chart, host) {
+    host.innerHTML = '';
+    chart.data.datasets.forEach(function (ds, i) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'chart-lg' + (chart.isDatasetVisible(i) ? '' : ' off');
+      b.innerHTML = '<span class="dot" style="background:' + ds.borderColor + '"></span>' + ds.label;
+      b.addEventListener('click', function () {
+        chart.setDatasetVisibility(i, !chart.isDatasetVisible(i)); chart.update();
+        b.classList.toggle('off', !chart.isDatasetVisible(i));
+      });
+      host.appendChild(b);
+    });
+  }
+
   function renderRegionChart(data) {
     var canvas = $('#regionChartCanvas');
     var ctx = canvas.getContext('2d');
@@ -2567,11 +2627,12 @@
     });
 
     if (regionChartInstance) regionChartInstance.destroy();
+    canvas._chartHit = { onPick: function (i) { goToRawDataByRegion(keys[i]); }, title: function (i) { return 'Xem dữ liệu chi phí ' + labels[i]; } };
     regionChartInstance = new Chart(ctx, {
       type: 'bar',
       data: { labels: labels, datasets: [{ label: 'Số lượt sửa chữa', data: values, backgroundColor: CHART_REGION_COLORS_, borderRadius: 6, maxBarThickness: 48 }] },
       options: opts,
-      plugins: [barValueLabelPlugin]
+      plugins: [barValueLabelPlugin, chartHitPlugin_]
     });
   }
 
@@ -2606,7 +2667,7 @@
             }
           },
           legend: {
-            display: true, position: 'top', align: 'center',
+            display: false, position: 'top', align: 'center',
             labels: { boxWidth: 11, boxHeight: 11, padding: 8, color: CHART_AXIS_INK_, font: { size: 11 } }
           }
         },
@@ -2617,6 +2678,7 @@
       },
       plugins: [legendMarginPlugin]
     });
+    htmlLegend_(trendChartInstance, $('#trendLegend'));
   }
 
   function renderDeviceTypeChart(data) {
@@ -2630,11 +2692,12 @@
     });
 
     if (deviceTypeChartInstance) deviceTypeChartInstance.destroy();
+    canvas._chartHit = { onPick: function (i) { goToDeviceListByType(labels[i]); }, title: function (i) { return labels[i] + ': ' + Number(values[i]).toLocaleString('vi-VN') + ' thiết bị — bấm để xem danh sách'; } };
     deviceTypeChartInstance = new Chart(canvas.getContext('2d'), {
       type: 'bar',
       data: { labels: labels, datasets: [{ label: 'Số lượng thiết bị', data: values, backgroundColor: CHART_TYPE_COLOR_, borderRadius: 4, barThickness: HBAR_THICK_ }] },
       options: opts,
-      plugins: [hBarTrackPlugin]
+      plugins: [hBarTrackPlugin, chartHitPlugin_]
     });
   }
 
@@ -2649,11 +2712,12 @@
     });
 
     if (deviceBrandChartInstance) deviceBrandChartInstance.destroy();
+    canvas._chartHit = { onPick: function (i) { goToDeviceListByBrand(labels[i]); }, title: function (i) { return labels[i] + ': ' + Number(values[i]).toLocaleString('vi-VN') + ' thiết bị — bấm để xem danh sách'; } };
     deviceBrandChartInstance = new Chart(canvas.getContext('2d'), {
       type: 'bar',
       data: { labels: labels, datasets: [{ label: 'Số lượng thiết bị', data: values, backgroundColor: CHART_BRAND_COLOR_, borderRadius: 4, barThickness: HBAR_THICK_ }] },
       options: opts,
-      plugins: [hBarTrackPlugin]
+      plugins: [hBarTrackPlugin, chartHitPlugin_]
     });
   }
 

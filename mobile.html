@@ -3044,8 +3044,12 @@ html.uip-desk ::-webkit-scrollbar-corner{background:transparent;}
 
   /* ---------------- ô chọn ---------------- */
   function buildList(sel, host, onPick) {
-    var opts = Array.prototype.slice.call(sel.options).filter(function (o) { return !o.hidden && !o.disabled; });
-    var withSearch = opts.length > 8;
+    // Bỏ dòng gợi ý kiểu "— Chọn vật tư —" khỏi danh sách (vẫn hiện trong ô khi chưa chọn gì).
+    // Dòng "Tất cả ..." (cũng có value rỗng) thì giữ vì đó là một lựa chọn thật.
+    var isHint = function (o) { return o.value === '' && /^[\s—–-]*Chọn/i.test(o.textContent); };
+    var opts = Array.prototype.slice.call(sel.options).filter(function (o) { return !o.hidden && !o.disabled && !isHint(o); });
+    // Ô tìm chỉ khi danh sách dài (> 13 dòng): 12 tháng + "Tất cả tháng", danh sách năm, miền... không cần tìm
+    var withSearch = opts.length > 13;
     host.innerHTML = (withSearch ? '<div class="uip-search">' + I.search + '<input type="search" placeholder="Tìm…" aria-label="Tìm" autocomplete="off"><button type="button" class="uip-clear" aria-label="Xoá chữ" hidden>' + I.x + '</button></div>' : '') +
       '<div class="uip-opts" role="listbox"></div>';
     var list = host.querySelector('.uip-opts'), q = host.querySelector('input'), clr = host.querySelector('.uip-clear');

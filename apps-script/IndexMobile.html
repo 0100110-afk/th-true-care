@@ -2695,7 +2695,13 @@
     drawTrendChart_();
   }
   function drawTrendChart_() {
-    var data = trendDataAll_;
+    // Bỏ các tháng SAU tháng hiện tại (ngày nhập nhầm sang tương lai, vd 2027): nếu không, "12 tháng
+    // gần nhất" sẽ lấy cả tháng tương lai và cắt mất tháng thật. Tổng chi phí phía trên vẫn tính đủ.
+    var nowKey = new Date().getFullYear() * 100 + new Date().getMonth() + 1;
+    var data = trendDataAll_.filter(function (r) {
+      var p = String(r.thang).split('/');
+      return Number(p[1]) * 100 + Number(p[0]) <= nowKey;
+    });
     if (trendMode_ === 'year') {
       var byYear = {}, years = [];
       data.forEach(function (r) {

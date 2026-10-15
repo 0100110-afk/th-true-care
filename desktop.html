@@ -600,6 +600,14 @@
      Dưới  = labels.padding (8) + legendMarginPlugin (8)   = 16px */
   .chart-title{ margin:0 0 8px; font-size:15px; }
   .chart-wrap{ position:relative; height:260px; width:100%; overflow:hidden; }
+  /* Hai thẻ biểu đồ cùng hàng cao bằng nhau (lưới kéo giãn) -> vùng vẽ cột/đường giãn lấp đầy thẻ,
+     không để khoảng trống dưới biểu đồ khu vực khi thẻ bên cạnh có thêm chú giải. */
+  .dash-grid > .card{ display:flex; flex-direction:column; }
+  .dash-grid > .card > .chart-wrap:not(.hbar){ flex:1 1 auto; height:auto; min-height:260px; }
+  /* Tiêu đề + nút "12 tháng / Theo năm" chung một hàng */
+  .chart-head{ display:flex; align-items:center; justify-content:space-between; gap:8px 12px; flex-wrap:wrap; margin:0 0 8px; }
+  .chart-head .chart-title{ margin:0; }
+  .chart-head .trend-mode{ margin:0; }
   /* Biểu đồ thanh ngang: chiều cao do fitHBarHeight_() tính theo số hạng mục.
      Giá trị dưới đây chỉ là khung tạm lúc còn skeleton. */
   .chart-wrap.hbar{ height:300px; }
@@ -893,11 +901,13 @@
             <div class="chart-wrap"><canvas id="regionChartCanvas"></canvas></div>
           </div>
           <div class="card">
+            <div class="chart-head">
             <h3 class="chart-title">Xu hướng chi phí theo tháng</h3>
             <div class="trend-mode" id="trendMode" role="group" aria-label="Khoảng thời gian">
               <button type="button" class="active" data-m="12m" onclick="setTrendMode('12m')">12 tháng gần nhất</button>
               <button type="button" data-m="year" onclick="setTrendMode('year')">Theo năm</button>
               <span class="range-note" id="trendRangeNote"></span>
+            </div>
             </div>
             <div class="chart-legend" id="trendLegend"></div>
             <div class="chart-wrap"><canvas id="trendChartCanvas"></canvas></div>
@@ -3020,7 +3030,7 @@
     canvas._chartHit = { onPick: function (i) { goToRawDataByRegion(keys[i]); }, title: function (i) { return 'Xem dữ liệu chi phí ' + labels[i]; } };
     regionChartInstance = new Chart(ctx, {
       type: 'bar',
-      data: { labels: labels, datasets: [{ label: 'Số lượt sửa chữa', data: values, backgroundColor: CHART_REGION_COLORS_, borderRadius: 6, maxBarThickness: 48 }] },
+      data: { labels: labels, datasets: [{ label: 'Số lượt sửa chữa', data: values, backgroundColor: CHART_REGION_COLORS_, borderRadius: 6, maxBarThickness: 64 }] },
       options: opts,
       plugins: [barValueLabelPlugin, chartHitPlugin_]
     });
@@ -3048,7 +3058,13 @@
     drawTrendChart_();
   }
   function drawTrendChart_() {
-    var data = trendDataAll_;
+    // Bỏ các tháng SAU tháng hiện tại (ngày nhập nhầm sang tương lai, vd 2027): nếu không, "12 tháng
+    // gần nhất" sẽ lấy cả tháng tương lai và cắt mất tháng thật. Tổng chi phí phía trên vẫn tính đủ.
+    var nowKey = new Date().getFullYear() * 100 + new Date().getMonth() + 1;
+    var data = trendDataAll_.filter(function (r) {
+      var p = String(r.thang).split('/');
+      return Number(p[1]) * 100 + Number(p[0]) <= nowKey;
+    });
     var ranged = !!($('#filterTuNgay').value || $('#filterDenNgay').value);
     var mode = ranged ? (data.length > 36 ? 'year' : 'month') : trendMode_;
     $('#trendMode').classList.toggle('is-range', ranged);

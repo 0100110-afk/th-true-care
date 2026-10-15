@@ -583,6 +583,7 @@
     .gs-card .s { font-size: 12px; color: var(--ink-muted); margin: 2px 0 6px; }
     .gs-card .pcs { margin: 0 0 6px; }
     .gs-card .kho { font-size: 11.5px; color: var(--ink-muted); line-height: 1.4; margin: -2px 0 6px; }
+    .gs-person .gs-phs { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
     .gs-person .nm small { display: block; font-size: 11.5px; font-weight: 500; color: #3A4B57; overflow-wrap: anywhere; }   /* cùng màu email bản máy tính: rõ hơn; email dài xuống dòng thay vì tràn */
 
     /* Tra cứu thiết bị — khối GSBH */
@@ -1721,12 +1722,18 @@
   var gsbhLoadedOnce = false, gsbhData = null, gsbhKenh = '', gsbhTimer_ = null;
   function gsEsc_(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function gsNorm_(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase(); }
+  /* 1 người có thể nhiều số / nhiều email (ô sheet nhiều dòng) -> mỗi số 1 dòng bên phải, bấm gọi được */
   function gsPerson_(p) {
-    var ph = p.sdt ? (/^\+?\d{8,}$/.test(p.sdt)
-      ? '<a class="tel-link" href="tel:' + gsEsc_(p.sdt) + '"><span class="num">' + gsEsc_(p.sdt) + '</span>' + TEL_ICON_ + '</a>'
-      : '<span>' + gsEsc_(p.sdt) + '</span>') : '';
+    var nums = String(p.sdt || '').split('\n').filter(Boolean);
+    var ph = nums.map(function (n) {
+      return /^\+?\d{8,}$/.test(n)
+        ? '<a class="tel-link" href="tel:' + gsEsc_(n) + '"><span class="num">' + gsEsc_(n) + '</span>' + TEL_ICON_ + '</a>'
+        : '<span>' + gsEsc_(n) + '</span>';
+    }).join('');
+    if (nums.length > 1) ph = '<span class="gs-phs">' + ph + '</span>';
+    var mails = String(p.email || '').split('\n').filter(Boolean).map(function (m) { return '<small>' + gsEsc_(m).replace('@', '<wbr>@') + '</small>'; }).join('');
     return '<div class="gs-person"><span class="gs-tag ' + gsEsc_(p.role) + '">' + gsEsc_(p.role) + '</span><span class="nm">' + gsEsc_(p.ten) +
-      (p.email ? '<small>' + gsEsc_(p.email).replace('@', '<wbr>@') + '</small>' : '') + '</span>' + ph + '</div>';
+      mails + '</span>' + ph + '</div>';
   }
   /* Dòng đầu khối GSBH: [GT] Tên NPP · Mã NPP … · MB1 · HN2 (dữ liệu cũ không có kênh thì bỏ nhãn) */
   function gsbhDevHead_(n) {

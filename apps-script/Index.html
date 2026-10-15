@@ -544,7 +544,13 @@
   .gs-lines.ph > div{ font-variant-numeric:tabular-nums; color:var(--ink-700, #3A4B57); }
   .gs-npp-name{ font-weight:700; color:var(--brand-900); cursor:help; }
   .gs-npp-kho{ font-size:11.5px; color:var(--ink-500); margin-top:3px; line-height:1.4; max-width:320px; white-space:normal; }
-  .gs-lines.mail > div{ color:var(--ink-700, #3A4B57); font-size:12.5px; }   /* cùng màu cột SĐT: rõ hơn, không tốn thêm bề rộng */
+  /* Email: 13px + chữ sát nhẹ (−0.01em), ô bớt 2px đệm mỗi bên -> cột rộng đúng như bản 12.5px cũ */
+  .gs-lines.mail > div{ color:var(--ink-700, #3A4B57); font-size:13px; letter-spacing:-0.01em; }
+  .gs-table td.gs-mail-td{ padding-left:10px; padding-right:10px; }
+  /* 1 người nhiều số / nhiều email: các dòng xếp chồng; cột tên giãn cao theo để người bên dưới không lệch hàng */
+  .gs-lines > div.multi{ flex-direction:column; align-items:flex-start; justify-content:center; gap:0; }
+  .gs-lines > div.multi > span{ line-height:22px; }
+  .gs-mgr .ml{ color:var(--ink-700, #3A4B57); font-size:12.5px; }
   .gs-sum{ display:inline-flex; gap:8px; margin-right:6px; }
   .gs-sum span{ background:#F3F7FB; border:1px solid var(--border); border-radius:999px; padding:4px 11px; font-size:12px; color:var(--ink-500); }
   .gs-sum b{ color:var(--brand-900); }
@@ -1693,7 +1699,7 @@
     } else {
       gsbhEl.innerHTML = gsbhDevHead_(res.gsbh_npp) + res.gsbh_list.map(function (g) {
         return '<div class="gs-dev-row"><span class="gs-tag ' + gsEsc_(g.viTri || 'GSBH') + '">' + gsEsc_(g.viTri || 'GSBH') + '</span>' +
-          '<span class="nm">' + gsEsc_(g.hoTen || '—') + '</span><span class="ph">' + gsEsc_(g.soDienThoai || '—') + '</span></div>';
+          '<span class="nm">' + gsEsc_(g.hoTen || '—') + '</span><span class="ph">' + (gsEsc_(g.soDienThoai || '—')).replace(/\n/g, ' · ') + '</span></div>';
       }).join('');
     }
 
@@ -2119,6 +2125,19 @@
     return out;
   }
 
+  /* 1 người = bao nhiêu dòng (nhiều số / nhiều email trong cùng ô sheet) */
+  function gsLineCount_(p) {
+    var c = function (v) { return String(v || '').split('\n').filter(Boolean).length; };
+    return Math.max(1, c(p.sdt), c(p.email));
+  }
+  /* Ô SĐT / Email của 1 người: mỗi số / email 1 dòng, cao bằng k dòng để thẳng hàng với cột tên */
+  function gsStack_(v, k) {
+    var parts = String(v || '').split('\n').filter(Boolean);
+    if (!parts.length) parts = ['—'];
+    if (k <= 1) return '<div>' + gsEsc_(parts[0]) + '</div>';
+    return '<div class="multi" style="min-height:' + (22 * k) + 'px">' + parts.map(function (x) { return '<span>' + gsEsc_(x) + '</span>'; }).join('') + '</div>';
+  }
+
   function renderGsbh() {
     if (!gsbhData) return;
     var list = gsbhFiltered_(), html = [], nNpp = 0, nGt = 0, nKa = 0;
@@ -2130,7 +2149,8 @@
         '<span class="gs-group-title"><span class="gs-kenh ' + g.kenh + '">' + g.kenh + '</span>' + gsEsc_(title) + '</span>' +
         g.quanLy.map(function (p) {
           return '<span class="gs-mgr"><span class="gs-tag ' + gsEsc_(p.role) + '">' + gsEsc_(p.role) + '</span><b>' + gsEsc_(p.ten) + '</b>' +
-            (p.sdt ? '<span class="ph">' + gsEsc_(p.sdt) + '</span>' : '') + '</span>';
+            (p.sdt ? '<span class="ph">' + gsEsc_(p.sdt).replace(/\n/g, ' · ') + '</span>' : '') +
+            (p.email ? '<span class="ml">' + gsEsc_(p.email).replace(/\n/g, ' · ') + '</span>' : '') + '</span>';
         }).join('') +
         '<span class="gs-group-count">' + x.npps.length + ' NPP</span></div></td></tr>');
       x.npps.forEach(function (n) {
@@ -2140,10 +2160,11 @@
           (n.kho ? '<div class="gs-npp-kho">' + gsEsc_(n.kho).replace(/\n/g, '<br>') + '</div>' : '') + '</td>' +
           '<td>' + gsEsc_(n.tinh || '—') + '</td>' +
           '<td><div class="gs-lines">' + n.nguoi.map(function (p) {
-            return '<div><span class="gs-tag ' + gsEsc_(p.role) + '">' + gsEsc_(p.role) + '</span>' + gsEsc_(p.ten) + '</div>';
+            var k = gsLineCount_(p);
+            return '<div' + (k > 1 ? ' style="min-height:' + (22 * k) + 'px"' : '') + '><span class="gs-tag ' + gsEsc_(p.role) + '">' + gsEsc_(p.role) + '</span>' + gsEsc_(p.ten) + '</div>';
           }).join('') + '</div></td>' +
-          '<td><div class="gs-lines ph">' + n.nguoi.map(function (p) { return '<div>' + gsEsc_(p.sdt || '—') + '</div>'; }).join('') + '</div></td>' +
-          '<td><div class="gs-lines mail">' + n.nguoi.map(function (p) { return '<div>' + gsEsc_(p.email || '—') + '</div>'; }).join('') + '</div></td>' +
+          '<td><div class="gs-lines ph">' + n.nguoi.map(function (p) { return gsStack_(p.sdt, gsLineCount_(p)); }).join('') + '</div></td>' +
+          '<td class="gs-mail-td"><div class="gs-lines mail">' + n.nguoi.map(function (p) { return gsStack_(p.email, gsLineCount_(p)); }).join('') + '</div></td>' +
           '<td class="gs-pc">' + n.pc.map(function (v) { return '<span class="pc-badge">' + gsEsc_(v) + '</span>'; }).join('') + '</td></tr>');
       });
     });
@@ -2163,18 +2184,18 @@
       try {
         var XL = window.XLSX, join = function (arr, k) { return arr.map(function (p) { return p[k]; }).join('\n'); };
         var hasPc = (gsbhData.pcList || []).length > 0;   // không còn P&C -> bỏ cột này khỏi file Excel
-        var aoa = [['Kênh', 'Miền', 'Khu vực', 'Mã NPP', 'Nhà phân phối', 'Tên đầy đủ', 'Địa chỉ kho NPP', 'Tỉnh/TP', 'Vị trí', 'GSBH / KAE / KASUP', 'SĐT', 'Email', 'ASM / KAM', 'SĐT ASM / KAM', 'SM / NKAM', 'SĐT SM / NKAM'].concat(hasPc ? ['P&C phụ trách'] : [])];
+        var aoa = [['Kênh', 'Miền', 'Khu vực', 'Mã NPP', 'Nhà phân phối', 'Tên đầy đủ', 'Địa chỉ kho NPP', 'Tỉnh/TP', 'Vị trí', 'GSBH / KAE / KASUP', 'SĐT', 'Email', 'ASM / KAM', 'SĐT ASM / KAM', 'Email ASM / KAM', 'SM / NKAM', 'SĐT SM / NKAM', 'Email SM / NKAM'].concat(hasPc ? ['P&C phụ trách'] : [])];
         list.forEach(function (x) {
           var g = x.g;
           var lv1 = g.quanLy.filter(function (p) { return p.role === 'ASM' || p.role === 'KAM'; });
           var lv2 = g.quanLy.filter(function (p) { return p.role === 'SM' || p.role === 'NKAM'; });
           x.npps.forEach(function (n) {
             aoa.push([g.kenh, g.mien, g.khuVuc, n.maNpp, n.tenNpp, n.tenDayDu || '', n.kho || '', n.tinh, join(n.nguoi, 'role'), join(n.nguoi, 'ten'), join(n.nguoi, 'sdt'), join(n.nguoi, 'email'),
-              join(lv1, 'ten'), join(lv1, 'sdt'), join(lv2, 'ten'), join(lv2, 'sdt')].concat(hasPc ? [n.pc.join('\n')] : []));
+              join(lv1, 'ten'), join(lv1, 'sdt'), join(lv1, 'email'), join(lv2, 'ten'), join(lv2, 'sdt'), join(lv2, 'email')].concat(hasPc ? [n.pc.join('\n')] : []));
           });
         });
         var ws = XL.utils.aoa_to_sheet(aoa);
-        ws['!cols'] = [6, 7, 9, 12, 22, 40, 44, 14, 8, 24, 13, 26, 22, 13, 22, 13].concat(hasPc ? [18] : []).map(function (w) { return { wch: w }; });
+        ws['!cols'] = [6, 7, 9, 12, 22, 40, 44, 14, 8, 24, 13, 26, 22, 13, 26, 22, 13, 26].concat(hasPc ? [18] : []).map(function (w) { return { wch: w }; });
         var wb = XL.utils.book_new(); XL.utils.book_append_sheet(wb, ws, 'GSBH');
         downloadXlsx_(XL, wb, 'GSBH_' + todayStamp_() + '.xlsx');
       } catch (e) { showToast('Không xuất được file Excel: ' + e.message, 'error'); }

@@ -421,6 +421,22 @@ var CareCore = (function () {
     return String(str || '').split(/\r?\n/).map(function (s) { return s.trim(); }).filter(function (s) { return s !== ''; });
   }
 
+  /**
+   * Ô nhiều dòng (Họ tên / SĐT / Email) -> từng NGƯỜI.
+   * Ô có 1 tên mà nhiều số / nhiều email (1 người 2 số) -> TẤT CẢ thuộc người đó — trước đây ghép theo dòng
+   * nên dòng thứ 2 thành 1 "người" không tên chỉ có số. Nhiều tên thì vẫn ghép theo dòng, phần dư gắn vào người cuối.
+   * Trả [{ ten, phones:[], mails:[] }].
+   */
+  function gsSplitPeople_(nameCell, phoneCell, mailCell) {
+    var names = splitMultiLine(nameCell), phones = splitMultiLine(phoneCell), mails = splitMultiLine(mailCell);
+    if (!names.length && !phones.length && !mails.length) return [];
+    var n = Math.max(names.length, 1), out = [];
+    for (var i = 0; i < n; i++) out.push({ ten: names[i] || '', phones: [], mails: [] });
+    phones.forEach(function (ph, j) { var v = formatPhone(ph); if (v) out[Math.min(j, n - 1)].phones.push(v); });
+    mails.forEach(function (m, j) { out[Math.min(j, n - 1)].mails.push(m); });
+    return out;
+  }
+
   /* ============================= LỚP CACHE ============================= */
 
 
@@ -715,17 +731,14 @@ var CareCore = (function () {
       if (r[GS.MIEN] && npp.mien.indexOf(r[GS.MIEN]) === -1) npp.mien.push(r[GS.MIEN]);
       if (r[GS.KV] && npp.khuVuc.indexOf(r[GS.KV]) === -1) npp.khuVuc.push(r[GS.KV]);
 
-      var names = splitMultiLine(r[GS.HOTEN]);
-      var phones = splitMultiLine(r[GS.SDT]);
-      var maxLen = Math.max(names.length, phones.length);
-
-      for (var i = 0; i < maxLen; i++) {
-        var p = { tenNpp: r[GS.TENNPP], hoTen: names[i] || '', soDienThoai: phones[i] ? formatPhone(phones[i]) : '', viTri: r[GS.VITRI] || '' };
+      // 1 người nhiều số -> soDienThoai ghép bằng xuống dòng (giao diện tách ra từng số, bấm gọi được)
+      gsSplitPeople_(r[GS.HOTEN], r[GS.SDT], r[GS.EMAIL]).forEach(function (x) {
+        var p = { tenNpp: r[GS.TENNPP], hoTen: x.ten, soDienThoai: x.phones.join('\n'), email: x.mails.join('\n'), viTri: r[GS.VITRI] || '' };
         var k = p.hoTen + '|' + p.soDienThoai;
-        if (seen[k]) continue;   // KA: cùng 1 KAE phụ trách NPP ở 2 miền -> chỉ hiện 1 lần
+        if (seen[k]) return;   // KA: cùng 1 KAE phụ trách NPP ở 2 miền -> chỉ hiện 1 lần
         seen[k] = true;
         gsbhList.push(p);
-      }
+      });
 
       splitMultiLine(r[GS.PC]).forEach(function (pc) { pcSet[pc] = true; });
     });
@@ -742,12 +755,11 @@ var CareCore = (function () {
    */
   function getGsbhDirectory() {
     var records = getGsbhRecords();
+    // sdt / email: 1 người nhiều số hoặc nhiều email -> ghép bằng xuống dòng (giao diện tách ra, Excel giữ nguyên ô nhiều dòng)
     function people(r) {
-      var names = splitMultiLine(r[GS.HOTEN]), phones = splitMultiLine(r[GS.SDT]), mails = splitMultiLine(r[GS.EMAIL]), out = [];
-      for (var i = 0; i < Math.max(names.length, phones.length); i++) {
-        out.push({ role: r[GS.VITRI] || 'GSBH', ten: names[i] || '', sdt: phones[i] ? formatPhone(phones[i]) : '', email: mails[i] || '' });
-      }
-      return out;
+      return gsSplitPeople_(r[GS.HOTEN], r[GS.SDT], r[GS.EMAIL]).map(function (x) {
+        return { role: r[GS.VITRI] || 'GSBH', ten: x.ten, sdt: x.phones.join('\n'), email: x.mails.join('\n') };
+      });
     }
     var managers = { GT: { ASM: {}, SM: {} }, KA: { KAM: {}, NKAM: [] } };
     records.forEach(function (r) {

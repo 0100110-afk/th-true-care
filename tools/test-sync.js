@@ -29,7 +29,9 @@ const gt = {
   'GSBH KA': mkSheet('GSBH KA', [['Miền', 'Khu vực', 'Mã NPP', 'Tên NPP', 'Tên rút gọn', 'Tỉnh/TP', 'Địa chỉ kho NPP', 'Vị trí', 'Họ & Tên', 'Địa chỉ mail', 'Số Điện thoại', 'P&C phụ trách'],
     ['MB1', '', 10003250, 'CÔNG TY TNL', 'TNL Hà Nội', 'Hà Nội', '', 'KAE', 'Nguyễn Thị Xoan', 'x@th.vn', 853656789, 'PC2'],
     ['', '', '', '', '', '', '', 'KAE', 'Nguyễn Hà Phương', 'p@th.vn', 889714876, ''],
-    ['MB2', '', 10003250, 'CÔNG TY TNL', 'TNL Hà Nội', 'Hà Nội', '', 'KASUP', 'Trần Tuấn Linh', 'tl@th.vn', 912351111, 'PC2']]),
+    ['MB2', '', 10003250, 'CÔNG TY TNL', 'TNL Hà Nội', 'Hà Nội', '', 'KASUP', 'Trần Tuấn Linh', 'tl@th.vn', 912351111, 'PC2'],
+    // 1 người 2 số điện thoại trong cùng 1 ô (xuống dòng) -> phải là 1 người, không tách thành người không tên
+    ['', '', '', '', '', '', '', 'KAE', 'Đỗ Thị Kiều Diễm', 'dtkdiem@thmilk.vn', '0908356095\n0919750095', '']]),
   'ASMSM KA': mkSheet('ASMSM KA', [['Miền', 'Khu vực', 'Mã NPP', 'Tên NPP', 'Tên rút gọn', 'Tỉnh/TP', 'Địa chỉ kho NPP', 'Vị trí', 'Họ & Tên', 'Địa chỉ mail', 'Số Điện thoại', 'P&C phụ trách'],
     ['MB1', '', '', '', '', '', '', 'KAM', 'Nguyễn Thị Kim Anh', 'k@th.vn', 902219983, ''],
     ['MB2', '', '', '', '', '', '', 'KAM', 'Vũ Việt Cường', 'c@th.vn', 916616586, ''],
@@ -151,7 +153,8 @@ ok(gl === 'Nguyễn A:0911222333,Trần B:0911444555', 'GSBH của thiết bị:
 ok((s1.pc_list || []).join() === 'PC1', 'P&C phụ trách theo NPP');
 const s2 = A.searchDevice('TC002');
 const g2 = (s2.gsbh_list || []).map((g) => g.viTri + ' ' + g.hoTen).join(',');
-ok(g2 === 'KAE Nguyễn Thị Xoan,KAE Nguyễn Hà Phương,KASUP Trần Tuấn Linh', 'KA: dòng nối tiếp + NPP ở 2 miền gom đúng (' + g2 + ')');
+ok(g2 === 'KAE Nguyễn Thị Xoan,KAE Nguyễn Hà Phương,KASUP Trần Tuấn Linh,KAE Đỗ Thị Kiều Diễm', 'KA: dòng nối tiếp + NPP ở 2 miền gom đúng (' + g2 + ')');
+ok((s2.gsbh_list || []).find((g) => g.hoTen === 'Đỗ Thị Kiều Diễm').soDienThoai === '0908356095\n0919750095', 'tra cứu thiết bị: 1 người 2 số -> 1 dòng, 2 số');
 ok(/TNL Hà Nội/.test(JSON.stringify(A.getDanhSachThietBiPageData({ all: true }))), 'tên NPP lấy từ cột Tên rút gọn');
 const dir = A.getGsbhDirectory();
 const gs = dir.groups.map((g) => g.kenh + '/' + g.mien + '/' + g.khuVuc + ':' + g.quanLy.map((q) => q.role + ' ' + q.ten + ' ' + q.sdt).join('+') + ' [' + g.npps.map((n) => n.tenNpp + '=' + n.nguoi.map((x) => x.role + ' ' + x.ten).join('/')).join('; ') + ']');
@@ -159,7 +162,12 @@ console.log(gs.join('\n'));
 ok(dir.groups.length === 3, 'danh bạ: 3 nhóm (GT HN1, KA MB1, KA MB2)');
 ok(gs[0] === 'GT/MB1/HN1:ASM Nguyễn Như Long 0913831555+SM Trần Thế Dũng 0912329429 [NPP Một=GSBH Nguyễn A/GSBH Trần B; Hương Hà=GSBH Nguyễn Cung Linh]', 'nhóm GT: ASM + SM 1 lần ở đầu khu vực');
 ok(gs[1] === 'KA/MB1/:KAM Nguyễn Thị Kim Anh 0902219983+NKAM Phạm Thị Ngọc Lan 0932248089 [TNL Hà Nội=KAE Nguyễn Thị Xoan/KAE Nguyễn Hà Phương]', 'nhóm KA MB1');
-ok(gs[2] === 'KA/MB2/:KAM Vũ Việt Cường 0916616586+NKAM Phạm Thị Ngọc Lan 0932248089 [TNL Hà Nội=KASUP Trần Tuấn Linh]', 'nhóm KA MB2 (cùng NPP, người khác)');
+ok(gs[2] === 'KA/MB2/:KAM Vũ Việt Cường 0916616586+NKAM Phạm Thị Ngọc Lan 0932248089 [TNL Hà Nội=KASUP Trần Tuấn Linh/KAE Đỗ Thị Kiều Diễm]', 'nhóm KA MB2 (cùng NPP, người khác) ' + gs[2]);
+{
+  const dm = dir.groups[2].npps[0].nguoi.find((x) => x.ten === 'Đỗ Thị Kiều Diễm');
+  ok(dm && dm.sdt === '0908356095\n0919750095' && dm.email === 'dtkdiem@thmilk.vn' && dir.groups[2].npps[0].nguoi.every((x) => x.ten), '1 người 2 SĐT -> 1 người, 2 số (' + JSON.stringify(dm) + ')');
+  ok(dir.groups[0].quanLy[0].email === 'n@th.vn', 'ASM có email');
+}
 ok(dir.mienList.join() === 'MB1,MB2' && dir.pcList.join() === 'PC1,PC2', 'danh sách Miền / P&C cho bộ lọc');
 ok(JSON.stringify(s2).includes('ngày lạ'), 'ngày lắp đặt sai định dạng giữ nguyên văn');
 const b = A.batchSearchDevices('TC001\nTC002\nKHONGCO');

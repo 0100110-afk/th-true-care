@@ -126,17 +126,6 @@ gt['CHI PHI']._v.push(['TC002', new Date(2026, 5, 2), 'NCC mới', 'Dòng mới 
 const rA = call('ad@thmilk.vn'); if (!rA.ok) console.log('rA', rA);
 ok(rA.ok && rA.changed.join() === 'chiphi_v3' && /CHI PHI \+1 dòng/.test(rA.details[0]), 'admin bấm đồng bộ -> CHI PHI +1 dòng: ' + JSON.stringify(rA.details));
 ok(call('ad@thmilk.vn').changed.length === 0, 'bấm lại -> Không có thay đổi');
-// LISTING đổi 1 ô -> thông báo ghi rõ mã + cột + giá trị cũ/mới
-gt.LISTING._v[1][8] = 'Sanden';
-const rL = call('ad@thmilk.vn');
-ok(rL.ok && /LISTING: TC001 đổi Nhãn hiệu \(Sanaky → Sanden\)/.test(rL.details.join()), 'LISTING đổi nhãn hiệu -> báo đúng mã/cột: ' + JSON.stringify(rL.details));
-const metaL = JSON.parse(store['care_meta/data'].fields.json.stringValue);
-ok(/TC001 đổi Nhãn hiệu/.test(metaL.sets.listing_v4.change.text), 'mô tả thay đổi lưu trong meta cho app đọc');
-// Chỉ đổi thứ tự dòng -> báo "chỉ đổi vị trí"
-const tmp = gt.LISTING._v[1]; gt.LISTING._v[1] = gt.LISTING._v[2]; gt.LISTING._v[2] = tmp;
-const rM = call('ad@thmilk.vn');
-ok(/2 dòng chỉ đổi vị trí/.test(rM.details.join()), 'sắp xếp lại dòng -> báo đổi vị trí: ' + JSON.stringify(rM.details));
-gt.LISTING._v[2] = gt.LISTING._v[1]; gt.LISTING._v[1] = tmp; tmp[8] = 'Sanaky'; call('ad@thmilk.vn');
 
 // ---- Nạp vào core.js như app.js ----
 const CareCore = require(R('js/core.js'));

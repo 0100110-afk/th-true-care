@@ -2162,12 +2162,12 @@
       var title = [g.mien, g.khuVuc].filter(Boolean).join(' · ');
       html.push('<tr class="gs-group"><td colspan="7"><div class="gs-group-head">' +
         '<span class="gs-group-title"><span class="gs-kenh ' + g.kenh + '">' + g.kenh + '</span>' + gsEsc_(title) + '</span>' +
+        '<span class="gs-group-count">' + x.npps.length + ' NPP</span>' +   // số NPP ngay sau tên nhóm, trước ASM/SM
         g.quanLy.map(function (p) {
           return '<span class="gs-mgr"><span class="gs-tag ' + gsEsc_(p.role) + '">' + gsEsc_(p.role) + '</span><b>' + gsEsc_(p.ten) + '</b>' +
             (p.sdt ? '<span class="ph">' + gsEsc_(p.sdt).replace(/\n/g, ' · ') + '</span>' : '') +
             (p.email ? '<span class="ml">' + gsEsc_(p.email).replace(/\n/g, ' · ') + '</span>' : '') + '</span>';
-        }).join('') +
-        '<span class="gs-group-count">' + x.npps.length + ' NPP</span></div></td></tr>');
+        }).join('') + '</div></td></tr>');
       x.npps.forEach(function (n) {
         var full = gsEsc_(n.tenDayDu || n.tenNpp);   // rê chuột vào tên / mã NPP -> tên công ty đầy đủ
         html.push('<tr><td><span class="code-link" style="cursor:help;" title="' + full + '">' + gsEsc_(n.maNpp) + '</span></td>' +

@@ -1775,7 +1775,9 @@ function getDanhSachThietBiPageData(params) {
         diaChi: r[LS.DIACHI],
         soDienThoai: formatPhone(r[LS.SDT]),
         npp: it.npp,
-        vung: regionLabel(regionKeyFromVung(r[LS.VUNG])),
+        // Cột Vùng hiện NGUYÊN VĂN mã vùng trong sheet (MB1, MTR2, MN3...). Gom thành Miền Bắc/Trung/Nam/Khác
+        // chỉ dùng cho bộ lọc khu vực và biểu đồ Tổng quan.
+        vung: String(r[LS.VUNG] || '').trim(),
         loaiTu: r[LS.LOAITU],
         nhanHieu: r[LS.NHANHIEU],
         ngayLapDat: r[LS.NGAYLAP] ? formatDateDisplay(r[LS.NGAYLAP]) : ngayLapRaw,

@@ -3030,7 +3030,7 @@
     canvas._chartHit = { onPick: function (i) { goToRawDataByRegion(keys[i]); }, title: function (i) { return 'Xem dữ liệu chi phí ' + labels[i]; } };
     regionChartInstance = new Chart(ctx, {
       type: 'bar',
-      data: { labels: labels, datasets: [{ label: 'Số lượt sửa chữa', data: values, backgroundColor: CHART_REGION_COLORS_, borderRadius: 6, maxBarThickness: 64 }] },
+      data: { labels: labels, datasets: [{ label: 'Số lượt sửa chữa', data: values, backgroundColor: CHART_REGION_COLORS_, borderRadius: 6, maxBarThickness: 40 }] },
       options: opts,
       plugins: [barValueLabelPlugin, chartHitPlugin_]
     });

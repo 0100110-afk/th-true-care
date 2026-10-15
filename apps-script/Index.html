@@ -1893,10 +1893,9 @@
         }
         var wb = XL.utils.book_new();
         XL.utils.book_append_sheet(wb, ws, 'TraCuuDanhSach');
-        var d = new Date(), p2 = function (n) { return (n < 10 ? '0' : '') + n; };
         var a = document.createElement('a');
         a.href = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + XL.write(wb, { bookType: 'xlsx', type: 'base64' });
-        a.download = 'TraCuu_DanhSach_' + p2(d.getDate()) + '-' + p2(d.getMonth() + 1) + '-' + d.getFullYear() + '.xlsx';
+        a.download = 'TraCuu_DanhSach_' + todayStamp_() + '.xlsx';
         document.body.appendChild(a); a.click(); a.remove();
       } catch (e) {
         showToast('Không xuất được file Excel: ' + e.message, 'error');
@@ -1914,7 +1913,11 @@
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
   }
-  function todayStamp_() { var d = new Date(), p2 = function (n) { return (n < 10 ? '0' : '') + n; }; return p2(d.getDate()) + '-' + p2(d.getMonth() + 1) + '-' + d.getFullYear(); }
+  /* Dấu thời gian cho tên file xuất: 20261016_061530 -> mỗi lần xuất 1 file mới, không trùng tên (không còn (1), (2)) */
+  function todayStamp_() {
+    var d = new Date(), p2 = function (n) { return (n < 10 ? '0' : '') + n; };
+    return d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + '_' + p2(d.getHours()) + p2(d.getMinutes()) + p2(d.getSeconds());
+  }
   function exportPaged_(btnId, fnName, filters, build) {
     var btn = $('#' + btnId); if (btn.disabled) return;
     btn.disabled = true; var label = btn.lastChild.textContent; btn.lastChild.textContent = 'Đang xuất…';

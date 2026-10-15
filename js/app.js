@@ -318,8 +318,12 @@ function buildApi() {
   api.checkNewData = async () => {
     const meta = await readMeta();
     if (!meta || !meta.sets) return [];
+    // Kèm câu mô tả thay đổi do Sync.gs ghi (vd "LISTING (328019166 đổi Nhãn hiệu (Sanaky → Sanden))")
     return PREFIXES.filter((p) => meta.sets[p] && loadedHashes[p] !== undefined && meta.sets[p].hashes.join(',') !== loadedHashes[p])
-      .map((p) => PREFIX_LABELS[p] || p);
+      .map((p) => {
+        const lb = PREFIX_LABELS[p] || p, ch = meta.sets[p].change;
+        return ch && ch.text ? lb + ' (' + ch.text + ')' : lb;
+      });
   };
   return api;
 }

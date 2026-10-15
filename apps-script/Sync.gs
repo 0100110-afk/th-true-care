@@ -172,12 +172,21 @@ function csSyncAll_(force, waitMs) {
         writes.push({ delete: csDocName_('care_chunks/' + s.prefix + '__' + i) });
       }
       var sameHashes = old.hashes.length === hashes.length && hashes.every(function (h, i) { return old.hashes[i] === h; });
+      var change = null;
       if (!sameHashes) {
         changedSets.push(s.prefix);
         var lb = CS_LABELS[s.prefix] || s.prefix, o = old.count, n = records.length;
-        details.push(o === undefined ? lb + ' ' + n + ' dòng' : (n !== o ? lb + ' ' + (n > o ? '+' : '−') + Math.abs(n - o) + ' dòng' : lb + ' sửa nội dung'));
+        var txt = '', diffed = false;
+        // LISTING: ghi rõ mã nào, cột nào đổi (so với bản đang có trên app) -> biết ngay vì sao app báo "có dữ liệu mới"
+        if (s.prefix === 'listing_v4' && old.hashes.length) {
+          try { txt = csListingDiff_(s.prefix, old.hashes.length, records); diffed = !!txt; } catch (e) { console.warn('diff ' + s.prefix + ': ' + e.message); }
+        }
+        if (!txt) txt = o === undefined ? n + ' dòng' : (n !== o ? (n > o ? '+' : '−') + Math.abs(n - o) + ' dòng' : 'sửa nội dung');
+        details.push(lb + (diffed ? ': ' : ' ') + txt);
+        console.log('Thay đổi ' + lb + ': ' + txt);
+        change = { at: new Date().toISOString(), text: txt };
       }
-      meta.sets[s.prefix] = { hashes: hashes, count: records.length };
+      meta.sets[s.prefix] = { hashes: hashes, count: records.length, change: change || old.change || null };
       lines.push('- ' + s.prefix + ': ' + records.length + ' bản ghi, ghi ' + changed + '/' + hashes.length + ' mảnh');
     });
     meta.updatedAt = new Date().toISOString();
@@ -205,6 +214,48 @@ function csChunk_(records) {
   }
   if (!out.length) out.push('[]');
   return out;
+}
+
+/**
+ * So bản ghi LISTING mới với bản đang lưu trên Firestore (đọc lại các mảnh cũ, mỗi mảnh 1 lượt đọc).
+ * Khoá theo MÃ THIẾT BỊ. Trả câu ngắn, ví dụ:
+ *   "328019166 đổi Nhãn hiệu (Sanaky → Sanden); +2 mã mới; 140 dòng chỉ đổi vị trí"
+ */
+var CS_LISTING_COLS_ = ['Mã', 'Tên cửa hàng', 'Địa chỉ', 'SĐT', 'Loại tủ', 'Ngày lắp đặt', 'Nhãn hiệu', 'Vùng', 'Mã NPP', '', 'Ngày lắp (gốc)'];
+function csListingDiff_(prefix, oldChunks, records) {
+  var oldRows = [];
+  for (var i = 0; i < oldChunks; i++) {
+    var d = csFetch_('get', csBaseUrl_() + '/care_chunks/' + prefix + '__' + i);
+    if (!d || !d.fields || !d.fields.json) return '';
+    oldRows = oldRows.concat(JSON.parse(d.fields.json.stringValue));
+  }
+  var oldMap = {}, newMap = {};
+  oldRows.forEach(function (r) { oldMap[r[0]] = r; });
+  records.forEach(function (r) { newMap[r[0]] = r; });
+  var edited = [], added = [], removed = [], moved = 0;
+  var short = function (v) { v = String(v === null || v === undefined ? '' : v); return v === '' ? '(trống)' : (v.length > 24 ? v.slice(0, 23) + '…' : v); };
+  records.forEach(function (r) {
+    var o = oldMap[r[0]];
+    if (!o) { added.push(r[0]); return; }
+    var cols = [];
+    for (var c = 1; c < r.length; c++) {
+      if (c === 9) continue;                                  // số dòng trong sheet
+      if (String(o[c] === undefined ? '' : o[c]) !== String(r[c] === undefined ? '' : r[c])) cols.push(c);
+    }
+    if (cols.length) edited.push({ code: r[0], cols: cols, o: o, r: r });
+    else if (o[9] !== r[9]) moved++;
+  });
+  oldRows.forEach(function (r) { if (!newMap[r[0]]) removed.push(r[0]); });
+  var parts = [];
+  edited.slice(0, 3).forEach(function (e) {
+    var c = e.cols[0], more = e.cols.length > 1 ? ' +' + (e.cols.length - 1) + ' cột' : '';
+    parts.push(e.code + ' đổi ' + CS_LISTING_COLS_[c] + ' (' + short(e.o[c]) + ' → ' + short(e.r[c]) + ')' + more);
+  });
+  if (edited.length > 3) parts.push('và ' + (edited.length - 3) + ' mã khác đổi nội dung');
+  if (added.length) parts.push('+' + added.length + ' mã mới' + (added.length <= 3 ? ' (' + added.join(', ') + ')' : ''));
+  if (removed.length) parts.push('−' + removed.length + ' mã bị xoá' + (removed.length <= 3 ? ' (' + removed.join(', ') + ')' : ''));
+  if (moved) parts.push(moved + ' dòng chỉ đổi vị trí (chèn/xoá/sắp xếp dòng)');
+  return parts.join('; ');
 }
 
 function csReadMeta_() {

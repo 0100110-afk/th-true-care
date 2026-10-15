@@ -2837,12 +2837,21 @@
   /* Xoay máy hoặc đổi kích thước cửa sổ làm vùng vẽ đổi bề ngang. Chart.js chỉ bám được
      lúc CO LẠI; khi nới ra canvas giữ kích thước cũ và tràn khỏi viền thẻ -> gọi resize
      thủ công sau khi ngừng thay đổi (chặn rung, 180ms). */
+  /* Ép biểu đồ đo lại theo ĐÚNG kích thước khung. chart.resize() trống đo bằng getBoundingClientRect —
+     số đã nhân CSS zoom của giao diện (0.9 ở màn 1366) — rồi bị zoom thêm lần nữa khi vẽ -> biểu đồ co
+     còn 90% (vd phóng to rồi thu cửa sổ về). clientWidth/Height là số CHƯA zoom. */
+  function fitChart_(c) {
+    if (!c || !c.canvas || !c.canvas.parentElement) return;
+    var box = c.canvas.parentElement;
+    if (box.clientWidth && box.clientHeight) c.resize(box.clientWidth, box.clientHeight);
+    else c.resize();
+  }
   var resizeTimer_ = null;
   window.addEventListener('resize', function () {
     clearTimeout(resizeTimer_);
     resizeTimer_ = setTimeout(function () {
       [regionChartInstance, trendChartInstance, deviceTypeChartInstance, deviceBrandChartInstance]
-        .forEach(function (c) { if (c) c.resize(); });
+        .forEach(fitChart_);
     }, 180);
   });
 

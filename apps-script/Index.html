@@ -447,7 +447,8 @@
     font-family:'Sora',sans-serif; font-size:clamp(13px,1.05vw,17px); font-weight:700;
     color:var(--brand-900); line-height:1.3; font-variant-numeric:tabular-nums; white-space:nowrap;
   }
-  .summary-box .value.small{ font-size:inherit; }
+  /* 6 thẻ MỘT cỡ: trước đây 3 ô tiền (.small) lấy cỡ mặc định của nút bấm (13.3px) nên nhỏ hơn 3 ô số đếm */
+  .summary-box .value, .summary-box .value.small{ font-size:15px; }
   .summary-strip.cols-4 .value{ font-size:clamp(15px,1.25vw,20px); }
   .summary-box .label{
     font-size:12px; color:var(--ink-500); margin-top:5px;
@@ -3179,5 +3180,331 @@
   initDashboard();
 </script>
 <div class="sync-card" id="syncCard" role="status" aria-live="polite"></div>
+<script>window.UIPICK_MODE = 'pop';</script>
+<!-- ===================== UIPICK: Ô CHỌN + Ô NGÀY TỰ VẼ (thay giao diện mặc định của trình duyệt) =====================
+     - <select> vẫn nằm nguyên trong trang (mã cũ đọc/ghi .value, onchange như cũ). Chỉ thay CÁI DANH SÁCH bật ra:
+         máy tính  -> danh sách thả xuống cùng màu app, có ô tìm khi > 8 lựa chọn
+         điện thoại -> bảng trượt từ dưới lên, ô tìm, dòng đang chọn có dấu ✓, dòng cao 48px
+     - <input type="date"> (chỉ bản máy tính): ẩn đi, thay bằng nút "Chọn ngày" + lịch tiếng Việt (T2–CN),
+       Hôm nay / Xoá, tô khoảng giữa Từ ngày – Đến ngày. Giá trị vẫn ghi vào input gốc dạng yyyy-mm-dd.
+     - Chọn xong: gán .value rồi phát sự kiện 'input' + 'change' như người dùng tự chọn.
+     - Lựa chọn có data-sub="..." thì hiện thêm dòng phụ (vd mã vật tư). -->
+<style>
+  .uip-pop{position:fixed;z-index:3000;background:#fff;border:1px solid var(--line,#E1E9F2);border-radius:12px;
+    box-shadow:0 12px 40px -8px rgba(11,76,140,.32);padding:6px;font-family:'Be Vietnam Pro',-apple-system,sans-serif;}
+  .uip-search{display:flex;align-items:center;gap:8px;border:1px solid var(--line,#E1E9F2);border-radius:8px;padding:0 10px;height:34px;margin:2px 2px 6px;background:#F3F8FC;}
+  .uip-search svg{width:15px;height:15px;color:#71828B;flex-shrink:0;}
+  .uip-search input{border:0;outline:0;background:none;font:13px 'Be Vietnam Pro',sans-serif;color:#33424B;flex:1;min-width:0;padding:0;height:auto;}
+  .uip-opts{max-height:280px;overflow:auto;display:flex;flex-direction:column;gap:1px;}
+  .uip-opt{display:flex;align-items:center;gap:10px;border:0;background:none;text-align:left;padding:8px 10px;border-radius:8px;
+    font:13px 'Be Vietnam Pro',sans-serif;color:#33424B;cursor:pointer;width:100%;}
+  .uip-opt:hover,.uip-opt.kb{background:#E3F1FC;}
+  .uip-opt .uip-ck{width:16px;height:16px;flex-shrink:0;color:#0F5FA8;visibility:hidden;}
+  .uip-opt[aria-selected="true"]{font-weight:700;color:#0B4C8C;}
+  .uip-opt[aria-selected="true"] .uip-ck{visibility:visible;}
+  .uip-opt .uip-sub{display:block;font-size:11.5px;font-weight:400;color:#71828B;margin-top:1px;}
+  .uip-empty{padding:10px;font-size:12.5px;color:#71828B;}
+  /* lịch */
+  .uip-date{height:var(--ctrl-h,34px);width:150px;display:flex;align-items:center;gap:8px;padding:0 10px;border:1px solid var(--border,#E1E9F2);
+    border-radius:8px;background:var(--bg,#F3F8FC);font:500 12.5px 'Be Vietnam Pro',sans-serif;color:var(--ink-900,#33424B);cursor:pointer;text-align:left;}
+  .uip-date svg{width:15px;height:15px;color:#71828B;flex-shrink:0;}
+  .uip-date .uip-ph{color:#A3B1B8;font-weight:400;}
+  .uip-date[aria-expanded="true"]{border-color:var(--brand-700,#136FBF);background:#fff;}
+  .uip-date:focus-visible,.uip-opt:focus-visible,.uip-cell:focus-visible{outline:2px solid #2E9BE0;outline-offset:1px;}
+  .uip-cal{width:272px;padding:12px;}
+  .uip-cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:6px;}
+  .uip-cal-title{border:0;background:none;font:700 14px 'Sora',sans-serif;color:#0B4C8C;cursor:pointer;padding:4px 8px;border-radius:8px;}
+  .uip-cal-title:hover{background:#E3F1FC;}
+  .uip-nav{width:30px;height:30px;border:0;border-radius:8px;background:#E3F1FC;color:#0F5FA8;font-size:18px;line-height:1;cursor:pointer;}
+  .uip-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+  .uip-grid.years{grid-template-columns:repeat(4,1fr);gap:4px;}
+  .uip-wd{font-size:10.5px;font-weight:700;color:#71828B;text-align:center;padding-bottom:4px;}
+  .uip-cell{aspect-ratio:1;border:0;background:none;border-radius:8px;font:13px 'Be Vietnam Pro',sans-serif;color:#33424B;cursor:pointer;padding:0;}
+  .uip-grid.years .uip-cell{aspect-ratio:auto;height:36px;}
+  .uip-cell:hover{background:#E3F1FC;}
+  .uip-cell.today{font-weight:700;color:#0F5FA8;box-shadow:inset 0 0 0 1px #7FC4EE;}
+  .uip-cell.in{background:#E3F1FC;border-radius:0;}
+  .uip-cell.sel{background:#0F5FA8;color:#fff;font-weight:700;box-shadow:none;border-radius:8px;}
+  .uip-foot{display:flex;gap:14px;margin-top:8px;padding-top:8px;border-top:1px solid #E1E9F2;}
+  .uip-link{border:0;background:none;padding:2px 0;font:600 12.5px 'Be Vietnam Pro',sans-serif;color:#0F5FA8;cursor:pointer;}
+  .uip-link.danger{margin-left:auto;color:#C1443A;}
+  /* điện thoại: bảng trượt */
+  .uip-back{position:fixed;inset:0;background:rgba(10,30,50,.42);z-index:3000;opacity:0;transition:opacity .2s;}
+  .uip-back.on{opacity:1;}
+  .uip-sheet{position:fixed;left:0;right:0;bottom:0;max-width:520px;margin:0 auto;z-index:3001;background:#fff;border-radius:22px 22px 0 0;
+    display:flex;flex-direction:column;max-height:80vh;transform:translateY(100%);transition:transform .24s ease;
+    padding-bottom:env(safe-area-inset-bottom,0px);font-family:'Be Vietnam Pro',-apple-system,sans-serif;}
+  .uip-sheet.on{transform:none;}
+  .uip-handle{width:40px;height:4px;border-radius:4px;background:#D6DEE6;margin:8px auto 4px;}
+  .uip-sh-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 16px 8px;}
+  .uip-sh-head h5{margin:0;font-size:16px;font-weight:700;color:#0B4C8C;}
+  .uip-x{border:0;background:#F3F8FC;width:32px;height:32px;border-radius:50%;font-size:20px;line-height:1;color:#71828B;cursor:pointer;flex-shrink:0;}
+  .uip-sheet .uip-search{margin:0 16px 8px;height:42px;border-radius:12px;}
+  .uip-sheet .uip-search input{font-size:16px;}
+  .uip-sheet .uip-opts{max-height:none;overflow:auto;padding:0 8px 14px;gap:0;}
+  .uip-sheet .uip-opt{min-height:48px;padding:8px 12px;border-radius:12px;font-size:15px;border-bottom:1px solid #F0F4F8;}
+  .uip-sheet .uip-opt .uip-ck{order:2;margin-left:auto;width:20px;height:20px;}
+  .uip-sheet .uip-opt[aria-selected="true"]{background:#E3F1FC;border-bottom-color:transparent;}
+  .uip-sheet .uip-opt .uip-sub{font-size:12px;}
+  @media (prefers-reduced-motion:reduce){.uip-sheet,.uip-back{transition:none;}}
+</style>
+<script>
+(function () {
+  'use strict';
+  var MODE = window.UIPICK_MODE || 'pop';            // 'pop' (máy tính) | 'sheet' (điện thoại)
+  var CK = '<svg class="uip-ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+  var SEARCH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
+  var CAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="2.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>';
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var norm = function (s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'd').toLowerCase(); };
+  var zoom = function () { return parseFloat(getComputedStyle(document.documentElement).zoom) || 1; };
+  var openUI = null;   // { el, close }
+
+  function fire(el) {
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  function labelOf(el) {
+    if (el.getAttribute('aria-label')) return el.getAttribute('aria-label');
+    var l = el.id && document.querySelector('label[for="' + el.id + '"]');
+    if (!l) { var p = el.closest('.filter-item, .field-group, .field, .fi'); l = p && p.querySelector('label'); }
+    var t = l ? l.textContent.trim() : '';
+    if (!t && el.options.length && !el.options[0].value) t = el.options[0].textContent.replace(/[—–-]/g, '').trim();
+    return t || 'Chọn';
+  }
+  function closeOpen() { if (openUI) { var o = openUI; openUI = null; o.close(); } }
+
+  /* ---------------- danh sách lựa chọn (dùng chung cho cả 2 kiểu) ---------------- */
+  function buildList(sel, host, onPick) {
+    var opts = Array.prototype.slice.call(sel.options).filter(function (o) { return !o.hidden && !o.disabled; });
+    var withSearch = opts.length > 8;
+    host.innerHTML = (withSearch ? '<div class="uip-search">' + SEARCH + '<input type="search" placeholder="Tìm…" aria-label="Tìm"></div>' : '') +
+      '<div class="uip-opts" role="listbox"></div>';
+    var list = host.querySelector('.uip-opts'), q = host.querySelector('input');
+    function render() {
+      var k = q ? norm(q.value.trim()) : '';
+      var rows = opts.filter(function (o) { return !k || (o.value !== '' && (norm(o.textContent).indexOf(k) > -1 || norm(o.dataset.sub).indexOf(k) > -1)); });
+      list.innerHTML = rows.length ? rows.map(function (o) {
+        var i = opts.indexOf(o);
+        return '<button type="button" class="uip-opt" role="option" data-i="' + i + '" aria-selected="' + (o.value === sel.value) + '">' + CK +
+          '<span>' + esc(o.textContent) + (o.dataset.sub ? '<span class="uip-sub">' + esc(o.dataset.sub) + '</span>' : '') + '</span></button>';
+      }).join('') : '<div class="uip-empty">Không có lựa chọn phù hợp.</div>';
+    }
+    render();
+    if (q) q.addEventListener('input', render);
+    list.addEventListener('click', function (e) {
+      var b = e.target.closest('.uip-opt'); if (!b) return;
+      onPick(opts[Number(b.dataset.i)].value);
+    });
+    // Bàn phím: ↑ ↓ Enter
+    host.addEventListener('keydown', function (e) {
+      var items = Array.prototype.slice.call(list.querySelectorAll('.uip-opt'));
+      if (!items.length) return;
+      var cur = items.indexOf(list.querySelector('.uip-opt.kb'));
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (cur < 0) cur = items.indexOf(list.querySelector('[aria-selected="true"]'));
+        cur = Math.max(0, Math.min(items.length - 1, cur + (e.key === 'ArrowDown' ? 1 : -1)));
+        items.forEach(function (x) { x.classList.remove('kb'); });
+        items[cur].classList.add('kb'); items[cur].scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'Enter' && cur > -1) { e.preventDefault(); items[cur].click(); }
+    });
+    return { search: q, list: list };
+  }
+  function pick(sel, v) {
+    if (sel.value !== v) { sel.value = v; fire(sel); }
+  }
+
+  /* ---------------- máy tính: danh sách thả xuống ---------------- */
+  function place(pop, anchor, minW) {
+    var z = zoom(), r = anchor.getBoundingClientRect();
+    var vw = document.documentElement.clientWidth / z, vh = document.documentElement.clientHeight / z;
+    var left = r.left / z, top = r.bottom / z + 6, w = Math.max(r.width / z, minW || 0);
+    pop.style.minWidth = w + 'px';
+    pop.style.left = '0px'; pop.style.top = '0px';
+    var pw = pop.offsetWidth, ph = pop.offsetHeight;
+    if (left + pw > vw - 8) left = Math.max(8, r.right / z - pw);
+    if (top + ph > vh - 8 && r.top / z - ph - 6 > 8) top = r.top / z - ph - 6;   // không đủ chỗ dưới -> mở lên trên
+    pop.style.left = left + 'px'; pop.style.top = top + 'px';
+  }
+  function openPop(sel) {
+    closeOpen();
+    var pop = document.createElement('div');
+    pop.className = 'uip-pop';
+    document.body.appendChild(pop);
+    var ui = buildList(sel, pop, function (v) { closeOpen(); pick(sel, v); sel.focus(); });
+    place(pop, sel, 200);
+    var s = pop.querySelector('[aria-selected="true"]'); if (s) s.scrollIntoView({ block: 'nearest' });
+    (ui.search || pop.querySelector('.uip-opt') || pop).focus();
+    openUI = { el: sel, close: function () { pop.remove(); } };
+  }
+
+  /* ---------------- điện thoại: bảng trượt ---------------- */
+  function openSheet(sel) {
+    closeOpen();
+    var back = document.createElement('div'); back.className = 'uip-back';
+    var sh = document.createElement('div'); sh.className = 'uip-sheet'; sh.setAttribute('role', 'dialog');
+    var title = labelOf(sel);
+    sh.setAttribute('aria-label', title);
+    sh.innerHTML = '<div class="uip-handle"></div><div class="uip-sh-head"><h5>' + esc(title) + '</h5><button type="button" class="uip-x" aria-label="Đóng">×</button></div><div class="uip-body"></div>';
+    document.body.appendChild(back); document.body.appendChild(sh);
+    var body = sh.querySelector('.uip-body');
+    body.style.cssText = 'display:flex;flex-direction:column;min-height:0;';
+    buildList(sel, body, function (v) { closeOpen(); pick(sel, v); });
+    requestAnimationFrame(function () {
+      back.classList.add('on'); sh.classList.add('on');
+      var s = sh.querySelector('[aria-selected="true"]'); if (s) s.scrollIntoView({ block: 'center' });
+    });
+    var done = function () { closeOpen(); };
+    back.addEventListener('click', done);
+    sh.querySelector('.uip-x').addEventListener('click', done);
+    openUI = { el: sel, close: function () {
+      back.classList.remove('on'); sh.classList.remove('on');
+      setTimeout(function () { back.remove(); sh.remove(); }, 260);
+    } };
+  }
+
+  /* ---------------- gắn vào <select> ---------------- */
+  function enhanceSelect(sel) {
+    if (sel.dataset.uip || sel.multiple || sel.hasAttribute('data-native')) return;
+    sel.dataset.uip = '1';
+    if (MODE === 'pop') {
+      sel.addEventListener('mousedown', function (e) {
+        if (e.button !== 0 || sel.disabled) return;
+        e.preventDefault();
+        if (openUI && openUI.el === sel) closeOpen(); else { sel.focus(); openPop(sel); }
+      });
+      sel.addEventListener('keydown', function (e) {
+        if (sel.disabled) return;
+        if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowDown' || e.key === 'ArrowUp' || (e.altKey && e.key === 'ArrowDown')) {
+          e.preventDefault(); openPop(sel);
+        }
+      });
+    } else {
+      // Điện thoại: không cho bảng chọn mặc định bật ra; chạm vào ô -> mở bảng trượt (xem bắt chạm bên dưới)
+      sel.style.pointerEvents = 'none';
+    }
+  }
+  if (MODE === 'sheet') {
+    document.addEventListener('click', function (e) {
+      if (e.target.closest('.uip-sheet, .uip-back')) return;
+      var els = document.querySelectorAll('select[data-uip]');
+      for (var i = 0; i < els.length; i++) {
+        var s = els[i];
+        if (s.disabled || !s.offsetParent) continue;
+        var r = s.getBoundingClientRect();
+        if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+          e.preventDefault(); e.stopPropagation(); openSheet(s); return;
+        }
+      }
+    }, true);
+  }
+
+  /* ---------------- ô ngày (máy tính) ---------------- */
+  var MONTHS = ['Tháng 1', 'Tháng 2', 'Tháng 3', 'Tháng 4', 'Tháng 5', 'Tháng 6', 'Tháng 7', 'Tháng 8', 'Tháng 9', 'Tháng 10', 'Tháng 11', 'Tháng 12'];
+  var p2 = function (n) { return ('0' + n).slice(-2); };
+  var iso = function (d) { return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()); };
+  var parseIso = function (s) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+  var VALUE = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+  function pairOf(inp) {
+    var id = inp.id || '';
+    var other = /TuNgay$/.test(id) ? id.replace(/TuNgay$/, 'DenNgay') : /DenNgay$/.test(id) ? id.replace(/DenNgay$/, 'TuNgay') : '';
+    var o = other && document.getElementById(other);
+    if (!o) return null;
+    return /TuNgay$/.test(id) ? { from: inp, to: o } : { from: o, to: inp };
+  }
+  function enhanceDate(inp) {
+    if (inp.dataset.uip) return;
+    inp.dataset.uip = '1';
+    var btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'uip-date';
+    btn.setAttribute('aria-haspopup', 'dialog'); btn.setAttribute('aria-expanded', 'false');
+    var lb = inp.id && document.querySelector('label[for="' + inp.id + '"]') || (inp.closest('.filter-item') || {}).querySelector && inp.closest('.filter-item').querySelector('label');
+    if (lb) btn.setAttribute('aria-label', lb.textContent.trim());
+    inp.insertAdjacentElement('afterend', btn);
+    inp.style.display = 'none';
+    function show() {
+      var d = parseIso(VALUE.get.call(inp));
+      btn.innerHTML = CAL + (d ? '<span>' + p2(d.getDate()) + '/' + p2(d.getMonth() + 1) + '/' + d.getFullYear() + '</span>' : '<span class="uip-ph">Chọn ngày</span>');
+    }
+    // Mã cũ gán thẳng .value (vd nút Xoá lọc) -> cập nhật chữ trên nút
+    Object.defineProperty(inp, 'value', { configurable: true, get: function () { return VALUE.get.call(this); }, set: function (v) { VALUE.set.call(this, v); show(); } });
+    show();
+    btn.addEventListener('click', function () {
+      if (openUI && openUI.el === inp) { closeOpen(); return; }
+      openCal(inp, btn, show);
+    });
+  }
+  function openCal(inp, btn, show) {
+    closeOpen();
+    var pop = document.createElement('div');
+    pop.className = 'uip-pop uip-cal'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Chọn ngày');
+    document.body.appendChild(pop);
+    var cur = parseIso(inp.value), view = new Date((cur || new Date()).getFullYear(), (cur || new Date()).getMonth(), 1), years = false;
+    var pair = pairOf(inp);
+    function draw() {
+      var y = view.getFullYear(), m = view.getMonth(), html;
+      if (years) {
+        var end = new Date().getFullYear() + 1, start = Math.min(2015, y - 2);
+        html = '<div class="uip-cal-head"><span class="uip-cal-title" style="cursor:default">Chọn năm</span></div><div class="uip-grid years">';
+        for (var yy = end; yy >= start; yy--) html += '<button type="button" class="uip-cell' + (yy === y ? ' sel' : '') + '" data-y="' + yy + '">' + yy + '</button>';
+        pop.innerHTML = html + '</div>';
+        return;
+      }
+      var first = (new Date(y, m, 1).getDay() + 6) % 7, days = new Date(y, m + 1, 0).getDate(), today = iso(new Date());
+      var a = pair && parseIso(pair.from.value), b = pair && parseIso(pair.to.value);
+      html = '<div class="uip-cal-head"><button type="button" class="uip-nav" data-n="-1" aria-label="Tháng trước">‹</button>' +
+        '<button type="button" class="uip-cal-title" title="Chọn năm">' + MONTHS[m] + ', ' + y + '</button>' +
+        '<button type="button" class="uip-nav" data-n="1" aria-label="Tháng sau">›</button></div><div class="uip-grid">';
+      ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'].forEach(function (w) { html += '<div class="uip-wd">' + w + '</div>'; });
+      for (var i = 0; i < first; i++) html += '<span></span>';
+      for (var d = 1; d <= days; d++) {
+        var dt = new Date(y, m, d), k = iso(dt), c = 'uip-cell';
+        if (k === today) c += ' today';
+        if ((a && k === iso(a)) || (b && k === iso(b)) || (!pair && cur && k === iso(cur))) c += ' sel';
+        else if (a && b && dt > a && dt < b) c += ' in';
+        html += '<button type="button" class="' + c + '" data-d="' + d + '">' + d + '</button>';
+      }
+      pop.innerHTML = html + '</div><div class="uip-foot"><button type="button" class="uip-link" data-a="today">Hôm nay</button><button type="button" class="uip-link danger" data-a="clear">Xoá</button></div>';
+    }
+    function set(v) { closeOpen(); if (inp.value !== v) { inp.value = v; fire(inp); } btn.focus(); }
+    draw(); place(pop, btn, 272);
+    pop.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var n = e.target.closest('.uip-nav'), c = e.target.closest('.uip-cell'), a = e.target.closest('.uip-link'), t = e.target.closest('.uip-cal-title');
+      if (n) { view.setMonth(view.getMonth() + Number(n.dataset.n)); draw(); }
+      else if (t && !years) { years = true; draw(); }
+      else if (c && c.dataset.y) { view.setFullYear(Number(c.dataset.y)); years = false; draw(); }
+      else if (c && c.dataset.d) set(iso(new Date(view.getFullYear(), view.getMonth(), Number(c.dataset.d))));
+      else if (a) set(a.dataset.a === 'today' ? iso(new Date()) : '');
+    });
+    btn.setAttribute('aria-expanded', 'true');
+    openUI = { el: inp, close: function () { pop.remove(); btn.setAttribute('aria-expanded', 'false'); } };
+  }
+
+  /* ---------------- đóng khi bấm ra ngoài / Esc / cuộn ---------------- */
+  document.addEventListener('mousedown', function (e) {
+    if (!openUI || MODE !== 'pop') return;
+    if (e.target.closest('.uip-pop') || e.target === openUI.el || (e.target.closest('.uip-date') && e.target.closest('.uip-date').previousElementSibling === openUI.el)) return;
+    closeOpen();
+  }, true);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && openUI) { var el = openUI.el; closeOpen(); if (MODE === 'pop' && el.focus) el.focus(); }
+  });
+  window.addEventListener('resize', function () { if (MODE === 'pop') closeOpen(); });
+  document.addEventListener('scroll', function (e) {
+    if (MODE === 'pop' && openUI && !(e.target.closest && e.target.closest('.uip-pop'))) closeOpen();
+  }, true);
+
+  function init() {
+    Array.prototype.forEach.call(document.querySelectorAll('select'), enhanceSelect);
+    if (MODE === 'pop') Array.prototype.forEach.call(document.querySelectorAll('input[type="date"]'), enhanceDate);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+  window.UIPick = { refresh: init, close: closeOpen };
+})();
+</script>
+<!-- ===================== HẾT UIPICK ===================== -->
+
 </body>
 </html>

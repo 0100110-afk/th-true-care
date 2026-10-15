@@ -375,6 +375,13 @@
       font-size: 16px; outline: none; font-family: inherit; background: var(--surface-alt); color: var(--ink);
     }
     .field-group input:focus, .field-group select:focus { border-color: var(--brand-700); background: #fff; }
+    /* Ô chọn: bỏ kiểu mặc định của iPhone (chữ to 16px + mũi tên ⌃⌄), dùng chữ và mũi tên của app.
+       16px chỉ cần cho ô GÕ chữ (iOS phóng to khi focus); ô chọn giờ mở bảng trượt riêng nên không bị. */
+    .field-group select {
+      appearance: none; -webkit-appearance: none; height: 46px; padding: 0 38px 0 14px;
+      font-size: 14px; font-weight: 600; color: var(--ink);
+      background: var(--surface-alt) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' stroke='%2371828B' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 14px center; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
+    }
     .field-row { display: flex; gap: 10px; }
     .field-row .field-group { flex: 1; }
     .sheet-actions { display: flex; gap: 10px; margin-top: 6px; }
@@ -2908,7 +2915,9 @@
   .uip-handle{width:40px;height:4px;border-radius:4px;background:#D6DEE6;margin:8px auto 4px;}
   .uip-sh-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:4px 16px 8px;}
   .uip-sh-head h5{margin:0;font-size:16px;font-weight:700;color:#0B4C8C;}
-  .uip-x{border:0;background:#F3F8FC;width:32px;height:32px;border-radius:50%;font-size:20px;line-height:1;color:#71828B;cursor:pointer;flex-shrink:0;}
+  .uip-x{border:0;background:#F3F8FC;width:32px;height:32px;border-radius:50%;padding:0;color:#71828B;cursor:pointer;flex-shrink:0;
+    display:grid;place-items:center;}
+  .uip-x svg{width:16px;height:16px;display:block;}
   .uip-sheet .uip-search{margin:0 16px 8px;height:42px;border-radius:12px;}
   .uip-sheet .uip-search input{font-size:16px;}
   .uip-sheet .uip-opts{max-height:none;overflow:auto;padding:0 8px 14px;gap:0;}
@@ -3016,7 +3025,7 @@
     var sh = document.createElement('div'); sh.className = 'uip-sheet'; sh.setAttribute('role', 'dialog');
     var title = labelOf(sel);
     sh.setAttribute('aria-label', title);
-    sh.innerHTML = '<div class="uip-handle"></div><div class="uip-sh-head"><h5>' + esc(title) + '</h5><button type="button" class="uip-x" aria-label="Đóng">×</button></div><div class="uip-body"></div>';
+    sh.innerHTML = '<div class="uip-handle"></div><div class="uip-sh-head"><h5>' + esc(title) + '</h5><button type="button" class="uip-x" aria-label="Đóng"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div><div class="uip-body"></div>';
     document.body.appendChild(back); document.body.appendChild(sh);
     var body = sh.querySelector('.uip-body');
     body.style.cssText = 'display:flex;flex-direction:column;min-height:0;';

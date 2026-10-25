@@ -3284,5 +3284,34 @@ html.uip-desk ::-webkit-scrollbar-corner{background:transparent;}
 </script>
 <!-- ===================== HẾT UIPICK ===================== -->
 
+<!-- ===================== KHOÁ CUỘN TRANG KHI ĐANG MỞ BẢNG ===================== -->
+<style>
+  /* Cuộn tới cuối danh sách trong bảng không kéo theo trang phía sau */
+  .sheet, .uip-opts, .uip-sheet{overscroll-behavior:contain;}
+  /* Trên máy (không phải cảm ứng): khoá cuộn trang, giữ chỗ thanh cuộn để giao diện không bị xô ngang */
+  html.scroll-lock{overflow:hidden; scrollbar-gutter:stable;}
+</style>
+<script>
+/* Khi có bảng trượt / hộp thoại đang mở thì trang phía sau đứng yên: vuốt trong bảng chỉ cuộn bảng.
+   Điện thoại (iPhone bỏ qua overflow:hidden) -> ghim body tại chỗ rồi trả lại đúng vị trí khi đóng. */
+(function () {
+  var SEL = '.sheet.show, .uip-sheet';
+  var root = document.documentElement, locked = false, y = 0, pending = false;
+  var touch = window.matchMedia && matchMedia('(pointer:coarse)').matches;
+  function lock() {
+    locked = true; root.classList.add('scroll-lock');
+    if (touch) { var b = document.body.style; y = window.scrollY || 0; b.position = 'fixed'; b.top = (-y) + 'px'; b.left = '0'; b.right = '0'; b.width = '100%'; }
+  }
+  function unlock() {
+    locked = false; root.classList.remove('scroll-lock');
+    if (touch) { var b = document.body.style; b.position = b.top = b.left = b.right = b.width = ''; window.scrollTo(0, y); }
+  }
+  function check() { pending = false; var on = !!document.querySelector(SEL); if (on && !locked) lock(); else if (!on && locked) unlock(); }
+  new MutationObserver(function () { if (!pending) { pending = true; Promise.resolve().then(check); } })
+    .observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
+})();
+</script>
+<!-- ===================== HẾT KHOÁ CUỘN ===================== -->
+
 </body>
 </html>

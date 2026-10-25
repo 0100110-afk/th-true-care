@@ -5,7 +5,7 @@ Bản web/PWA của Apps Script **TH true care**. Giao diện giữ nguyên, d�
 ```
 Google Sheet "GT" (LISTING, CHI PHI, THANH LY,       ┐
                    GSBH GT, ASMSM GT, GSBH KA, ASMSM KA)
-Google Sheet "DG" (DON GIA BT / XD / SNK)             ┘ ── Sync.gs (15 phút/lần + menu) ──► Firestore th-truemart-info
+Google Sheet "DG" (DON GIA BT / XD / SNK)             ┘ ── Sync.gs (mỗi giờ 7h–19h + nút trên app + menu) ──► Firestore th-truemart-info
                                                                                               │  care_meta, care_chunks
 Google Sheet "TM" → APP USERS, cột "TH true care" ── Sync.gs bên TM ──► care_users ──────────┤
                                                                                               ▼
@@ -28,7 +28,15 @@ Google Sheet "TM" → APP USERS, cột "TH true care" ── Sync.gs bên TM ─
 4. Bên **file TM**: dán `Sync.gs` + rules mới của repo `th-truemart-info` → cột **TH true care** tự xuất hiện trong APP USERS.
 5. **Vercel** → Add New Project → Import repo này → Framework **Other**, không build → Deploy.
 6. **Firebase th-truemart-info → Authentication → Settings → Authorized domains** → thêm `th-true-care.vercel.app`.
+   Đăng nhập Google chạy qua chính tên miền app (`vercel.json` chuyển tiếp `/__/auth/*`, tên miền nằm trong
+   `PROXIED_AUTH_HOSTS` của `js/firebase-config.js`) → thêm `https://th-true-care.vercel.app/__/auth/handler` vào
+   **Google Cloud → Google Auth Platform → Clients → Web client → Authorized redirect URIs**.
+7. **Nút "Đồng bộ từ Google Sheet" trên app**: Apps Script file GT → **Triển khai → Tùy chọn triển khai mới → Ứng dụng web**
+   (Thực thi với tư cách: *Tôi* · Ai có quyền truy cập: *Bất kỳ ai*) → copy link `…/exec` → dán vào `SYNC_URL`
+   trong `js/firebase-config.js`. Chỉ admin cột *TH true care* bấm được. Sau này Sync.gs đổi `doPost`
+   thì **Triển khai → Quản lý → sửa → Phiên bản mới**.
 
+Đồng bộ tự động: quét dự phòng mỗi giờ trong khung 7h–19h (chỉ ghi mảnh nào thật sự đổi).
 Menu **App TH true care** trong file GT: *Đồng bộ ngay lên app*, *Cài đặt / cài lại đồng bộ*, *Xem tình trạng đồng bộ*.
 
 ## Cấu trúc

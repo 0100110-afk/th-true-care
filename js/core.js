@@ -514,6 +514,33 @@ var CareCore = (function () {
   function getDonGiaSnkRecords() { return readCachedRecords('dongia_snk_v1'); }
 
   /**
+   * Lọc theo THÁNG / NĂM (chọn nhiều): filters.thang = [1..12], filters.nam = [2023, ...] (mảng hoặc chuỗi "3,4").
+   * Trả về null khi không lọc; ngược lại là hàm nhận Date. Dòng không có ngày hợp lệ bị loại khi đang lọc,
+   * cùng quy ước với lọc Từ ngày / Đến ngày. Chạy cùng lúc với lọc ngày (phải thoả cả hai).
+   */
+  function parseIntList_(v) {
+    if (v === null || v === undefined || v === '') return [];
+    var a = Object.prototype.toString.call(v) === '[object Array]' ? v : String(v).split(',');
+    var out = [];
+    for (var i = 0; i < a.length; i++) {
+      var n = parseInt(a[i], 10);
+      if (!isNaN(n) && out.indexOf(n) === -1) out.push(n);
+    }
+    return out;
+  }
+  function makeMonthYearTest_(f) {
+    f = f || {};
+    var th = parseIntList_(f.thang), na = parseIntList_(f.nam);
+    if (!th.length && !na.length) return null;
+    return function (d) {
+      if (!d) return false;
+      if (th.length && th.indexOf(d.getMonth() + 1) === -1) return false;
+      if (na.length && na.indexOf(d.getFullYear()) === -1) return false;
+      return true;
+    };
+  }
+
+  /**
    * Trả 1 TRANG dữ liệu thô sheet "CHI PHI", lọc được theo mã thiết bị / khu vực / NCC / khoảng
    * ngày. Luôn phân trang ở server vì dữ liệu tới hàng chục nghìn dòng.
    *
@@ -534,6 +561,7 @@ var CareCore = (function () {
       var tuNgayDate = params.tuNgay ? parseInputDate(params.tuNgay) : null;
       var denNgayDate = params.denNgay ? parseInputDate(params.denNgay) : null;
       if (denNgayDate) denNgayDate.setHours(23, 59, 59, 999);
+      var myTest = makeMonthYearTest_(params);
 
       var codeFilter = params.maThietBi ? normalizeCode(params.maThietBi).toLowerCase() : '';
       var nccFilterKey = params.ncc ? labelKey_(params.ncc) : '';
@@ -557,6 +585,7 @@ var CareCore = (function () {
         var d = ngayIso ? parseDateSafe(ngayIso) : null;
         if (tuNgayDate && (!d || d.getTime() < tuNgayDate.getTime())) continue;
         if (denNgayDate && (!d || d.getTime() > denNgayDate.getTime())) continue;
+        if (myTest && !myTest(d)) continue;
 
         filtered.push(r);
       }
@@ -1139,6 +1168,7 @@ var CareCore = (function () {
       var tuNgayDate = filters.tuNgay ? parseInputDate(filters.tuNgay) : null;
       var denNgayDate = filters.denNgay ? parseInputDate(filters.denNgay) : null;
       if (denNgayDate) denNgayDate.setHours(23, 59, 59, 999);
+      var myTest = makeMonthYearTest_(filters);
 
       var nccStore = {};
       chiPhi.forEach(function (r, i) {
@@ -1154,6 +1184,7 @@ var CareCore = (function () {
         var d = ngayIso ? parseDateSafe(ngayIso) : null;
         if (tuNgayDate && (!d || d.getTime() < tuNgayDate.getTime())) return;
         if (denNgayDate && (!d || d.getTime() > denNgayDate.getTime())) return;
+        if (myTest && !myTest(d)) return;
 
         tallyLabel_(nccStore, ncc, 1, i);
       });
@@ -1197,6 +1228,7 @@ var CareCore = (function () {
       var tuNgayDate = filters.tuNgay ? parseInputDate(filters.tuNgay) : null;
       var denNgayDate = filters.denNgay ? parseInputDate(filters.denNgay) : null;
       if (denNgayDate) denNgayDate.setHours(23, 59, 59, 999);
+      var myTest = makeMonthYearTest_(filters);
 
       // Bộ lọc NCC so qua labelKey_ để khớp với danh sách đã gộp mà getFilterOptions trả về
       var nccFilterKey = filters.ncc ? labelKey_(filters.ncc) : '';
@@ -1222,6 +1254,7 @@ var CareCore = (function () {
 
         if (tuNgayDate && (!d || d.getTime() < tuNgayDate.getTime())) return;
         if (denNgayDate && (!d || d.getTime() > denNgayDate.getTime())) return;
+        if (myTest && !myTest(d)) return;
         if (nccFilterKey && labelKey_(ncc) !== nccFilterKey) return;
         if (filters.mien && filters.mien !== 'toanquoc' && rKey !== filters.mien) return;
 

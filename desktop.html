@@ -583,6 +583,41 @@
   .filter-item:has(> #filterNcc), .filter-item:has(> #rawFilterNcc), .filter-item:has(> #deviceFilterNpp){ flex-basis:250px; min-width:170px; }
   .filter-item > select{ width:100%; min-width:0; text-overflow:ellipsis; white-space:nowrap; overflow:hidden; }
   .filter-item input[type="date"]{ width:150px; }
+
+  /* ===== Bộ lọc thời gian: nút "Bộ lọc" mở bảng (Từ ngày / Đến ngày + Tháng / Năm chọn nhiều) ===== */
+  .tf-wrap{ position:relative; flex:0 0 auto; }
+  .tf-btn{ gap:8px; }
+  .tf-btn svg{ flex-shrink:0; }
+  .tf-btn.has{ background:var(--sky-100); border-color:var(--brand-500); color:var(--brand-900); }
+  .tf-badge{ display:none; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--brand-900); color:#fff; font-size:10.5px; font-weight:700; line-height:18px; text-align:center; }
+  .tf-btn.has .tf-badge{ display:inline-block; }
+  .tf-pop{ display:none; position:absolute; top:calc(100% + 8px); left:0; z-index:30; width:352px; padding:14px 16px 12px;
+    background:#fff; border:1px solid var(--border); border-radius:14px; box-shadow:0 18px 44px -14px rgba(11,76,140,.32); }
+  .tf-wrap.open .tf-pop{ display:block; }
+  .tf-row{ display:flex; gap:12px; }
+  .tf-row > .filter-item{ flex:1 1 0; min-width:0; }
+  .tf-dd{ position:relative; }
+  .tf-ddbtn{ height:var(--ctrl-h); width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:0 10px;
+    border:1px solid var(--border); border-radius:8px; background:var(--bg); color:var(--ink-900); font:inherit; font-size:12.5px; cursor:pointer; text-align:left; }
+  .tf-ddbtn:hover{ border-color:var(--brand-300); }
+  .tf-ddbtn.has{ background:var(--sky-100); border-color:var(--brand-500); color:var(--brand-900); font-weight:600; }
+  .tf-ddbtn svg{ flex-shrink:0; transition:transform .15s; }
+  .tf-dd.open .tf-ddbtn{ border-color:var(--brand-700); background:#fff; }
+  .tf-dd.open .tf-ddbtn svg{ transform:rotate(180deg); }
+  .tf-ddt{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tf-ddp{ display:none; position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:5; max-height:236px; overflow:auto; padding:4px;
+    background:#fff; border:1px solid var(--border); border-radius:10px; box-shadow:0 14px 30px -10px rgba(11,76,140,.3); }
+  .tf-dd.open .tf-ddp{ display:block; }
+  .tf-opt{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-radius:8px; font-size:12.5px; color:var(--ink-900); cursor:pointer; user-select:none; }
+  .tf-opt:hover{ background:var(--bg); }
+  .tf-opt svg{ width:14px; height:14px; color:var(--brand-700); visibility:hidden; flex-shrink:0; }
+  .tf-opt.on{ background:var(--sky-100); color:var(--brand-900); font-weight:600; }
+  .tf-opt.on svg{ visibility:visible; }
+  .tf-opt.all{ border-bottom:1px solid var(--border); border-radius:8px 8px 0 0; margin-bottom:4px; color:var(--brand-900); font-weight:600; }
+  .tf-opt.all.on{ background:transparent; }
+  .tf-hint{ margin:10px 0 0; font-size:11.5px; color:var(--ink-500); }
+  .tf-foot{ display:flex; justify-content:flex-end; margin-top:10px; padding-top:10px; border-top:1px solid var(--border); }
+  @media (max-width:700px){ .tf-pop{ width:min(352px, calc(100vw - 56px)); } .tf-row{ flex-wrap:wrap; } }
   .filter-item input:focus, .filter-item select:focus{ border-color:var(--brand-700); background:#fff; }
 
   .region-tabs{ display:flex; gap:8px; flex-wrap:wrap; }
@@ -861,13 +896,22 @@
               <label>Nhà cung cấp</label>
               <select id="filterNcc"><option value="">Tất cả</option></select>
             </div>
-            <div class="filter-item">
-              <label>Từ ngày</label>
-              <input type="date" id="filterTuNgay">
-            </div>
-            <div class="filter-item">
-              <label>Đến ngày</label>
-              <input type="date" id="filterDenNgay">
+            <div class="filter-item tf-wrap" id="tfDash">
+              <label>Thời gian</label>
+              <button type="button" class="btn secondary tf-btn" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg><span>Bộ lọc</span><span class="tf-badge"></span></button>
+              <div class="tf-pop" role="dialog" aria-label="Lọc theo thời gian">
+                <div class="tf-row">
+                  <div class="filter-item"><label>Từ ngày</label><input type="date" id="filterTuNgay"></div>
+                  <div class="filter-item"><label>Đến ngày</label><input type="date" id="filterDenNgay"></div>
+                </div>
+                <div class="tf-row" style="margin-top:12px;">
+                  <div class="filter-item tf-dd" data-key="thang"><label>Tháng</label><button type="button" class="tf-ddbtn" aria-haspopup="listbox" aria-expanded="false"><span class="tf-ddt"></span><svg viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button><div class="tf-ddp" role="listbox" aria-multiselectable="true"></div></div>
+                  <div class="filter-item tf-dd" data-key="nam"><label>Năm</label><button type="button" class="tf-ddbtn" aria-haspopup="listbox" aria-expanded="false"><span class="tf-ddt"></span><svg viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button><div class="tf-ddp" role="listbox" aria-multiselectable="true"></div></div>
+                </div>
+                <input type="hidden" id="filterThang"><input type="hidden" id="filterNam">
+                <p class="tf-hint">Tháng và năm bấm để chọn hoặc bỏ chọn, chọn được nhiều mục.</p>
+                <div class="tf-foot"><button type="button" class="btn" data-tf-close>Xong</button></div>
+              </div>
             </div>
             <div class="filter-item btn-slot">
               <button class="btn secondary" type="button" id="dashClearBtn" onclick="resetFilters()">Xóa lọc</button>
@@ -1156,13 +1200,22 @@
               <label>Nhà cung cấp</label>
               <select id="rawFilterNcc"><option value="">Tất cả</option></select>
             </div>
-            <div class="filter-item">
-              <label>Từ ngày</label>
-              <input type="date" id="rawFilterTuNgay">
-            </div>
-            <div class="filter-item">
-              <label>Đến ngày</label>
-              <input type="date" id="rawFilterDenNgay">
+            <div class="filter-item tf-wrap" id="tfRaw">
+              <label>Thời gian</label>
+              <button type="button" class="btn secondary tf-btn" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg><span>Bộ lọc</span><span class="tf-badge"></span></button>
+              <div class="tf-pop" role="dialog" aria-label="Lọc theo thời gian">
+                <div class="tf-row">
+                  <div class="filter-item"><label>Từ ngày</label><input type="date" id="rawFilterTuNgay"></div>
+                  <div class="filter-item"><label>Đến ngày</label><input type="date" id="rawFilterDenNgay"></div>
+                </div>
+                <div class="tf-row" style="margin-top:12px;">
+                  <div class="filter-item tf-dd" data-key="thang"><label>Tháng</label><button type="button" class="tf-ddbtn" aria-haspopup="listbox" aria-expanded="false"><span class="tf-ddt"></span><svg viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button><div class="tf-ddp" role="listbox" aria-multiselectable="true"></div></div>
+                  <div class="filter-item tf-dd" data-key="nam"><label>Năm</label><button type="button" class="tf-ddbtn" aria-haspopup="listbox" aria-expanded="false"><span class="tf-ddt"></span><svg viewBox="0 0 12 12" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button><div class="tf-ddp" role="listbox" aria-multiselectable="true"></div></div>
+                </div>
+                <input type="hidden" id="rawFilterThang"><input type="hidden" id="rawFilterNam">
+                <p class="tf-hint">Tháng và năm bấm để chọn hoặc bỏ chọn, chọn được nhiều mục.</p>
+                <div class="tf-foot"><button type="button" class="btn" data-tf-close>Xong</button></div>
+              </div>
             </div>
             <div class="filter-item btn-slot">
               <button class="btn secondary" type="button" id="rawClearBtn" onclick="resetRawFilters()">Xóa lọc</button>
@@ -2220,16 +2273,121 @@
     });
   }
 
+  /* ===== BỘ LỌC THỜI GIAN (Tổng quan + Dữ liệu chi phí) =====
+     Nút "Bộ lọc" mở bảng: Từ ngày / Đến ngày (ô ngày giữ nguyên) + droplist Tháng, Năm chọn NHIỀU mục.
+     Tháng / Năm lưu trong ô ẩn dạng "3,4" (cùng kiểu ô lọc khác, nên "Xóa lọc" và các nút chuyển trang đọc/ghi như cũ).
+     Điều kiện chạy CÙNG LÚC: Tháng 3 + Năm 2023 = chỉ tháng 3/2023. Chọn xong ~0,4 giây mới nạp lại để bấm nhiều mục không gọi máy chủ liên tục. */
+  var TF_YEAR_MIN_ = 2020;
+  var TF_CFG_ = [
+    { wrap: 'tfDash', tu: 'filterTuNgay', den: 'filterDenNgay', thang: 'filterThang', nam: 'filterNam', apply: function () { applyFilters(); } },
+    { wrap: 'tfRaw', tu: 'rawFilterTuNgay', den: 'rawFilterDenNgay', thang: 'rawFilterThang', nam: 'rawFilterNam', apply: function () { applyRawFilters(); } }
+  ];
+  var TF_CK_ = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+  function tfList_(id) {
+    var el = document.getElementById(id), out = [];
+    String(el && el.value || '').split(',').forEach(function (x) { var n = parseInt(x, 10); if (!isNaN(n) && out.indexOf(n) === -1) out.push(n); });
+    return out;
+  }
+  function tfItems_(key) {
+    var items = [], i;
+    if (key === 'thang') { for (i = 1; i <= 12; i++) items.push([i, 'Tháng ' + i]); }
+    else { for (i = new Date().getFullYear(); i >= TF_YEAR_MIN_; i--) items.push([i, 'Năm ' + i]); }
+    return items;
+  }
+  function tfText_(key, list) {
+    var s = list.slice().sort(function (a, b) { return a - b; });
+    if (!s.length) return key === 'thang' ? 'Tất cả tháng' : 'Tất cả năm';
+    if (key === 'thang') return s.length <= 3 ? 'Tháng ' + s.join(', ') : s.length + ' tháng đã chọn';
+    return s.length <= 2 ? 'Năm ' + s.join(', ') : s.length + ' năm đã chọn';
+  }
+  function tfRender_(c) {
+    var wrap = document.getElementById(c.wrap); if (!wrap) return;
+    var n = 0;
+    if (document.getElementById(c.tu).value || document.getElementById(c.den).value) n++;
+    ['thang', 'nam'].forEach(function (key) {
+      var list = tfList_(c[key]), dd = wrap.querySelector('.tf-dd[data-key="' + key + '"]');
+      if (list.length) n++;
+      dd.querySelector('.tf-ddt').textContent = tfText_(key, list);
+      dd.querySelector('.tf-ddbtn').classList.toggle('has', list.length > 0);
+      Array.prototype.forEach.call(dd.querySelectorAll('.tf-opt'), function (o) {
+        o.classList.toggle('on', o.getAttribute('data-all') ? !list.length : list.indexOf(+o.getAttribute('data-v')) !== -1);
+        o.setAttribute('aria-selected', o.classList.contains('on') ? 'true' : 'false');
+      });
+    });
+    var btn = wrap.querySelector('.tf-btn');
+    btn.classList.toggle('has', n > 0);
+    wrap.querySelector('.tf-badge').textContent = n || '';
+  }
+  function tfRefreshAll_() { TF_CFG_.forEach(tfRender_); }
+  (function tfInit_() {
+    var timers = {};
+    function closeAll(except) {
+      TF_CFG_.forEach(function (c) {
+        var w = document.getElementById(c.wrap); if (!w || w === except) return;
+        w.classList.remove('open'); w.querySelector('.tf-btn').setAttribute('aria-expanded', 'false');
+        Array.prototype.forEach.call(w.querySelectorAll('.tf-dd.open'), function (d) { d.classList.remove('open'); });
+      });
+    }
+    TF_CFG_.forEach(function (c) {
+      var wrap = document.getElementById(c.wrap); if (!wrap) return;
+      ['thang', 'nam'].forEach(function (key) {
+        var dd = wrap.querySelector('.tf-dd[data-key="' + key + '"]');
+        var h = '<div class="tf-opt all" data-all="1" role="option"><span>' + (key === 'thang' ? 'Tất cả tháng' : 'Tất cả năm') + '</span>' + TF_CK_ + '</div>';
+        tfItems_(key).forEach(function (it) { h += '<div class="tf-opt" role="option" data-v="' + it[0] + '"><span>' + it[1] + '</span>' + TF_CK_ + '</div>'; });
+        dd.querySelector('.tf-ddp').innerHTML = h;
+        dd.querySelector('.tf-ddbtn').addEventListener('click', function () {
+          var was = dd.classList.contains('open');
+          Array.prototype.forEach.call(wrap.querySelectorAll('.tf-dd.open'), function (d) { d.classList.remove('open'); });
+          if (!was) dd.classList.add('open');
+          dd.querySelector('.tf-ddbtn').setAttribute('aria-expanded', was ? 'false' : 'true');
+        });
+        dd.querySelector('.tf-ddp').addEventListener('click', function (e) {
+          var o = e.target.closest('.tf-opt'); if (!o) return;
+          var hid = document.getElementById(c[key]), list = tfList_(c[key]);
+          if (o.getAttribute('data-all')) list = [];
+          else { var v = +o.getAttribute('data-v'), i = list.indexOf(v); if (i >= 0) list.splice(i, 1); else list.push(v); }
+          hid.value = list.sort(function (a, b) { return a - b; }).join(',');
+          tfRender_(c); refreshClearBtns_();
+          clearTimeout(timers[c.wrap]);
+          timers[c.wrap] = setTimeout(c.apply, 400);
+        });
+      });
+      wrap.querySelector('.tf-btn').addEventListener('click', function () {
+        var open = !wrap.classList.contains('open');
+        closeAll(open ? wrap : null);
+        wrap.classList.toggle('open', open);
+        this.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+      wrap.querySelector('[data-tf-close]').addEventListener('click', function () { closeAll(null); });
+      tfRender_(c);
+    });
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      if (!t.closest) return;
+      // Lịch chọn ngày (UIPICK) nằm ngoài bảng lọc: bấm vào đó KHÔNG được đóng bảng lọc
+      if (t.closest('.tf-wrap') || t.closest('.uip-pop') || t.closest('.uip-sheet') || t.closest('.uip-back')) {
+        // bấm ra ngoài droplist (nhưng vẫn trong bảng) thì thu droplist lại
+        if (t.closest('.tf-pop') && !t.closest('.tf-dd')) {
+          Array.prototype.forEach.call(document.querySelectorAll('.tf-dd.open'), function (d) { d.classList.remove('open'); });
+        }
+        return;
+      }
+      closeAll(null);
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeAll(null); });
+  })();
+
   /* ===== "Xóa lọc" chỉ hiện khi đang lọc khác mặc định (đồng bộ cách làm của TH truemart) =====
      Đọc thẳng trạng thái trên giao diện: thẻ khu vực khác "Toàn quốc", ô chọn khác "Tất cả", ô ngày /
      ô mã có chữ. Mọi thao tác trong trang (chọn, gõ, bấm thẻ, Xóa lọc) đều cập nhật lại nút. */
   var CLEAR_GROUPS_ = [
-    { btn: 'dashClearBtn', region: 'regionTabs', fields: ['filterNcc', 'filterTuNgay', 'filterDenNgay'] },
+    { btn: 'dashClearBtn', region: 'regionTabs', fields: ['filterNcc', 'filterTuNgay', 'filterDenNgay', 'filterThang', 'filterNam'] },
     { btn: 'deviceClearBtn', region: 'deviceRegionTabs', fields: ['deviceFilterNpp', 'deviceFilterLoai', 'deviceFilterNhanHieu', 'deviceFilterBaoHanh', 'deviceSearchInput'] },
-    { btn: 'rawClearBtn', region: 'rawRegionTabs', fields: ['rawFilterNcc', 'rawFilterTuNgay', 'rawFilterDenNgay', 'rawCodeInput'] },
+    { btn: 'rawClearBtn', region: 'rawRegionTabs', fields: ['rawFilterNcc', 'rawFilterTuNgay', 'rawFilterDenNgay', 'rawFilterThang', 'rawFilterNam', 'rawCodeInput'] },
     { btn: 'gsbhClearBtn', region: 'gsbhKenhTabs', fields: ['gsbhMien', 'gsbhPc', 'gsbhSearch'] }
   ];
   function refreshClearBtns_() {
+    tfRefreshAll_();
     CLEAR_GROUPS_.forEach(function (g) {
       var b = document.getElementById(g.btn); if (!b) return;
       var reg = document.getElementById(g.region), act = reg ? reg.querySelector('.active') : null;
@@ -2565,7 +2723,9 @@
       mien: rawCurrentRegion,
       ncc: $('#rawFilterNcc').value,
       tuNgay: $('#rawFilterTuNgay').value,
-      denNgay: $('#rawFilterDenNgay').value
+      denNgay: $('#rawFilterDenNgay').value,
+      thang: tfList_('rawFilterThang'),
+      nam: tfList_('rawFilterNam')
     };
   }
 
@@ -2605,6 +2765,8 @@
     $('#rawCodeInput').value = '';
     $('#rawFilterTuNgay').value = '';
     $('#rawFilterDenNgay').value = '';
+    $('#rawFilterThang').value = '';
+    $('#rawFilterNam').value = '';
     // PHẢI xóa TRƯỚC khi gọi setRawRegion: reloadRawNccOptions giữ lại lựa chọn cũ nếu
     // nó còn nằm trong danh sách mới, nên không xóa ở đây thì "Xóa lọc" không bỏ được NCC.
     $('#rawFilterNcc').value = '';
@@ -2682,6 +2844,9 @@
     $('#rawCodeInput').value = '';
     $('#rawFilterTuNgay').value = dashFilters.tuNgay || '';
     $('#rawFilterDenNgay').value = dashFilters.denNgay || '';
+    $('#rawFilterThang').value = (dashFilters.thang || []).join(',');
+    $('#rawFilterNam').value = (dashFilters.nam || []).join(',');
+    tfRefreshAll_();
     rawCurrentRegion = dashFilters.mien || 'toanquoc';
     $all('#rawRegionTabs .region-tab').forEach(function (t) { t.classList.remove('active'); });
     $('#rawRegionTabs .region-tab[data-region="' + rawCurrentRegion + '"]').classList.add('active');
@@ -2702,6 +2867,9 @@
     $('#rawCodeInput').value = '';
     $('#rawFilterTuNgay').value = dashFilters.tuNgay || '';
     $('#rawFilterDenNgay').value = dashFilters.denNgay || '';
+    $('#rawFilterThang').value = (dashFilters.thang || []).join(',');
+    $('#rawFilterNam').value = (dashFilters.nam || []).join(',');
+    tfRefreshAll_();
     rawCurrentRegion = regionKey || 'toanquoc';
     $all('#rawRegionTabs .region-tab').forEach(function (t) { t.classList.remove('active'); });
     $('#rawRegionTabs .region-tab[data-region="' + rawCurrentRegion + '"]').classList.add('active');
@@ -2722,6 +2890,9 @@
     $('#rawCodeInput').value = '';
     $('#rawFilterTuNgay').value = dashFilters.tuNgay || '';
     $('#rawFilterDenNgay').value = dashFilters.denNgay || '';
+    $('#rawFilterThang').value = (dashFilters.thang || []).join(',');
+    $('#rawFilterNam').value = (dashFilters.nam || []).join(',');
+    tfRefreshAll_();
     rawCurrentRegion = dashFilters.mien || 'toanquoc';
     $all('#rawRegionTabs .region-tab').forEach(function (t) { t.classList.remove('active'); });
     $('#rawRegionTabs .region-tab[data-region="' + rawCurrentRegion + '"]').classList.add('active');
@@ -2908,7 +3079,9 @@
     return {
       mien: currentRegion,
       tuNgay: $('#filterTuNgay').value,
-      denNgay: $('#filterDenNgay').value
+      denNgay: $('#filterDenNgay').value,
+      thang: tfList_('filterThang'),
+      nam: tfList_('filterNam')
     };
   }
 
@@ -2950,6 +3123,8 @@
   function resetFilters() {
     $('#filterTuNgay').value = '';
     $('#filterDenNgay').value = '';
+    $('#filterThang').value = '';
+    $('#filterNam').value = '';
     // Xóa TRƯỚC khi gọi setRegion, cùng lý do như resetRawFilters.
     $('#filterNcc').value = '';
     setRegion('toanquoc');
@@ -2965,6 +3140,8 @@
     var filters = {
       tuNgay: $('#filterTuNgay').value,
       denNgay: $('#filterDenNgay').value,
+      thang: tfList_('filterThang'),
+      nam: tfList_('filterNam'),
       ncc: $('#filterNcc').value,
       mien: currentRegion
     };
@@ -3099,10 +3276,11 @@
       var p = String(r.thang).split('/');
       return Number(p[1]) * 100 + Number(p[0]) <= nowKey;
     });
-    var ranged = !!($('#filterTuNgay').value || $('#filterDenNgay').value);
+    var dated = !!($('#filterTuNgay').value || $('#filterDenNgay').value);
+    var ranged = dated || !!($('#filterThang').value || $('#filterNam').value);
     var mode = ranged ? (data.length > 36 ? 'year' : 'month') : trendMode_;
     $('#trendMode').classList.toggle('is-range', ranged);
-    $('#trendRangeNote').textContent = ranged ? (mode === 'year' ? 'Theo năm, trong khoảng ngày đang lọc' : 'Các tháng trong khoảng ngày đang lọc') : '';
+    $('#trendRangeNote').textContent = ranged ? (mode === 'year' ? (dated ? 'Theo năm, trong khoảng ngày đang lọc' : 'Theo năm, theo bộ lọc đang chọn') : (dated ? 'Các tháng trong khoảng ngày đang lọc' : 'Các tháng theo bộ lọc đang chọn')) : '';
     if (mode === 'year') {
       var byYear = {}, years = [];
       data.forEach(function (r) {

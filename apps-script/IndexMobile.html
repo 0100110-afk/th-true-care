@@ -370,6 +370,24 @@
       font-size: 14px; font-weight: 600; color: var(--ink);
       background: var(--surface-alt) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' stroke='%2371828B' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 14px center; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
     }
+    /* Droplist Tháng / Năm (chọn nhiều): mở ngay trong bảng lọc */
+    .tf-ddbtn { width: 100%; height: 46px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 14px;
+      border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-alt); color: var(--ink);
+      font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; }
+    .tf-ddbtn.has { background: var(--sky-100, #E3F1FC); border-color: var(--brand-500); color: var(--brand-900); }
+    .tf-ddbtn svg { flex-shrink: 0; transition: transform .15s; }
+    .tf-dd.open .tf-ddbtn { border-color: var(--brand-700); background: #fff; }
+    .tf-dd.open .tf-ddbtn svg { transform: rotate(180deg); }
+    .tf-ddt { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tf-ddp { display: none; margin-top: 6px; max-height: 210px; overflow: auto; padding: 4px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #fff; -webkit-overflow-scrolling: touch; }
+    .tf-dd.open .tf-ddp { display: block; }
+    .tf-opt { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 11px 12px; border-radius: 8px; font-size: 14px; color: var(--ink); cursor: pointer; user-select: none; }
+    .tf-opt svg { width: 15px; height: 15px; color: var(--brand-700); visibility: hidden; flex-shrink: 0; }
+    .tf-opt.on { background: var(--sky-100, #E3F1FC); color: var(--brand-900); font-weight: 700; }
+    .tf-opt.on svg { visibility: visible; }
+    .tf-opt.all { border-bottom: 1px solid var(--border); border-radius: 8px 8px 0 0; margin-bottom: 4px; color: var(--brand-900); font-weight: 700; }
+    .tf-opt.all.on { background: transparent; }
+    .tf-hint { margin: -4px 0 14px; font-size: 12px; color: var(--ink-muted); }
     .field-row { display: flex; gap: 10px; }
     .field-row .field-group { flex: 1; }
     .sheet-actions { display: flex; gap: 10px; margin-top: 6px; }
@@ -940,6 +958,10 @@
     <div class="field-group"><label>Từ ngày</label><input type="date" id="filterTuNgay"></div>
     <div class="field-group"><label>Đến ngày</label><input type="date" id="filterDenNgay"></div>
   </div>
+  <div class="field-group tf-dd" data-key="thang"><label>Tháng</label><button type="button" class="tf-ddbtn" aria-haspopup="listbox" aria-expanded="false"><span class="tf-ddt"></span><svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button><div class="tf-ddp" role="listbox" aria-multiselectable="true"></div></div>
+  <div class="field-group tf-dd" data-key="nam"><label>Năm</label><button type="button" class="tf-ddbtn" aria-haspopup="listbox" aria-expanded="false"><span class="tf-ddt"></span><svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button><div class="tf-ddp" role="listbox" aria-multiselectable="true"></div></div>
+  <input type="hidden" id="filterThang"><input type="hidden" id="filterNam">
+  <p class="tf-hint">Tháng và năm bấm để chọn hoặc bỏ chọn, chọn được nhiều mục.</p>
   <div class="sheet-actions">
     <button class="btn secondary" type="button" id="dashClearBtn" onclick="resetFilters()">Xóa lọc</button>
     <button class="btn" type="button" onclick="closeAllSheets();">Xong</button>
@@ -970,6 +992,10 @@
     <div class="field-group"><label>Từ ngày</label><input type="date" id="rawFilterTuNgay"></div>
     <div class="field-group"><label>Đến ngày</label><input type="date" id="rawFilterDenNgay"></div>
   </div>
+  <div class="field-group tf-dd" data-key="thang"><label>Tháng</label><button type="button" class="tf-ddbtn" aria-haspopup="listbox" aria-expanded="false"><span class="tf-ddt"></span><svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button><div class="tf-ddp" role="listbox" aria-multiselectable="true"></div></div>
+  <div class="field-group tf-dd" data-key="nam"><label>Năm</label><button type="button" class="tf-ddbtn" aria-haspopup="listbox" aria-expanded="false"><span class="tf-ddt"></span><svg viewBox="0 0 12 12" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5"/></svg></button><div class="tf-ddp" role="listbox" aria-multiselectable="true"></div></div>
+  <input type="hidden" id="rawFilterThang"><input type="hidden" id="rawFilterNam">
+  <p class="tf-hint">Tháng và năm bấm để chọn hoặc bỏ chọn, chọn được nhiều mục.</p>
   <div class="sheet-actions">
     <button class="btn secondary" type="button" id="rawClearBtn" onclick="resetRawFilters()">Xóa lọc</button>
     <button class="btn" type="button" onclick="closeAllSheets();">Xong</button>
@@ -1105,13 +1131,7 @@
 
     var meta = PAGE_META[page];
     $('#topbarTitle').textContent = meta.title;
-    var filterBtn = $('#topbarFilterBtn');
-    if (meta.filter) {
-      filterBtn.style.display = 'flex';
-      filterBtn.setAttribute('onclick', meta.filterFn + '()');
-    } else {
-      filterBtn.style.display = 'none';
-    }
+    applyTopbarFilterBtn_(page);
 
     if (page === 'dashboard' && !dashboardLoadedOnce) { dashboardLoadedOnce = true; initDashboard(); }
     if (page === 'dongia' && !donGiaLoadedOnce) { donGiaLoadedOnce = true; loadDonGiaCategory(currentDonGiaCategory); }
@@ -1120,6 +1140,19 @@
     if (page === 'gsbh' && !gsbhLoadedOnce) { gsbhLoadedOnce = true; loadGsbh(); }
 
     window.scrollTo(0, 0);   // đang cuộn giữa danh sách mà đổi trang thì trang mới phải bắt đầu từ đầu
+  }
+
+  /** Hiện / ẩn nút phễu trên thanh tiêu đề theo trang đang mở. Gọi cả lúc khởi động để trang Tổng quan
+      có phễu ngay từ đầu (trước đây chỉ switchPage mới bật nó, nên phải bấm sang trang rồi mới thấy). */
+  function applyTopbarFilterBtn_(page) {
+    var meta = PAGE_META[page], filterBtn = $('#topbarFilterBtn');
+    if (!meta || !filterBtn) return;
+    if (meta.filter) {
+      filterBtn.style.display = 'flex';
+      filterBtn.setAttribute('onclick', meta.filterFn + '()');
+    } else {
+      filterBtn.style.display = 'none';
+    }
   }
 
   function openActiveFilterSheet() {
@@ -1134,6 +1167,7 @@
   function closeAllSheets() {
     $('#sheetBackdrop').classList.remove('show');
     $all('.sheet').forEach(function (s) { s.classList.remove('show'); });
+    $all('.tf-dd.open').forEach(function (d) { d.classList.remove('open'); });
   }
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeAllSheets(); });
 
@@ -1791,15 +1825,85 @@
     $('#gsbhClearBtn').style.display = ''; $('#gsbhClearBtn').style.visibility = (gsbhKenh || mien || pc || q) ? 'visible' : 'hidden';
   }
 
+  /* ===== DROPLIST THÁNG / NĂM (chọn nhiều) trong bảng lọc Tổng quan + Dữ liệu chi phí =====
+     Giá trị lưu trong ô ẩn dạng "3,4". Chạy CÙNG LÚC với Từ ngày / Đến ngày (Tháng 3 + Năm 2023 = chỉ tháng 3/2023).
+     Chọn xong ~0,4 giây mới nạp lại để bấm nhiều mục không gọi máy chủ liên tục. */
+  var TF_YEAR_MIN_ = 2020;
+  var TF_CFG_ = [
+    { sheet: 'dashFilterSheet', thang: 'filterThang', nam: 'filterNam', apply: function () { applyFilters(); } },
+    { sheet: 'rawFilterSheet', thang: 'rawFilterThang', nam: 'rawFilterNam', apply: function () { applyRawFilters(); } }
+  ];
+  var TF_CK_ = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+  function tfList_(id) {
+    var el = document.getElementById(id), out = [];
+    String(el && el.value || '').split(',').forEach(function (x) { var n = parseInt(x, 10); if (!isNaN(n) && out.indexOf(n) === -1) out.push(n); });
+    return out;
+  }
+  function tfItems_(key) {
+    var items = [], i;
+    if (key === 'thang') { for (i = 1; i <= 12; i++) items.push([i, 'Tháng ' + i]); }
+    else { for (i = new Date().getFullYear(); i >= TF_YEAR_MIN_; i--) items.push([i, 'Năm ' + i]); }
+    return items;
+  }
+  function tfText_(key, list) {
+    var s = list.slice().sort(function (a, b) { return a - b; });
+    if (!s.length) return key === 'thang' ? 'Tất cả tháng' : 'Tất cả năm';
+    if (key === 'thang') return s.length <= 3 ? 'Tháng ' + s.join(', ') : s.length + ' tháng đã chọn';
+    return s.length <= 2 ? 'Năm ' + s.join(', ') : s.length + ' năm đã chọn';
+  }
+  function tfRender_(c) {
+    var sheet = document.getElementById(c.sheet); if (!sheet) return;
+    ['thang', 'nam'].forEach(function (key) {
+      var list = tfList_(c[key]), dd = sheet.querySelector('.tf-dd[data-key="' + key + '"]');
+      dd.querySelector('.tf-ddt').textContent = tfText_(key, list);
+      dd.querySelector('.tf-ddbtn').classList.toggle('has', list.length > 0);
+      Array.prototype.forEach.call(dd.querySelectorAll('.tf-opt'), function (o) {
+        o.classList.toggle('on', o.getAttribute('data-all') ? !list.length : list.indexOf(+o.getAttribute('data-v')) !== -1);
+        o.setAttribute('aria-selected', o.classList.contains('on') ? 'true' : 'false');
+      });
+    });
+  }
+  function tfRefreshAll_() { TF_CFG_.forEach(tfRender_); }
+  (function tfInit_() {
+    var timers = {};
+    TF_CFG_.forEach(function (c) {
+      var sheet = document.getElementById(c.sheet); if (!sheet) return;
+      ['thang', 'nam'].forEach(function (key) {
+        var dd = sheet.querySelector('.tf-dd[data-key="' + key + '"]');
+        var h = '<div class="tf-opt all" data-all="1" role="option"><span>' + (key === 'thang' ? 'Tất cả tháng' : 'Tất cả năm') + '</span>' + TF_CK_ + '</div>';
+        tfItems_(key).forEach(function (it) { h += '<div class="tf-opt" role="option" data-v="' + it[0] + '"><span>' + it[1] + '</span>' + TF_CK_ + '</div>'; });
+        dd.querySelector('.tf-ddp').innerHTML = h;
+        dd.querySelector('.tf-ddbtn').addEventListener('click', function () {
+          var was = dd.classList.contains('open');
+          Array.prototype.forEach.call(sheet.querySelectorAll('.tf-dd.open'), function (d) { d.classList.remove('open'); });
+          if (!was) dd.classList.add('open');
+          dd.querySelector('.tf-ddbtn').setAttribute('aria-expanded', was ? 'false' : 'true');
+        });
+        dd.querySelector('.tf-ddp').addEventListener('click', function (e) {
+          var o = e.target.closest('.tf-opt'); if (!o) return;
+          var hid = document.getElementById(c[key]), list = tfList_(c[key]);
+          if (o.getAttribute('data-all')) list = [];
+          else { var v = +o.getAttribute('data-v'), i = list.indexOf(v); if (i >= 0) list.splice(i, 1); else list.push(v); }
+          hid.value = list.sort(function (a, b) { return a - b; }).join(',');
+          tfRender_(c); refreshClearBtns_();
+          clearTimeout(timers[c.sheet]);
+          timers[c.sheet] = setTimeout(c.apply, 400);
+        });
+      });
+      tfRender_(c);
+    });
+  })();
+
   /* ===== "Xóa lọc" chỉ hiện khi đang lọc khác mặc định (đồng bộ cách làm của TH truemart) =====
      Đọc thẳng trạng thái trên giao diện: thẻ khu vực khác "Toàn quốc", ô chọn khác "Tất cả", ô ngày /
      ô mã có chữ. Mọi thao tác trong trang (chọn, gõ, bấm thẻ, Xóa lọc) đều cập nhật lại nút. */
   var CLEAR_GROUPS_ = [
-    { btn: 'dashClearBtn', region: 'regionTabs', fields: ['filterNcc', 'filterTuNgay', 'filterDenNgay'] },
+    { btn: 'dashClearBtn', region: 'regionTabs', fields: ['filterNcc', 'filterTuNgay', 'filterDenNgay', 'filterThang', 'filterNam'] },
     { btn: 'deviceClearBtn', region: 'deviceRegionTabs', fields: ['deviceFilterNpp', 'deviceFilterLoai', 'deviceFilterNhanHieu', 'deviceFilterBaoHanh', 'deviceSearchInput'] },
-    { btn: 'rawClearBtn', region: 'rawRegionTabs', fields: ['rawFilterNcc', 'rawFilterTuNgay', 'rawFilterDenNgay', 'rawCodeInput'] }
+    { btn: 'rawClearBtn', region: 'rawRegionTabs', fields: ['rawFilterNcc', 'rawFilterTuNgay', 'rawFilterDenNgay', 'rawFilterThang', 'rawFilterNam', 'rawCodeInput'] }
   ];
   function refreshClearBtns_() {
+    tfRefreshAll_();
     CLEAR_GROUPS_.forEach(function (g) {
       var b = document.getElementById(g.btn); if (!b) return;
       var reg = document.getElementById(g.region), act = reg ? reg.querySelector('.active') : null;
@@ -2168,7 +2272,9 @@
       mien: rawCurrentRegion,
       ncc: $('#rawFilterNcc').value,
       tuNgay: $('#rawFilterTuNgay').value,
-      denNgay: $('#rawFilterDenNgay').value
+      denNgay: $('#rawFilterDenNgay').value,
+      thang: tfList_('rawFilterThang'),
+      nam: tfList_('rawFilterNam')
     };
   }
 
@@ -2209,6 +2315,8 @@
     $('#rawCodeInput').value = '';
     $('#rawFilterTuNgay').value = '';
     $('#rawFilterDenNgay').value = '';
+    $('#rawFilterThang').value = '';
+    $('#rawFilterNam').value = '';
     // PHẢI xóa TRƯỚC khi gọi setRawRegion: reloadRawNccOptions giữ lại lựa chọn cũ nếu nó
     // còn trong danh sách mới, nên không xóa ở đây thì "Xóa lọc" không bỏ được NCC.
     $('#rawFilterNcc').value = '';
@@ -2301,6 +2409,9 @@
 
     $('#rawCodeInput').value = '';
     $('#rawFilterTuNgay').value = dashFilters.tuNgay || '';
+    $('#rawFilterThang').value = (dashFilters.thang || []).join(',');
+    $('#rawFilterNam').value = (dashFilters.nam || []).join(',');
+    tfRefreshAll_();
     $('#rawFilterDenNgay').value = dashFilters.denNgay || '';
     rawCurrentRegion = dashFilters.mien || 'toanquoc';
     $all('#rawRegionTabs .seg-item').forEach(function (t) { t.classList.remove('active'); });
@@ -2321,6 +2432,9 @@
 
     $('#rawCodeInput').value = '';
     $('#rawFilterTuNgay').value = dashFilters.tuNgay || '';
+    $('#rawFilterThang').value = (dashFilters.thang || []).join(',');
+    $('#rawFilterNam').value = (dashFilters.nam || []).join(',');
+    tfRefreshAll_();
     $('#rawFilterDenNgay').value = dashFilters.denNgay || '';
     rawCurrentRegion = regionKey || 'toanquoc';
     $all('#rawRegionTabs .seg-item').forEach(function (t) { t.classList.remove('active'); });
@@ -2341,6 +2455,9 @@
 
     $('#rawCodeInput').value = '';
     $('#rawFilterTuNgay').value = dashFilters.tuNgay || '';
+    $('#rawFilterThang').value = (dashFilters.thang || []).join(',');
+    $('#rawFilterNam').value = (dashFilters.nam || []).join(',');
+    tfRefreshAll_();
     $('#rawFilterDenNgay').value = dashFilters.denNgay || '';
     rawCurrentRegion = dashFilters.mien || 'toanquoc';
     $all('#rawRegionTabs .seg-item').forEach(function (t) { t.classList.remove('active'); });
@@ -2538,7 +2655,9 @@
     return {
       mien: currentRegion,
       tuNgay: $('#filterTuNgay').value,
-      denNgay: $('#filterDenNgay').value
+      denNgay: $('#filterDenNgay').value,
+      thang: tfList_('filterThang'),
+      nam: tfList_('filterNam')
     };
   }
 
@@ -2576,6 +2695,8 @@
   function resetFilters() {
     $('#filterTuNgay').value = '';
     $('#filterDenNgay').value = '';
+    $('#filterThang').value = '';
+    $('#filterNam').value = '';
     $('#filterNcc').value = '';   // xóa TRƯỚC setRegion, cùng lý do như resetRawFilters
     setRegion('toanquoc');
   }
@@ -2590,6 +2711,8 @@
     var filters = {
       tuNgay: $('#filterTuNgay').value,
       denNgay: $('#filterDenNgay').value,
+      thang: tfList_('filterThang'),
+      nam: tfList_('filterNam'),
       ncc: $('#filterNcc').value,
       mien: currentRegion
     };
@@ -2857,6 +2980,7 @@
 
   /* ===================== INIT ===================== */
   dashboardLoadedOnce = true;
+  applyTopbarFilterBtn_(currentPage);
   initDashboard();
 </script>
 <div class="sync-card" id="syncCard" role="status" aria-live="polite"></div>

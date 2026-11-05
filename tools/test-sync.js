@@ -188,6 +188,28 @@ ok(dash && dash.success !== false, 'getDashboardData');
 ok(A.getDanhSachThietBiFilterOptions({}) != null, 'getDanhSachThietBiFilterOptions');
 const ds = A.getDanhSachThietBiPageData({ page: 1, pageSize: 20 });
 ok(ds && JSON.stringify(ds).includes('TC001'), 'getDanhSachThietBiPageData');
+// ---- Lọc THÁNG / NĂM (chọn nhiều, chạy cùng lúc với lọc ngày) ----
+{
+  const cnt = (f) => A.getChiPhiPageData(Object.assign({ page: 1, pageSize: 1 }, f)).totalRecords;
+  const all = cnt({});
+  let sumM = 0; for (let m = 1; m <= 12; m++) sumM += cnt({ thang: [m] });
+  ok(sumM === all, 'lọc tháng: 12 tháng cộng lại = tổng (' + sumM + '/' + all + ')');
+  ok(cnt({ nam: [2025] }) + cnt({ nam: [2026] }) === all, 'lọc năm: 2025 + 2026 = tổng');
+  ok(cnt({ nam: [2026] }) === 2, 'lọc năm 2026 = 2 dòng thêm lúc test');
+  ok(cnt({ thang: [6], nam: [2026] }) === 2, 'tháng 6 + năm 2026 = 2 dòng (chạy cùng lúc)');
+  ok(cnt({ thang: [6], nam: [2025] }) + cnt({ thang: [6], nam: [2026] }) === cnt({ thang: [6] }), 'tháng 6 tách theo năm cộng lại đúng');
+  ok(cnt({ thang: [3, 4] }) === cnt({ thang: [3] }) + cnt({ thang: [4] }) && cnt({ thang: '3,4' }) === cnt({ thang: [3, 4] }), 'chọn nhiều tháng: mảng và chuỗi "3,4" như nhau');
+  ok(cnt({ thang: [], nam: [] }) === all && cnt({ thang: '', nam: '' }) === all, 'để trống = không lọc');
+  ok(cnt({ thang: [3], tuNgay: '2025-03-01', denNgay: '2025-03-31' }) === cnt({ thang: [3], nam: [2025] }), 'lọc ngày + tháng chạy cùng lúc');
+  ok(cnt({ thang: [3], tuNgay: '2025-04-01', denNgay: '2025-12-31' }) === 0, 'tháng 3 nhưng khoảng ngày từ tháng 4 = 0 dòng');
+  const dY = A.getDashboardData({ nam: [2026] });
+  ok(dY.success !== false && dY.tongChiPhi === 1000000, 'dashboard lọc năm 2026: tổng chi phí = ' + dY.tongChiPhi);
+  const dM = A.getDashboardData({ thang: [6], nam: [2026] });
+  ok(dM.tongChiPhi === 1000000 && dM.soLuotSuaChua === 2, 'dashboard tháng 6/2026');
+  ok(A.getDashboardData({ thang: [1], nam: [2019] }).tongChiPhi === 0, 'dashboard: tháng/năm không có dữ liệu = 0');
+  const foY = A.getFilterOptions({ nam: [2026] });
+  ok(foY.success && foY.nccList.length === 1 && foY.nccList[0] === 'NCC mới', 'danh sách NCC cũng theo bộ lọc năm');
+}
 const fr = CareCore.freshness();
 ok(fr && /\d\d:\d\d \d\d\/\d\d\/\d{4}/.test(fr.text), 'freshness ' + fr.text);
 

@@ -638,6 +638,9 @@
       </div>
     </div>
     <div class="topbar-actions">
+      <button class="icon-btn" id="topbarClearBtn" type="button" style="display:none" onclick="clearActiveFilters()" title="Xóa lọc" aria-label="Xóa lọc">
+        <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="20 3 2 3 9.5 11.7 9.5 18 13.5 20 13.5 11.7 20 3"></polygon><line x1="16.5" y1="14.5" x2="21.5" y2="19.5"></line><line x1="21.5" y1="14.5" x2="16.5" y2="19.5"></line></svg></span>
+      </button>
       <button class="icon-btn" id="topbarFilterBtn" type="button" style="display:none" onclick="openActiveFilterSheet()" aria-label="Bộ lọc">
         <span class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg></span>
       </button>
@@ -1153,6 +1156,16 @@
     } else {
       filterBtn.style.display = 'none';
     }
+    if (typeof refreshClearBtns_ === 'function') refreshClearBtns_();   // icon Xóa lọc nhanh theo trang vừa mở
+  }
+
+  /** Icon "Xóa lọc nhanh" trên thanh tiêu đề: xóa bộ lọc của trang đang mở, không cần mở bảng lọc.
+      Dùng đúng các hàm đặt lại của nút "Xóa lọc" trong bảng lọc. */
+  var CLEAR_FN_BY_PAGE_ = { dashboard: 'resetFilters', devicelist: 'resetDeviceFilters', rawdata: 'resetRawFilters' };
+  var CLEAR_BTN_BY_PAGE_ = { dashboard: 'dashClearBtn', devicelist: 'deviceClearBtn', rawdata: 'rawClearBtn' };
+  function clearActiveFilters() {
+    var fn = CLEAR_FN_BY_PAGE_[currentPage];
+    if (fn && typeof window[fn] === 'function') window[fn]();
   }
 
   function openActiveFilterSheet() {
@@ -1911,7 +1924,15 @@
       g.fields.forEach(function (id) { var el = document.getElementById(id); if (el && String(el.value || '').trim()) on = true; });
       /* Nút Xoá lọc GIỮ CHỖ cố định (visibility) — hiện/ẩn không làm các ô lọc bên cạnh nhảy vị trí */
       (b.closest('.filter-item') || b).style.visibility = on ? 'visible' : 'hidden';
+      g.on_ = on;
     });
+    // Icon Xóa lọc nhanh trên thanh tiêu đề: chỉ hiện khi trang đang mở có lọc
+    var qb = document.getElementById('topbarClearBtn');
+    if (qb) {
+      var show = false;
+      CLEAR_GROUPS_.forEach(function (g) { if (g.btn === CLEAR_BTN_BY_PAGE_[currentPage] && g.on_) show = true; });
+      qb.style.display = show ? 'flex' : 'none';
+    }
   }
   ['change', 'input', 'click'].forEach(function (ev) {
     document.addEventListener(ev, function () { setTimeout(refreshClearBtns_, 0); }, true);

@@ -585,6 +585,8 @@
   .filter-item input[type="date"]{ width:150px; }
 
   /* ===== Bộ lọc thời gian: nút "Bộ lọc" mở bảng (Từ ngày / Đến ngày + Tháng / Năm chọn nhiều) ===== */
+  /* Cụm "Bộ lọc" + "Xóa lọc": hai nút sát nhau 8px (bằng khoảng cách giữa các thẻ khu vực), luôn xuống hàng cùng nhau */
+  .tf-group{ display:flex; gap:8px; align-items:flex-end; flex:0 0 auto; }
   .tf-wrap{ position:relative; flex:0 0 auto; }
   .tf-btn{ gap:8px; }
   .tf-btn svg{ flex-shrink:0; }
@@ -725,6 +727,7 @@
     .filter-bar{ flex-direction:column; align-items:stretch; }
     .filter-item.btn-slot{ align-self:stretch; }
     .filter-item.btn-slot .btn{ width:100%; }
+    .tf-group{ flex-direction:column; align-items:stretch; gap:12px; }   /* hẹp: "Bộ lọc" rồi "Xóa lọc" xếp dọc như cũ */
   }
   @media (max-width:820px){
     /* .sidebar.collapsed có độ ưu tiên cao hơn .sidebar nên phải nhắc lại CẢ 2 selector,
@@ -896,6 +899,7 @@
               <label>Nhà cung cấp</label>
               <select id="filterNcc"><option value="">Tất cả</option></select>
             </div>
+            <div class="tf-group">
             <div class="filter-item tf-wrap" id="tfDash">
               <label>Thời gian</label>
               <button type="button" class="btn secondary tf-btn" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg><span>Bộ lọc</span><span class="tf-badge"></span></button>
@@ -916,6 +920,7 @@
             <div class="filter-item btn-slot">
               <button class="btn secondary" type="button" id="dashClearBtn" onclick="resetFilters()">Xóa lọc</button>
             </div>
+          </div>
           </div>
         </div>
 
@@ -1200,6 +1205,7 @@
               <label>Nhà cung cấp</label>
               <select id="rawFilterNcc"><option value="">Tất cả</option></select>
             </div>
+            <div class="tf-group">
             <div class="filter-item tf-wrap" id="tfRaw">
               <label>Thời gian</label>
               <button type="button" class="btn secondary tf-btn" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg><span>Bộ lọc</span><span class="tf-badge"></span></button>
@@ -1220,6 +1226,7 @@
             <div class="filter-item btn-slot">
               <button class="btn secondary" type="button" id="rawClearBtn" onclick="resetRawFilters()">Xóa lọc</button>
             </div>
+          </div>
           </div>
         </div>
 

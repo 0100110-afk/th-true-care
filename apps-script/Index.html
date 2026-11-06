@@ -574,9 +574,9 @@
   /* Cụm "Bộ lọc" + "Xóa lọc": hai nút sát nhau 8px (bằng khoảng cách giữa các thẻ khu vực), luôn xuống hàng cùng nhau */
   .tf-group{ display:flex; gap:8px; align-items:flex-end; flex:0 0 auto; }
   .tf-wrap{ position:relative; flex:0 0 auto; }
-  .tf-btn{ gap:8px; }
+  .btn.secondary.tf-btn{ gap:8px; color:var(--ink-500); }   /* chữ "Bộ lọc" cùng kiểu chữ thẻ khu vực */
   .tf-btn svg{ flex-shrink:0; }
-  .tf-btn.has{ background:var(--sky-100); border-color:var(--brand-500); color:var(--brand-900); }
+  .btn.secondary.tf-btn.has{ background:var(--sky-100); border-color:var(--brand-500); color:var(--brand-900); }
   .tf-badge{ display:none; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--brand-900); color:#fff; font-size:10.5px; font-weight:700; line-height:18px; text-align:center; }
   .tf-btn.has .tf-badge{ display:inline-block; }
   .tf-pop{ display:none; position:absolute; top:calc(100% + 8px); left:0; z-index:30; width:352px; padding:14px 16px 12px;
@@ -586,9 +586,9 @@
   .tf-row > .filter-item{ flex:1 1 0; min-width:0; }
   .tf-dd{ position:relative; }
   .tf-ddbtn{ height:var(--ctrl-h); width:100%; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:0 10px;
-    border:1px solid var(--border); border-radius:8px; background:var(--bg); color:var(--ink-900); font:inherit; font-size:12.5px; cursor:pointer; text-align:left; }
+    border:1px solid var(--border); border-radius:8px; background:var(--bg); color:#A3B1B8; font:inherit; font-size:12.5px; font-weight:400; cursor:pointer; text-align:left; }   /* chưa chọn: chữ nhạt như "Chọn ngày" */
   .tf-ddbtn:hover{ border-color:var(--brand-300); }
-  .tf-ddbtn.has{ background:var(--sky-100); border-color:var(--brand-500); color:var(--brand-900); font-weight:600; }
+  .tf-ddbtn.has{ background:var(--sky-100); border-color:var(--brand-500); color:var(--ink-900); font-weight:500; }   /* đã chọn: cùng kiểu chữ ô ngày đã chọn */
   .tf-ddbtn svg{ flex-shrink:0; transition:transform .15s; }
   .tf-dd.open .tf-ddbtn{ border-color:var(--brand-700); background:#fff; }
   .tf-dd.open .tf-ddbtn svg{ transform:rotate(180deg); }

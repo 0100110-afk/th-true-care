@@ -372,9 +372,9 @@
     }
     /* Droplist Tháng / Năm (chọn nhiều): mở ngay trong bảng lọc */
     .tf-ddbtn { width: 100%; height: 46px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 14px;
-      border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-alt); color: var(--ink);
-      font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; text-align: left; }
-    .tf-ddbtn.has { background: var(--sky-100, #E3F1FC); border-color: var(--brand-500); color: var(--brand-900); }
+      border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-alt); color: #A3B1B8;
+      font: inherit; font-size: 14px; font-weight: 400; cursor: pointer; text-align: left; }   /* chưa chọn: chữ nhạt như "Chọn ngày" */
+    .tf-ddbtn.has { background: var(--sky-100, #E3F1FC); border-color: var(--brand-500); color: var(--ink); font-weight: 600; }   /* đã chọn: cùng kiểu chữ ô ngày đã chọn */
     .tf-ddbtn svg { flex-shrink: 0; transition: transform .15s; }
     .tf-dd.open .tf-ddbtn { border-color: var(--brand-700); background: #fff; }
     .tf-dd.open .tf-ddbtn svg { transform: rotate(180deg); }
